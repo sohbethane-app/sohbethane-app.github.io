@@ -117,9 +117,9 @@ a{color:var(--acc2);text-decoration:none}
 .s-tab:hover{color:var(--txt);background:rgba(255,255,255,.04)}
 .s-tab.active{color:var(--acc2);border-bottom-color:var(--acc2);background:rgba(64,145,108,.06)}
 .s-tab-icon{font-size:1rem;line-height:1}
-/* Yeni oluştur sekmeleri (Grup+, Arşiv+) */
-.s-tab-new{flex:1 1 90px;padding:.6rem .4rem;background:none;color:var(--acc2);font-size:.72rem;font-weight:700;text-align:center;transition:.2s;border-bottom:2px dashed rgba(64,145,108,.35);display:flex;flex-direction:column;align-items:center;gap:.15rem;min-height:50px;white-space:nowrap}
-.s-tab-new:hover{background:rgba(64,145,108,.1);border-bottom-color:var(--acc2)}
+/* Grup/Arşiv liste içi "yeni oluştur" butonu */
+.room-create-btn{display:block;width:calc(100% - 1rem);margin:.5rem auto .3rem;padding:.55rem 1rem;background:rgba(64,145,108,.1);border:1.5px dashed rgba(64,145,108,.4);border-radius:10px;color:var(--acc2);font-size:.82rem;font-weight:600;text-align:center;transition:.2s;letter-spacing:.01em}
+.room-create-btn:hover{background:rgba(64,145,108,.2);border-color:var(--acc2);color:#74c69d}
 .icon-btn{background:none;color:var(--txt2);padding:.4rem;border-radius:6px;font-size:1.1rem;transition:.2s}
 .icon-btn:hover{background:var(--bg3);color:var(--txt)}
 #user-search-wrap{padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
@@ -568,10 +568,9 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     </div>
     <div id="sidebar-tabs">
       <button class="s-tab active" id="stab-dm" onclick="switchSideTab(this,'dm')"><span class="s-tab-icon">💬</span>Sohbetler</button>
-      <button class="s-tab" id="stab-grup" onclick="switchSideTab(this,'grup')"><span class="s-tab-icon">🏠</span>Odalar</button>
+      <button class="s-tab" id="stab-grup" onclick="switchSideTab(this,'grup')"><span class="s-tab-icon">👥</span>Gruplar</button>
+      <button class="s-tab" id="stab-arsiv" onclick="switchSideTab(this,'arsiv')"><span class="s-tab-icon">📁</span>Arşivler</button>
       <button class="s-tab" id="stab-duvar" onclick="switchSideTab(this,'duvar')"><span class="s-tab-icon">📰</span>Zaman Tüneli</button>
-      <button class="s-tab-new" onclick="newRoomTab('grup');openModal('new-room-modal')"><span class="s-tab-icon">👥</span>Grup +</button>
-      <button class="s-tab-new" onclick="newRoomTab('arsiv');openModal('new-room-modal')"><span class="s-tab-icon">📁</span>Arşiv +</button>
     </div>
     <!-- Sub-tabs for Zaman Tüneli -->
     <div id="tunel-subtabs">
@@ -1634,13 +1633,22 @@ async function renderRoomList(rooms){
   const tab = S.sideTab || 'dm';
   let filtered = (rooms||[]).filter(r=>{
     if(tab==='dm') return r.tur==='dm';
-    if(tab==='grup') return r.tur==='grup'||r.tur==='arsiv';
+    if(tab==='grup') return r.tur==='grup';
+    if(tab==='arsiv') return r.tur==='arsiv';
     return r.tur==='dm';
   });
-  const emptyIcons={'dm':'💬','grup':'🏠'};
-  const emptyTexts={'dm':'Henüz sohbet yok','grup':'Henüz oda yok'};
-  if(!filtered.length){ list.innerHTML=`<div class="empty-state"><span class="icon">${emptyIcons[tab]||'💬'}</span><p>${emptyTexts[tab]||'Boş'}</p></div>`; return; }
-  list.innerHTML='';
+  const emptyIcons={'dm':'💬','grup':'👥','arsiv':'📁'};
+  const emptyTexts={'dm':'Henüz sohbet yok','grup':'Henüz grup yok. Aşağıdaki buton ile oluşturabilirsin.','arsiv':'Henüz arşiv yok. Aşağıdaki buton ile oluşturabilirsin.'};
+  const createBtnHtml = tab==='grup'
+    ? `<button class="room-create-btn" onclick="newRoomTab('grup');openModal('new-room-modal')">➕ Yeni Grup Oluştur</button>`
+    : tab==='arsiv'
+    ? `<button class="room-create-btn" onclick="newRoomTab('arsiv');openModal('new-room-modal')">➕ Yeni Arşiv Oluştur</button>`
+    : '';
+  if(!filtered.length){
+    list.innerHTML=createBtnHtml+`<div class="empty-state"><span class="icon">${emptyIcons[tab]||'💬'}</span><p>${emptyTexts[tab]||'Boş'}</p></div>`;
+    return;
+  }
+  list.innerHTML=createBtnHtml;
   for(const r of filtered){
     const el = document.createElement('div');
     el.className='room-item'+(S.currentRoom?.id===r.id?' active':'');
@@ -2535,9 +2543,9 @@ async function createArchive(){
     S.groupKeys[room.id]=groupKey;
     closeModal('new-room-modal');
     await loadRooms();
-    // Odalar sekmesine geç ki yeni arşiv görünsün
-    const grupTabEl=document.getElementById('stab-grup');
-    if(grupTabEl) switchSideTab(grupTabEl,'grup');
+    // Arşivler sekmesine geç ki yeni arşiv görünsün
+    const arsivTabEl=document.getElementById('stab-arsiv');
+    if(arsivTabEl) switchSideTab(arsivTabEl,'arsiv');
     const newRoom=S.rooms.find(r=>r.id===room.id)||{...room};
     openRoom(newRoom);
     toast('Arşiv oluşturuldu','success');
