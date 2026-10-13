@@ -131,6 +131,15 @@ a{color:var(--acc2);text-decoration:none}
 .room-ctx-btn{display:none;background:none;color:var(--txt2);padding:.2rem .45rem;border-radius:6px;font-size:1.1rem;line-height:1;transition:.15s;flex-shrink:0;margin-left:.1rem}
 .room-item:hover .room-ctx-btn,.room-item.active .room-ctx-btn{display:block}
 .room-ctx-btn:hover{background:rgba(255,255,255,.1);color:var(--txt)}
+/* KASA */
+.kasa-divider{display:flex;align-items:center;gap:.5rem;padding:.4rem 1rem .2rem;font-size:.7rem;color:rgba(180,100,255,.6);letter-spacing:.06em;text-transform:uppercase}
+.kasa-divider::before,.kasa-divider::after{content:'';flex:1;height:1px;background:rgba(150,80,220,.2)}
+.kasa-item{background:linear-gradient(135deg,rgba(40,18,65,.7),rgba(55,25,80,.5))!important;border:1px solid rgba(150,80,220,.22)!important;margin:.2rem .4rem!important;border-radius:10px!important;transition:.2s!important}
+.kasa-item:hover{background:linear-gradient(135deg,rgba(55,25,85,.85),rgba(70,35,95,.65))!important;border-color:rgba(180,100,255,.35)!important}
+.kasa-room-item{border-left:3px solid rgba(150,80,220,.5);background:rgba(40,15,65,.25)!important}
+.kasa-room-item:hover{background:rgba(55,20,85,.4)!important}
+/* +18 */
+.badge-18plus{background:#5a0a0a;color:#ff8a8a;font-size:.58rem;padding:.08rem .32rem;border-radius:4px;font-weight:800;letter-spacing:.03em;flex-shrink:0}
 .room-avatar{width:42px;height:42px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;overflow:hidden;position:relative}
 .room-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .online-dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#3fb950;border:2px solid var(--bg2)}
@@ -1082,6 +1091,7 @@ const S = {
   pendingRoomId: null,// for convert to group
   feedMode: null,     // null=kişisel, 'genel'=global, {tunelId,otherUserId}=İkili Tünel
   feedUserId: null,   // başka kullanıcının tünelini görmek için
+  kasaUnlocked: false,// kasa (hidden rooms vault) unlocked
 };
 
 // ============================================================
@@ -1641,7 +1651,10 @@ async function renderRoomList(rooms){
   const list = document.getElementById('room-list');
   // Filter by active tab
   const tab = S.sideTab || 'dm';
+  // Kasa: hidden room IDs
+  const kasaIds = getKasaRooms();
   let filtered = (rooms||[]).filter(r=>{
+    if(kasaIds.includes(r.id)) return false; // gizli, kasaya al
     if(tab==='dm') return r.tur==='dm';
     if(tab==='grup') return r.tur==='grup';
     if(tab==='arsiv') return r.tur==='arsiv';
@@ -1654,17 +1667,16 @@ async function renderRoomList(rooms){
     : tab==='arsiv'
     ? `<button class="room-create-btn" onclick="newRoomTab('arsiv');openModal('new-room-modal')">➕ Yeni Arşiv Oluştur</button>`
     : '';
-  if(!filtered.length){
-    list.innerHTML=createBtnHtml+`<div class="empty-state"><span class="icon">${emptyIcons[tab]||'💬'}</span><p>${emptyTexts[tab]||'Boş'}</p></div>`;
-    return;
-  }
   list.innerHTML=createBtnHtml;
-  for(const r of filtered){
+  if(!filtered.length){
+    list.innerHTML+=`<div class="empty-state"><span class="icon">${emptyIcons[tab]||'💬'}</span><p>${emptyTexts[tab]||'Boş'}</p></div>`;
+  }
+  // Yardımcı: oda öğesi oluştur
+  const buildRoomEl = async (r, extraClass='', fromKasa=false) => {
     const el = document.createElement('div');
-    el.className='room-item'+(S.currentRoom?.id===r.id?' active':'');
+    el.className='room-item'+(S.currentRoom?.id===r.id?' active':'')+( extraClass?' '+extraClass:'');
     el.dataset.id=r.id;
     el.onclick=()=>openRoom(r);
-    // Name and avatar
     let name=r.isim||'Sohbet', avatarHtml='';
     if(r.tur==='dm'){
       const {data:members} = await sb.from('oda_uyeleri').select('kullanici_id').eq('oda_id',r.id);
@@ -1678,10 +1690,9 @@ async function renderRoomList(rooms){
       const icon = r.tur==='arsiv'?'📁':r.tur==='duvar'?'📰':'👥';
       avatarHtml=`<span>${icon}</span>`;
     }
-    // Badge (sekmeler sayesinde sadece arsiv'e özel)
     let badge='';
     if(r.tur==='arsiv') badge='<span class="room-badge badge-arsiv">ARŞİV</span>';
-    // Last message preview
+    if(isRoom18Plus(r.id)) badge+='<span class="badge-18plus">+18</span>';
     let preview='';
     if(r._lastMsg){
       if(r._lastMsg.mesaj_tipi==='dosya') preview='📎 Dosya';
@@ -1689,11 +1700,9 @@ async function renderRoomList(rooms){
       else if(r._lastMsg.silindi) preview='Bu mesaj silindi.';
       else preview='🔒 Şifreli mesaj';
     }
-    const isOnline = false; // updated via presence
     el.innerHTML=`
       <div class="room-avatar" style="background:${r.tur==='dm'?userColor(r._otherUserId||''):'var(--acc)'}">
         ${avatarHtml}
-        ${isOnline?'<div class="online-dot"></div>':''}
       </div>
       <div class="room-info">
         <div class="room-name">${name}${badge}</div>
@@ -1702,8 +1711,32 @@ async function renderRoomList(rooms){
       <div class="room-meta">
         <div class="room-time">${r._lastMsg?fmtTime(r._lastMsg.olusturma_tarihi):''}</div>
       </div>
-      <button class="room-ctx-btn" title="Seçenekler" onclick="showRoomMenu(event,'${r.id}')">⋮</button>`;
-    list.appendChild(el);
+      <button class="room-ctx-btn" title="Seçenekler" onclick="showRoomMenu(event,'${r.id}',${fromKasa})">⋮</button>`;
+    return el;
+  };
+  // Normal odaları ekle
+  for(const r of filtered) list.appendChild(await buildRoomEl(r));
+  // KASA BÖLÜMÜ — kasa odaları varsa daima göster
+  if(kasaIds.length > 0){
+    const kasaDivider = document.createElement('div');
+    kasaDivider.className='kasa-divider';
+    kasaDivider.textContent='🗄️ Kasa';
+    list.appendChild(kasaDivider);
+    const kasaEl = document.createElement('div');
+    kasaEl.className='room-item kasa-item';
+    kasaEl.onclick = S.kasaUnlocked ? ()=>lockKasa() : ()=>openKasa();
+    kasaEl.innerHTML=`
+      <div class="room-avatar" style="background:linear-gradient(135deg,#3d1a5a,#6b2fa0);font-size:1.1rem">🔐</div>
+      <div class="room-info">
+        <div class="room-name" style="color:#c77dff">${S.kasaUnlocked?'🔓 Kasa Açık':'🔒 Kasa'}</div>
+        <div class="room-preview">${kasaIds.length} gizli öğe · ${S.kasaUnlocked?'Kilitle':'Şifre ile aç'}</div>
+      </div>`;
+    list.appendChild(kasaEl);
+    // Kasa açıksa gizli odaları göster
+    if(S.kasaUnlocked){
+      const kasaRooms = (rooms||[]).filter(r=>kasaIds.includes(r.id));
+      for(const r of kasaRooms) list.appendChild(await buildRoomEl(r,'kasa-room-item',true));
+    }
   }
 }
 async function openRoom(room){
@@ -1913,7 +1946,8 @@ function renderFileContent(m){
   const isVid = mime.startsWith('video/') || /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(name);
   if(isImg){
     const blurKey='msgblur_'+m.id;
-    const isBlurred=(()=>{try{return localStorage.getItem(blurKey)==='1';}catch(e){return false;}})();
+    const room18=isRoom18Plus(S.currentRoom?.id);
+    const isBlurred=room18||(()=>{try{return localStorage.getItem(blurKey)==='1';}catch(e){return false;}})();
     return `<div>
       <div class="msg-img-wrap${isBlurred?' blurred':''}" id="imgwrap_${m.id}">
         <div class="msg-img-loading" id="imgload_${m.id}">🔓 Şifre çözülüyor…</div>
@@ -2463,13 +2497,26 @@ function unblurMsgImg(msgId){
 // ============================================================
 // ROOM CONTEXT MENU (sidebar ⋮)
 // ============================================================
-function showRoomMenu(e,roomId){
+function showRoomMenu(e,roomId,fromKasa=false){
   e.stopPropagation();
   const room=S.rooms.find(r=>r.id===roomId);
   if(!room) return;
   const items=[];
-  if(room.tur!=='dm') items.push({label:'✏️ Yeniden Adlandır',fn:()=>renameRoom(roomId)});
-  if(room.tur!=='arsiv') items.push({label:'📁 Arşive Taşı',fn:()=>moveRoomToArchive(roomId)});
+  if(!fromKasa){
+    if(room.tur!=='dm') items.push({label:'✏️ Yeniden Adlandır',fn:()=>renameRoom(roomId)});
+    if(room.tur!=='arsiv') items.push({label:'📁 Arşive Taşı',fn:()=>moveRoomToArchive(roomId)});
+    // Kasa
+    items.push({label:'🔐 Şifrele ve Gizle',fn:()=>hideRoomToKasa(roomId)});
+    // +18
+    const is18=isRoom18Plus(roomId);
+    items.push({label:is18?'✅ +18 Kaldır':'🔞 +18 İşaretle',fn:()=>toggleRoom18Plus(roomId)});
+  } else {
+    // Kasadan çıkar
+    items.push({label:'🔓 Kasadan Çıkar',fn:()=>removeFromKasa(roomId)});
+    // +18 toggle kasadan da erişilebilir
+    const is18=isRoom18Plus(roomId);
+    items.push({label:is18?'✅ +18 Kaldır':'🔞 +18 İşaretle',fn:()=>toggleRoom18Plus(roomId)});
+  }
   items.push({label:'🗑️ Sil',fn:()=>deleteRoom(roomId)});
   showContextMenu(e.clientX,e.clientY,items);
 }
@@ -2513,6 +2560,91 @@ async function moveRoomToArchive(roomId){
   if(arsivTabEl) switchSideTab(arsivTabEl,'arsiv');
   else renderRoomList(S.rooms);
   toast('Arşive taşındı ✓','success');
+}
+// ============================================================
+// KASA (Şifreli Gizli Oda)
+// ============================================================
+function getKasaRooms(){
+  try{return JSON.parse(localStorage.getItem('kasa_rooms')||'[]');}catch(e){return [];}
+}
+async function _hashKasa(pw){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('kasa:'+pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function hideRoomToKasa(roomId){
+  const existingHash=localStorage.getItem('kasa_hash');
+  if(!existingHash){
+    const pw=prompt('🔐 Kasa şifresi belirleyin (en az 4 karakter):');
+    if(!pw||pw.length<4){toast('En az 4 karakter gerekli','error');return;}
+    const pw2=prompt('🔐 Şifreyi tekrar girin:');
+    if(pw!==pw2){toast('Şifreler uyuşmuyor','error');return;}
+    localStorage.setItem('kasa_hash',await _hashKasa(pw));
+  } else {
+    const pw=prompt('🔐 Mevcut kasa şifresini girin:');
+    if(!pw) return;
+    if(await _hashKasa(pw)!==existingHash){toast('Yanlış şifre 🔒','error');return;}
+  }
+  const ids=getKasaRooms();
+  if(!ids.includes(roomId)) ids.push(roomId);
+  localStorage.setItem('kasa_rooms',JSON.stringify(ids));
+  if(S.currentRoom?.id===roomId){
+    S.currentRoom=null;
+    document.getElementById('messages').innerHTML='';
+    const h=document.getElementById('chat-header-name');
+    if(h) h.textContent='SohbetHane';
+  }
+  S.kasaUnlocked=false;
+  renderRoomList(S.rooms);
+  toast('🔐 Kasa\'ya kilitlendi','success');
+}
+async function openKasa(){
+  const existingHash=localStorage.getItem('kasa_hash');
+  if(!existingHash){toast('Kasa boş','info');return;}
+  const pw=prompt('🗄️ Kasa şifresi:');
+  if(!pw) return;
+  if(await _hashKasa(pw)!==existingHash){toast('Yanlış şifre 🔒','error');return;}
+  S.kasaUnlocked=true;
+  renderRoomList(S.rooms);
+  toast('🔓 Kasa açıldı','success');
+}
+function lockKasa(){
+  S.kasaUnlocked=false;
+  renderRoomList(S.rooms);
+  toast('🔒 Kasa kilitlendi');
+}
+async function removeFromKasa(roomId){
+  const existingHash=localStorage.getItem('kasa_hash');
+  if(existingHash){
+    const pw=prompt('🔐 Onaylamak için kasa şifresini girin:');
+    if(!pw) return;
+    if(await _hashKasa(pw)!==existingHash){toast('Yanlış şifre 🔒','error');return;}
+  }
+  let ids=getKasaRooms().filter(id=>id!==roomId);
+  if(!ids.length){
+    localStorage.removeItem('kasa_rooms');
+    localStorage.removeItem('kasa_hash');
+    S.kasaUnlocked=false;
+  } else {
+    localStorage.setItem('kasa_rooms',JSON.stringify(ids));
+  }
+  renderRoomList(S.rooms);
+  toast('🔓 Kasadan çıkarıldı','success');
+}
+// +18
+function isRoom18Plus(roomId){
+  try{return localStorage.getItem('room_18plus_'+roomId)==='1';}catch(e){return false;}
+}
+function toggleRoom18Plus(roomId){
+  const key='room_18plus_'+roomId;
+  const is18=localStorage.getItem(key)==='1';
+  if(is18) localStorage.removeItem(key);
+  else localStorage.setItem(key,'1');
+  if(S.currentRoom?.id===roomId&&S.messages.length){
+    renderMessages(S.messages);
+    setTimeout(loadImgPreviews,100);
+  }
+  renderRoomList(S.rooms);
+  toast(is18?'+18 işareti kaldırıldı':'🔞 +18 olarak işaretlendi',is18?'':'success');
 }
 // ============================================================
 function showMsgMenuBtn(e,msgId){
