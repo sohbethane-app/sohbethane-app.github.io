@@ -222,15 +222,18 @@ a{color:var(--acc2);text-decoration:none}
 .modal-tab{padding:.5rem 1rem;background:none;color:var(--txt2);font-size:.85rem;transition:.2s}
 .modal-tab.active{color:var(--acc2);border-bottom:2px solid var(--acc2)}
 /* EMOJI PANEL */
-#emoji-panel{display:none;position:absolute;bottom:80px;left:1rem;background:var(--bg2);border:1px solid var(--brd);border-radius:14px;padding:.6rem;width:340px;box-shadow:var(--shadow);z-index:50}
+#emoji-panel{display:none;position:fixed;background:var(--bg2);border:1px solid var(--brd);border-radius:14px;padding:.6rem;width:360px;max-width:96vw;box-shadow:0 8px 40px rgba(0,0,0,.6);z-index:9000}
 #emoji-panel.open{display:block}
-.emoji-cat-tabs{display:flex;gap:.2rem;margin-bottom:.5rem;overflow-x:auto;scrollbar-width:none}
+.emoji-cat-tabs{display:flex;gap:.2rem;margin-bottom:.5rem;overflow-x:auto;scrollbar-width:none;padding-bottom:.1rem}
 .emoji-cat-tabs::-webkit-scrollbar{display:none}
-.emoji-cat-btn{background:none;border:none;padding:.3rem .5rem;border-radius:8px;font-size:1rem;cursor:pointer;white-space:nowrap;color:var(--txt2);flex-shrink:0}
-.emoji-cat-btn.active{background:var(--bg3);color:var(--txt)}
-.emoji-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:.15rem;max-height:200px;overflow-y:auto;scrollbar-width:thin}
-.emoji-btn-item{background:none;font-size:1.25rem;padding:.15rem;border-radius:4px;cursor:pointer;line-height:1}
-.emoji-btn-item:hover{background:var(--bg3)}
+.emoji-cat-btn{background:none;border:none;padding:.3rem .45rem;border-radius:8px;font-size:1.05rem;cursor:pointer;white-space:nowrap;color:var(--txt2);flex-shrink:0;transition:.15s}
+.emoji-cat-btn.active{background:var(--acc);color:#fff}
+.emoji-cat-btn:hover:not(.active){background:var(--bg3)}
+.emoji-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:.2rem;max-height:240px;overflow-y:auto;scrollbar-width:thin}
+.emoji-grid::-webkit-scrollbar{width:4px}
+.emoji-grid::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
+.emoji-btn-item{background:none;font-size:1.3rem;padding:.2rem;border-radius:6px;cursor:pointer;line-height:1;transition:.1s}
+.emoji-btn-item:hover{background:var(--bg3);transform:scale(1.25)}
 #enter-send-row{display:flex;align-items:center;gap:.4rem;padding:.2rem 0 0;font-size:.75rem;color:var(--txt2);user-select:none}
 #enter-send-row label{display:flex;align-items:center;gap:.3rem;cursor:pointer}
 #enter-send-chk{width:13px;height:13px;accent-color:var(--acc);cursor:pointer}
@@ -1829,10 +1832,12 @@ function toggleVoice(){
 }
 async function startVoice(){
   if(S.mediaRecorder) return;
-  if(!S.currentRoom){ toast('Önce bir sohbet seçin','error'); return; }
   const btn=document.getElementById('voice-record-btn');
+  if(!navigator.mediaDevices?.getUserMedia){
+    toast('Bu tarayıcı mikrofonu desteklemiyor','error'); return;
+  }
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
     const mimeType=getSupportedAudioMime();
     S.voiceChunks=[];
     S.voiceSeconds=0;
@@ -1848,8 +1853,10 @@ async function startVoice(){
       btn.textContent='🎤';
       btn.classList.remove('recording');
       btn.title='Ses kaydı (tıkla başlat, tekrar tıkla gönder)';
-      if(blob.size>0) await sendVoice(blob,usedMime);
-      else toast('Ses kaydı boş','error');
+      if(blob.size>0){
+        if(!S.currentRoom){ toast('Ses kaydedildi ama sohbet seçilmedi — bir sohbet açıp tekrar deneyin','warn'); return; }
+        await sendVoice(blob,usedMime);
+      } else toast('Ses kaydı boş','error');
     };
     S.mediaRecorder.start(200);
     btn.classList.add('recording');
@@ -1863,7 +1870,10 @@ async function startVoice(){
     },1000);
     btn.textContent='⏹️ 0:00';
   } catch(e){
-    toast('Mikrofon erişimi reddedildi: '+e.message,'error');
+    const msg=e.name==='NotAllowedError'?'Mikrofon izni reddedildi — tarayıcı izin ayarlarını kontrol edin':
+              e.name==='NotFoundError'?'Mikrofon bulunamadı — cihaz bağlı mı?':
+              'Mikrofon açılamadı: '+e.message;
+    toast(msg,'error');
     btn.textContent='🎤';
     btn.classList.remove('recording');
   }
@@ -2857,22 +2867,21 @@ function applyWallpaper(id){
 // EMOJI PANEL
 // ============================================================
 const EMOJI_CATS = {
-  '🔥':['🔥','💯','✨','💫','⚡','💥','🌈','🎯','👑','💎','🏆','🎭','🎪','🎨','📝','🔍','🔒','💰','📱','💻','⌚','🎁','🎀','🎊','🎉','🎈','🔔','💡','🪄','🎩','🌟','⭐','🌙','☀️','🎵','🎶','🚀','🛸','🌍','🌏'],
-  '😊':['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','😵‍💫','🤯','🤠','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'],
-  '❤️':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','💘','💝','💖','💗','💓','💞','💕','💟','❣️','💋','😘','😍','🥰','🤩','😻','💑','👫','👬','👭','🫶','💏','🌹','🌺','🌸','💐','🌷','🏩','💒','💍','🎀','🪄','🍑','🍒','🍓','🫦','👄','💄','👙','🩲','🩳','🩱','🔞','🥂','🍾','🕯️','🌙','✨','💫','🌹','🌺','🌸','🌻','🌼','💐','🫀'],
-  '👋':['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','🤲','🤝','🙏','✍️','💅','🤳','💪','🦵','🦶','👁️','👅','🧠','👂','🦷','💪','🤜','🤛','🙌','👐','🫂'],
-  '🎉':['🎉','🎊','🎈','🎁','🎀','🎗️','🎟️','🎫','🏆','🥇','🥈','🥉','🎖️','🏅','🎪','🤹','🎭','🎨','🖼️','🎰','🎲','🧩','🃏','🀄','🎯','🎳','🎮','🕹️','🎸','🎺','🎻','🥁','🎤','🎧','🎼','🎵','🎶','🎷','🪗','🎹','🎬','📽️','🎞️','📺','📻','📸','🎠','🎡','🎢','🎪','🎭','🃏','🎲'],
-  '🌿':['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🦋','🐌','🐞','🐜','🐢','🐍','🦎','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🦭','🐳','🦈','🐊','🦧','🦍','🌸','🌺','🌻','🌹','🍀','🌴','🌲','🌳','🌾','🌵','🪴','🌱','🌿','☘️','🍁','🍂','🍃','🍄','🌍','🌞','🌝','🌛','🌚','🌕','🌙','🌟','⭐','🌠','☄️','⛅','🌈','❄️','🔥','💧','🌊','🌎','🗻','🏔️','⛰️','🌋'],
-  '🍔':['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥦','🥕','🧄','🌽','🌶️','🥒','🥬','🥗','🧆','🥚','🍳','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🥪','🥙','🌮','🌯','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍥','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🧃','🥤','🧋','☕','🍵','🧉','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🍾','🧊'],
-  '✈️':['🌍','🗺️','🧭','🏔️','⛰️','🌋','🏕️','🏖️','🏜️','🏝️','🏞️','🌅','🌄','🌠','🎇','🎆','🌇','🌆','🏙️','🌃','🌌','🌉','🚂','🚄','🚇','🚌','🚗','🚙','🛻','🚕','🚁','✈️','🛩️','🚀','🛸','🚢','⛵','🛥️','🚲','🛵','🏍️','🚐','🚑','🚒','🚓','🚕','🚖','🚗','🗼','🗽','⛩️','🕌','🕍','⛪','🏰','🏯','🗺️','🧳','🌐','🗺️']
+  '🔥':['🔥','💯','✨','💫','⚡','💥','🌈','🎯','👑','💎','🏆','🥇','🌟','⭐','🌙','☀️','🎵','🎶','🚀','🛸','💰','💸','🤑','📱','💻','🎮','🕹️','🎲','🎁','🎀','🎊','🎉','🎈','🔔','💡','🔮','🪄','🧿','🌠','🌌','🪐','💠','🫧','🪩','🎭','🎪','🎨','🏅','🎖️','🌐','🔑','🗝️','📸','🎬','🔵','🟢','🟡','🟠','🔴','⬛','🌀','♾️','🆕','🆙','🆒','🆓'],
+  '😊':['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😶‍🌫️','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','😵‍💫','🤯','🤠','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👾','🤖','🎃','🗿','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🫠','🫤','🫡','🫢','🫣','🫥','🥸'],
+  '❤️':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','💘','💝','💖','💗','💓','💞','💕','💟','❣️','🫀','😘','😍','🥰','🤩','💋','👄','🫦','😻','💑','👫','👬','👭','💏','🫶','🤗','🌹','🌺','🌸','💐','🌷','🏩','💒','💍','🎀','💄','👙','🩱','🩲','🩳','👗','👘','👚','🩴','👠','👡','💅','🛁','🛏️','🕯️','🌙','✨','💫','🌃','🥂','🍾','🍷','🍓','🍒','🍑','🫐','🥭','🍌','🍫','🍬','🧁','🎂','🌻','🌼','🌺','🏵️','🎁','💝','🎀','🔞','🌶️','🥵','💦','🫧','🌊','🔥','⛓️','🪢','🫁','🦋','🕊️'],
+  '🫦':['😏','😈','👿','🤭','🥵','🔥','💋','🫦','👄','💄','👅','🍑','🍒','🍓','🌶️','🥕','🍌','🥒','🍆','🌽','🧠','💦','🫧','🌊','💎','👑','🩲','👙','🩱','🪢','⛓️','🔐','🔒','🗝️','🕯️','🌙','✨','🍾','🥂','🍷','🍸','🍹','🎰','🎲','🃏','🎭','💃','🕺','🎶','🎵','🥀','🌹','🌷','🏩','🛁','🛏️','🪞','🌃','🌌','🌠','😼','🐱','🦁','🐆','🦊','🐍','🕷️','🦂','🫀','💔','❤️‍🔥','😳','🤫','🤤','🤑','🪄','🎩','🪐','🌈'],
+  '👋':['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦵','🦶','🦷','👁️','👅','👂','🦻','🧠','🫀','🫁','🦴','🦿','🫂','👤','👥','🧍','🧎','🚶','🏃','💃','🕺','🧖','🧗','🏋️','🤸','🤼','🤺','🥊','🤾','🏇','🧘','🧜','🧚','🧛','🧟','🧞','🧝'],
+  '🌿':['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🦋','🐌','🐞','🐜','🦟','🦗','🪲','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🦈','🐳','🐬','🦭','🐟','🐠','🐡','🐊','🦧','🌸','🌺','🌻','🌹','🥀','🪷','🌷','🍀','🌴','🌲','🌳','🌵','🪴','🌱','🌿','☘️','🍁','🍂','🍃','🍄','🌾','🪸','🪨','🪵','🌍','🌎','🌏','🌞','🌝','🌛','🌚','🌕','🌙','⭐','🌟','💫','✨','🌠','☄️','⛅','🌦️','⛈️','🌈','❄️','💧','🌊','🌋','🗻','🏔️','🏕️','🏝️','🌅'],
+  '🍔':['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥦','🥕','🧄','🌽','🌶️','🥒','🥬','🥗','🧆','🥚','🍳','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫔','🥪','🥙','🌮','🌯','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍥','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🫘','🧂','🍯','🧃','🥤','🧋','☕','🍵','🫖','🧉','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🍾','🧊','🫗','🫙'],
+  '🎉':['🎉','🎊','🎈','🎁','🎀','🎗️','🎟️','🎫','🏆','🥇','🥈','🥉','🏅','🎖️','🎪','🤹','🎭','🎨','🖼️','🎰','🎲','🧩','🃏','🀄','🎯','🎳','🎮','🕹️','🎸','🎺','🎻','🥁','🪘','🎤','🎧','🎼','🎵','🎶','🎷','🪗','🪕','🎹','🎬','📽️','🎞️','📺','📻','📸','🎠','🎡','🎢','🏋️','🤸','🏊','🚴','⛷️','🏄','🧗','🏇','🥋','🤺','🏹','🛹','🛷','🛼','🎿','⛸️','🪂','🤿','🏕️','🎣','🤽','🏌️','🏓','🏸','🥌'],
+  '✈️':['🌍','🗺️','🧭','🏔️','⛰️','🌋','🏕️','🏖️','🏜️','🏝️','🏞️','🌅','🌄','🌇','🌆','🏙️','🌃','🌉','🚂','🚄','🚅','🚇','🚌','🚗','🚙','🛻','🚕','🚁','✈️','🛩️','🛫','🛬','🚀','🛸','🚢','⛵','🛥️','⛴️','🛳️','🚲','🛵','🏍️','🛺','🚡','🚠','🚟','⛽','🚧','🛤️','🗼','🗽','⛩️','🕌','🕍','⛪','🏰','🏯','🧳','🎡','🎢','🎠','🌐','🗺️','🏟️','🏛️','🏗️','🌁','🌉','🌃','🌆','🌇','🌌']
 };
 let _emojiCat = '🔥';
 function initEmojiPanel(){
   const panel=document.getElementById('emoji-panel');
   if(!panel) return;
-  // Build tabs
   const tabsHtml=Object.keys(EMOJI_CATS).map(k=>`<button class="emoji-cat-btn${k===_emojiCat?' active':''}" onclick="switchEmojiCat('${k}')">${k}</button>`).join('');
-  // Build grid container
   panel.innerHTML=`<div class="emoji-cat-tabs" id="emoji-cat-tabs">${tabsHtml}</div><div class="emoji-grid" id="emoji-grid"></div>`;
   renderEmojiGrid();
 }
@@ -2889,17 +2898,33 @@ function renderEmojiGrid(){
 }
 function toggleEmoji(){
   const p=document.getElementById('emoji-panel');
-  p.classList.toggle('open');
+  if(p.classList.contains('open')){ p.classList.remove('open'); return; }
+  // Dinamik konumlandır: butonun hemen üstünde aç
+  const triggerBtn=document.querySelector('[onclick="toggleEmoji()"]');
+  if(triggerBtn){
+    const rect=triggerBtn.getBoundingClientRect();
+    const panelW=360; const panelH=310;
+    let left=rect.right-panelW;
+    if(left<8) left=8;
+    if(left+panelW>window.innerWidth-8) left=window.innerWidth-panelW-8;
+    const top=rect.top-panelH-8;
+    p.style.left=left+'px';
+    p.style.top=(top<8?rect.bottom+8:top)+'px';
+    p.style.bottom='auto';
+    p.style.right='auto';
+  }
+  p.classList.add('open');
 }
 function insertEmoji(e){
   const inp=document.getElementById('chat-input');
+  if(!inp) return;
   const pos=inp.selectionStart||0;
   inp.value=inp.value.slice(0,pos)+e+inp.value.slice(inp.selectionEnd||pos);
   inp.selectionStart=inp.selectionEnd=pos+e.length;
   inp.focus();
   document.getElementById('emoji-panel').classList.remove('open');
 }
-document.addEventListener('click',e=>{if(!e.target.closest('#emoji-panel')&&!e.target.closest('.input-btn[onclick*="toggleEmoji"]')) document.getElementById('emoji-panel')?.classList.remove('open');});
+document.addEventListener('click',e=>{if(!e.target.closest('#emoji-panel')&&!e.target.closest('[onclick="toggleEmoji()"]')) document.getElementById('emoji-panel')?.classList.remove('open');});
 
 // ============================================================
 // SEARCH MESSAGES
