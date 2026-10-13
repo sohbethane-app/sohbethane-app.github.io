@@ -175,6 +175,8 @@ a{color:var(--acc2);text-decoration:none}
 .msg-wrap:hover .msg-more-btn{display:flex}
 .msg-more-btn:hover{background:var(--bg3);color:var(--txt)}
 /* Resim önizleme */
+.msg-video-preview{max-width:280px;max-height:200px;border-radius:8px;display:block;margin:.2rem 0;background:#000;outline:none}
+.msg-video-loading{font-size:.75rem;color:var(--txt2);padding:.3rem 0}
 .msg-img-wrap{position:relative;display:inline-block;border-radius:8px;overflow:hidden;margin:.2rem 0}
 .msg-img-wrap.blurred .msg-img-preview{filter:blur(22px);pointer-events:none}
 .msg-img-blur-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.55);align-items:center;justify-content:center;flex-direction:column;gap:.35rem;cursor:pointer;border-radius:8px}
@@ -1921,7 +1923,22 @@ function renderFileContent(m){
       </div>
     </div>`;
   }
-  const icon = isVid?'🎬':'📄';
+  if(isVid){
+    return `<div>
+      <video class="msg-video-preview" controls data-msg-id="${m.id}" preload="none">
+        Tarayıcınız video oynatmıyor.
+      </video>
+      <div class="msg-video-loading" id="vidload_${m.id}">⏳ Video şifresi çözülüyor...</div>
+      <div style="display:flex;align-items:center;gap:.5rem;margin-top:.2rem">
+        <span style="font-size:.72rem;color:var(--txt2);flex:1">${name} · ${size}</span>
+        <button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button>
+      </div>
+    </div>`;
+  }
+  // Belge / diğer
+  const ext=(name.split('.').pop()||'').toLowerCase();
+  const docIcons={pdf:'📕',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',ppt:'📋',pptx:'📋',zip:'🗜️',rar:'🗜️',txt:'📃'};
+  const icon=docIcons[ext]||'📄';
   return `<div class="msg-file"><span class="msg-file-icon">${icon}</span><div class="msg-file-info"><div class="msg-file-name">${name}</div><div class="msg-file-size">${size}</div></div><button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button></div>`;
 }
 function renderVoiceContent(m){
@@ -2380,16 +2397,35 @@ async function openImgLightbox(msgId){
     document.getElementById('lb-dl-btn').onclick=()=>{const a=document.createElement('a');a.href=f.url;a.download=f.name;a.click();};
   } catch(e){ toast('Önizleme hatası: '+e.message,'error'); document.getElementById('img-lightbox')?.classList.remove('show'); }
 }
-// Resim önizlemelerini sayfa yüklenince doldur
+// Resim + video önizlemelerini sayfa yüklenince doldur
 async function loadImgPreviews(){
+  // Resimler
   const imgs=document.querySelectorAll('img.msg-img-preview[data-msg-id]');
   for(const img of imgs){
-    if(img.dataset.loaded==='1') continue; // already loaded
+    if(img.dataset.loaded==='1') continue;
     const msgId=img.dataset.msgId;
     try{
       const f=await decryptFileToBlobUrl(msgId);
       if(f){img.src=f.url;img.dataset.loaded='1';}
     } catch(e){}
+  }
+  // Videolar
+  const vids=document.querySelectorAll('video.msg-video-preview[data-msg-id]');
+  for(const vid of vids){
+    if(vid.dataset.loaded==='1') continue;
+    const msgId=vid.dataset.msgId;
+    try{
+      const f=await decryptFileToBlobUrl(msgId);
+      if(f){
+        vid.src=f.url;
+        vid.dataset.loaded='1';
+        const lbl=document.getElementById('vidload_'+msgId);
+        if(lbl) lbl.style.display='none';
+      }
+    } catch(e){
+      const lbl=document.getElementById('vidload_'+msgId);
+      if(lbl) lbl.textContent='⚠️ Video yüklenemedi';
+    }
   }
 }
 function toggleMsgImgBlur(msgId){
