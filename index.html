@@ -262,7 +262,7 @@ a{color:var(--acc2);text-decoration:none}
 .timer-opt{padding:.3rem .7rem;border-radius:6px;background:var(--bg3);border:1px solid var(--brd);font-size:.8rem;cursor:pointer;transition:.15s}
 .timer-opt:hover,.timer-opt.active{border-color:var(--acc2);color:var(--acc2)}
 /* VOICE */
-#voice-record-btn.recording{color:var(--danger);animation:pulse 1s infinite}
+#voice-record-btn.recording{color:var(--danger);animation:pulse 1s infinite;min-width:64px;font-size:.75rem;padding:0 6px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 /* TYPING */
 #typing-indicator{font-size:.75rem;color:var(--txt2);padding:.2rem 1rem;min-height:1.2rem}
@@ -483,7 +483,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <input type="file" id="file-input" style="display:none" onchange="handleFileSelect(this)">
         <textarea id="chat-input" placeholder="Mesaj yaz..." rows="1" onkeydown="inputKeyDown(event)" oninput="autoResize(this);sendTyping()"></textarea>
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
-        <button class="input-btn" id="voice-record-btn" onmousedown="startVoice()" onmouseup="stopVoice()" ontouchstart="startVoice()" ontouchend="stopVoice()" title="Ses kaydı (bas-tut)">🎤</button>
+        <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
         <button id="send-btn" onclick="sendMessage()">Gönder</button>
       </div>
     </div>
@@ -751,6 +751,8 @@ const S = {
   muteList: [],       // uids I muted
   mediaRecorder: null,
   voiceChunks: [],
+  voiceTimer: null,
+  voiceSeconds: 0,
   pendingRoomId: null,// for convert to group
 };
 
@@ -1752,27 +1754,66 @@ async function playVoice(msgId){
   } catch(e){ toast('Ses oynatılamadı: '+e.message,'error'); }
 }
 // VOICE RECORD
+function getSupportedAudioMime(){
+  const types=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg','audio/mp4'];
+  for(const t of types) if(MediaRecorder.isTypeSupported(t)) return t;
+  return '';
+}
+function toggleVoice(){
+  if(S.mediaRecorder && S.mediaRecorder.state==='recording'){
+    stopVoice();
+  } else {
+    startVoice();
+  }
+}
 async function startVoice(){
   if(S.mediaRecorder) return;
+  if(!S.currentRoom){ toast('Önce bir sohbet seçin','error'); return; }
+  const btn=document.getElementById('voice-record-btn');
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mimeType=getSupportedAudioMime();
     S.voiceChunks=[];
-    S.mediaRecorder=new MediaRecorder(stream);
-    S.mediaRecorder.ondataavailable=e=>S.voiceChunks.push(e.data);
+    S.voiceSeconds=0;
+    const opts=mimeType?{mimeType}:{};
+    S.mediaRecorder=new MediaRecorder(stream,opts);
+    S.mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0) S.voiceChunks.push(e.data);};
     S.mediaRecorder.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
-      const blob=new Blob(S.voiceChunks,{type:'audio/webm'});
+      clearInterval(S.voiceTimer); S.voiceTimer=null;
+      const usedMime=S.mediaRecorder.mimeType||mimeType||'audio/webm';
+      const blob=new Blob(S.voiceChunks,{type:usedMime});
       S.mediaRecorder=null;
-      document.getElementById('voice-record-btn').classList.remove('recording');
-      await sendVoice(blob);
+      btn.textContent='🎤';
+      btn.classList.remove('recording');
+      btn.title='Ses kaydı (tıkla başlat, tekrar tıkla gönder)';
+      if(blob.size>0) await sendVoice(blob,usedMime);
+      else toast('Ses kaydı boş','error');
     };
-    S.mediaRecorder.start();
-    document.getElementById('voice-record-btn').classList.add('recording');
-  } catch(e){ toast('Mikrofon erişimi reddedildi','error'); }
+    S.mediaRecorder.start(200);
+    btn.classList.add('recording');
+    btn.title='Kaydı durdur ve gönder';
+    // Update button with elapsed time
+    S.voiceTimer=setInterval(()=>{
+      S.voiceSeconds++;
+      const m=Math.floor(S.voiceSeconds/60), s=String(S.voiceSeconds%60).padStart(2,'0');
+      btn.textContent=`⏹️ ${m}:${s}`;
+      if(S.voiceSeconds>=120){ stopVoice(); } // max 2 min
+    },1000);
+    btn.textContent='⏹️ 0:00';
+  } catch(e){
+    toast('Mikrofon erişimi reddedildi: '+e.message,'error');
+    btn.textContent='🎤';
+    btn.classList.remove('recording');
+  }
 }
-function stopVoice(){ if(S.mediaRecorder?.state==='recording') S.mediaRecorder.stop(); }
-async function sendVoice(blob){
+function stopVoice(){
+  if(S.mediaRecorder && S.mediaRecorder.state==='recording') S.mediaRecorder.stop();
+}
+async function sendVoice(blob, mimeType){
   if(!S.currentRoom) return;
+  const mt=mimeType||blob.type||'audio/webm';
+  const ext=mt.includes('mp4')?'mp4':mt.includes('ogg')?'ogg':'webm';
   toast('Ses mesajı gönderiliyor...','info');
   try{
     const fileKey=await generateGroupKey();
@@ -1786,7 +1827,7 @@ async function sendVoice(blob){
     const fileUrl=urlData?.publicUrl||path;
     const keyMeta=JSON.stringify({key:b64e(fileKeyRaw),iv:b64e(iv)});
     const room=S.currentRoom;
-    let row={oda_id:room.id,gonderen_id:S.user.id,mesaj_tipi:'ses',dosya_url:fileUrl,dosya_adi:'ses_mesaji.webm',dosya_tipi:'audio/webm',dosya_boyut:blob.size};
+    let row={oda_id:room.id,gonderen_id:S.user.id,mesaj_tipi:'ses',dosya_url:fileUrl,dosya_adi:`ses_mesaji.${ext}`,dosya_tipi:mt,dosya_boyut:blob.size};
     if(room.tur==='dm'){
       const op=await getProfile(room._otherUserId);
       const ephPair=await generateKeyPair();
