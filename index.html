@@ -175,7 +175,11 @@ a{color:var(--acc2);text-decoration:none}
 .msg-wrap:hover .msg-more-btn{display:flex}
 .msg-more-btn:hover{background:var(--bg3);color:var(--txt)}
 /* Resim önizleme */
-.msg-img-preview{max-width:220px;max-height:180px;border-radius:8px;cursor:zoom-in;object-fit:cover;display:block;margin:.2rem 0}
+.msg-img-wrap{position:relative;display:inline-block;border-radius:8px;overflow:hidden;margin:.2rem 0}
+.msg-img-wrap.blurred .msg-img-preview{filter:blur(22px);pointer-events:none}
+.msg-img-blur-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.55);align-items:center;justify-content:center;flex-direction:column;gap:.35rem;cursor:pointer;border-radius:8px}
+.msg-img-wrap.blurred .msg-img-blur-overlay{display:flex}
+.msg-img-preview{max-width:220px;max-height:180px;border-radius:8px;cursor:zoom-in;object-fit:cover;display:block}
 /* Dosya kartı */
 .msg-file{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;background:rgba(255,255,255,.05);border-radius:10px;margin-top:.2rem;border:1px solid var(--brd)}
 .msg-file-dl{background:none;border:1px solid var(--brd);border-radius:7px;padding:.25rem .5rem;font-size:.78rem;color:var(--acc2);cursor:pointer;transition:.15s;flex-shrink:0;white-space:nowrap}
@@ -1895,9 +1899,16 @@ function renderFileContent(m){
   const isImg = m.dosya_tipi?.startsWith('image/');
   const isVid = m.dosya_tipi?.startsWith('video/');
   if(isImg){
-    // Resim: önizleme + İndir butonu
+    const blurKey='msgblur_'+m.id;
+    const isBlurred=(()=>{try{return localStorage.getItem(blurKey)==='1';}catch(e){return false;}})();
     return `<div>
-      <img class="msg-img-preview" src="" data-msg-id="${m.id}" onclick="openImgLightbox('${m.id}')" alt="${name}" onerror="this.style.display='none'">
+      <div class="msg-img-wrap${isBlurred?' blurred':''}" id="imgwrap_${m.id}">
+        <img class="msg-img-preview" src="" data-msg-id="${m.id}" onclick="openImgLightbox('${m.id}')" alt="${name}" onerror="this.style.display='none'">
+        <div class="msg-img-blur-overlay" onclick="unblurMsgImg('${m.id}')">
+          <span style="font-size:1.6rem">🔒</span>
+          <span style="font-size:.76rem;color:#fff;font-weight:600">Görmek için tıkla</span>
+        </div>
+      </div>
       <div style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem">
         <span style="font-size:.72rem;color:var(--txt2);flex:1">${name} · ${size}</span>
         <button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button>
@@ -2170,6 +2181,10 @@ function showMsgMenu(e,m){
   const items=[];
   items.push({label:'↩️ Yanıtla',fn:()=>setReply(m)});
   items.push({label:'😊 Tepki ekle',fn:()=>showReactionPicker(e,m)});
+  if(m.mesaj_tipi==='dosya'&&m.dosya_tipi?.startsWith('image/')){
+    const isBlurred=(()=>{try{return localStorage.getItem('msgblur_'+m.id)==='1';}catch(e){return false;}})();
+    items.push({label:isBlurred?'👁️ Görünür Yap':'🔲 Buzla',fn:()=>toggleMsgImgBlur(m.id)});
+  }
   if(own||isAdmin){
     if(own&&!m.silindi) items.push({label:'✏️ Düzenle',fn:()=>editMessage(m)});
     if(!m.silindi) items.push({label:'🗑 Sil',fn:()=>deleteMessage(m)});
@@ -2320,9 +2335,19 @@ async function decryptFileToBlobUrl(msgId){
   }
   const {key:keyB64,iv:ivB64}=JSON.parse(keyMetaStr);
   const fileKey=await importGroupKey(b64d(keyB64));
-  const resp=await fetch(m.dosya_url);
-  if(!resp.ok) throw new Error('Dosya indirilemedi');
-  const encBuf=await resp.arrayBuffer();
+  // Extract storage path and download via Supabase client (handles auth headers)
+  const pathMatch=m.dosya_url.match(/\/object\/(?:public|authenticated)\/dosyalar\/(.+?)(\?.*)?$/);
+  let encBuf;
+  if(pathMatch){
+    const storagePath=decodeURIComponent(pathMatch[1]);
+    const {data:encBlob,error:de}=await sb.storage.from('dosyalar').download(storagePath);
+    if(de||!encBlob) throw new Error('Dosya indirilemedi: '+(de?.message||''));
+    encBuf=await encBlob.arrayBuffer();
+  } else {
+    const resp=await fetch(m.dosya_url);
+    if(!resp.ok) throw new Error('Dosya indirilemedi');
+    encBuf=await resp.arrayBuffer();
+  }
   const decBuf=await aesDecryptBytes(fileKey,encBuf,b64d(ivB64));
   const blob=new Blob([decBuf],{type:m.dosya_tipi||'application/octet-stream'});
   return {url:URL.createObjectURL(blob), name:m.dosya_adi||'dosya', type:m.dosya_tipi||''};
@@ -2360,6 +2385,18 @@ async function loadImgPreviews(){
     } catch(e){}
   }
 }
+function toggleMsgImgBlur(msgId){
+  const blurKey='msgblur_'+msgId;
+  const isBlurred=(()=>{try{return localStorage.getItem(blurKey)==='1';}catch(e){return false;}})();
+  try{isBlurred?localStorage.removeItem(blurKey):localStorage.setItem(blurKey,'1');}catch(e){}
+  const wrap=document.getElementById('imgwrap_'+msgId);
+  if(wrap) wrap.classList.toggle('blurred',!isBlurred);
+}
+function unblurMsgImg(msgId){
+  try{localStorage.removeItem('msgblur_'+msgId);}catch(e){}
+  const wrap=document.getElementById('imgwrap_'+msgId);
+  if(wrap) wrap.classList.remove('blurred');
+}
 function showMsgMenuBtn(e,msgId){
   e.stopPropagation();
   const m=S.messages.find(x=>x.id===msgId);
@@ -2382,8 +2419,17 @@ async function playVoice(msgId){
     }
     const {key:keyB64,iv:ivB64}=JSON.parse(keyMetaStr);
     const fileKey=await importGroupKey(b64d(keyB64));
-    const resp=await fetch(m.dosya_url);
-    const encBuf=await resp.arrayBuffer();
+    const pathMatch=m.dosya_url.match(/\/object\/(?:public|authenticated)\/dosyalar\/(.+?)(\?.*)?$/);
+    let encBuf;
+    if(pathMatch){
+      const storagePath=decodeURIComponent(pathMatch[1]);
+      const {data:encBlob,error:de}=await sb.storage.from('dosyalar').download(storagePath);
+      if(de||!encBlob) throw new Error('Ses dosyası indirilemedi');
+      encBuf=await encBlob.arrayBuffer();
+    } else {
+      const resp=await fetch(m.dosya_url);
+      encBuf=await resp.arrayBuffer();
+    }
     const decBuf=await aesDecryptBytes(fileKey,encBuf,b64d(ivB64));
     const blob=new Blob([decBuf],{type:'audio/webm'});
     const aud=document.getElementById('audio_'+msgId);
