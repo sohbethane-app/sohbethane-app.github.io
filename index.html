@@ -222,11 +222,18 @@ a{color:var(--acc2);text-decoration:none}
 .modal-tab{padding:.5rem 1rem;background:none;color:var(--txt2);font-size:.85rem;transition:.2s}
 .modal-tab.active{color:var(--acc2);border-bottom:2px solid var(--acc2)}
 /* EMOJI PANEL */
-#emoji-panel{display:none;position:absolute;bottom:80px;left:1rem;background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:.8rem;width:300px;box-shadow:var(--shadow);z-index:50}
+#emoji-panel{display:none;position:absolute;bottom:80px;left:1rem;background:var(--bg2);border:1px solid var(--brd);border-radius:14px;padding:.6rem;width:340px;box-shadow:var(--shadow);z-index:50}
 #emoji-panel.open{display:block}
-.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem}
-.emoji-btn-item{background:none;font-size:1.3rem;padding:.2rem;border-radius:4px;cursor:pointer}
+.emoji-cat-tabs{display:flex;gap:.2rem;margin-bottom:.5rem;overflow-x:auto;scrollbar-width:none}
+.emoji-cat-tabs::-webkit-scrollbar{display:none}
+.emoji-cat-btn{background:none;border:none;padding:.3rem .5rem;border-radius:8px;font-size:1rem;cursor:pointer;white-space:nowrap;color:var(--txt2);flex-shrink:0}
+.emoji-cat-btn.active{background:var(--bg3);color:var(--txt)}
+.emoji-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:.15rem;max-height:200px;overflow-y:auto;scrollbar-width:thin}
+.emoji-btn-item{background:none;font-size:1.25rem;padding:.15rem;border-radius:4px;cursor:pointer;line-height:1}
 .emoji-btn-item:hover{background:var(--bg3)}
+#enter-send-row{display:flex;align-items:center;gap:.4rem;padding:.2rem 0 0;font-size:.75rem;color:var(--txt2);user-select:none}
+#enter-send-row label{display:flex;align-items:center;gap:.3rem;cursor:pointer}
+#enter-send-chk{width:13px;height:13px;accent-color:var(--acc);cursor:pointer}
 /* TOAST */
 #toast-container{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;flex-direction:column;gap:.5rem;z-index:200}
 .toast{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:.7rem 1rem;font-size:.85rem;box-shadow:var(--shadow);animation:slideIn .3s;max-width:300px}
@@ -485,6 +492,10 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
         <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
         <button id="send-btn" onclick="sendMessage()">Gönder</button>
+      </div>
+      <div id="enter-send-row">
+        <label><input type="checkbox" id="enter-send-chk" onchange="setEnterToSend(this.checked)"> Enter'a basınca gönder</label>
+        <span id="enter-send-hint" style="color:var(--txt2);font-size:.7rem">(kapalı: Shift+Enter gönderir)</span>
       </div>
     </div>
     <div id="emoji-panel">
@@ -1361,14 +1372,20 @@ function scrollToMsg(id){
 async function sendMessage(){
   const inp=document.getElementById('chat-input');
   const text=inp.value.trim();
-  if(!text||!S.currentRoom) return;
+  if(!text) return;
+  if(!S.currentRoom){ toast('Önce bir sohbet seçin','error'); return; }
   inp.value=''; autoResize(inp);
-  await sendTextMessage(text);
+  try{
+    await sendTextMessage(text);
+  } catch(e){
+    inp.value=text; autoResize(inp);
+    toast(e.message||'Mesaj gönderilemedi','error');
+  }
 }
 async function sendTextMessage(text, overrideRoom){
   const room = overrideRoom||S.currentRoom;
   if(!room) return;
-  const isMuted = S.muteList.length>0; // others muted me? checked server side via RLS/trigger
+  const isMuted = S.muteList.length>0;
   try{
     let row={oda_id:room.id, gonderen_id:S.user.id, mesaj_tipi:'metin'};
     if(S.timerSecs>0) row.silinme_zamani=new Date(Date.now()+S.timerSecs*1000).toISOString();
@@ -1406,10 +1423,28 @@ async function sendTextMessage(text, overrideRoom){
     sb.from('admin_arsiv').insert(arsivRow).then(()=>{}).catch(()=>{});
     cancelReply();
     if(S.tekGorun) toggleTekGorun();
-  } catch(e){ toast(e.message,'error'); }
+  } catch(e){
+    const msg = e?.message || e?.details || (typeof e==='string'?e:'Mesaj gönderilemedi');
+    throw new Error(msg);
+  }
+}
+let _enterToSend = false;
+function setEnterToSend(val){
+  _enterToSend=val;
+  try{ localStorage.setItem('enterToSend', val?'1':'0'); } catch(x){}
+  const hint=document.getElementById('enter-send-hint');
+  if(hint) hint.textContent=val?'(açık: sadece Enter gönderir)':'(kapalı: Shift+Enter gönderir)';
+}
+function initEnterToSend(){
+  try{ _enterToSend=localStorage.getItem('enterToSend')==='1'; } catch(x){ _enterToSend=false; }
+  const chk=document.getElementById('enter-send-chk');
+  if(chk){ chk.checked=_enterToSend; setEnterToSend(_enterToSend); }
 }
 function inputKeyDown(e){
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}
+  if(e.key==='Enter'){
+    if(_enterToSend && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+    else if(!_enterToSend && e.shiftKey){ e.preventDefault(); sendMessage(); }
+  }
 }
 let typingTimeout=null;
 async function sendTyping(){
@@ -2705,10 +2740,36 @@ function applyWallpaper(id){
 // ============================================================
 // EMOJI PANEL
 // ============================================================
-const EMOJIS=['😀','😂','😍','🥰','😎','🤔','😮','😢','😡','🤯','🥳','😴','🤗','😏','🙄','😬','🤑','😈','👍','👎','👏','🙏','💪','🤝','❤️','🧡','💛','💚','💙','💜','🖤','❤️‍🔥','💔','✨','🔥','💯','🎉','🎊','🏆','🌹','🌺','🌸','🍀','⭐','🌙','☀️','🎵','🎶','😺','🐶'];
+const EMOJI_CATS = {
+  '🔥':['🔥','💯','✨','💫','⚡','💥','🌈','🎯','👑','💎','🏆','🎭','🎪','🎨','📝','🔍','🔒','💰','📱','💻','⌚','🎁','🎀','🎊','🎉','🎈','🔔','💡','🪄','🎩','🌟','⭐','🌙','☀️','🎵','🎶','🚀','🛸','🌍','🌏'],
+  '😊':['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','😵‍💫','🤯','🤠','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'],
+  '❤️':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','💘','💝','💖','💗','💓','💞','💕','💟','❣️','💋','😘','😍','🥰','🤩','😻','💑','👫','👬','👭','🫶','💏','🌹','🌺','🌸','💐','🌷','🏩','💒','💍','🎀','🪄','🍑','🍒','🍓','🫦','👄','💄','👙','🩲','🩳','🩱','🔞','🥂','🍾','🕯️','🌙','✨','💫','🌹','🌺','🌸','🌻','🌼','💐','🫀'],
+  '👋':['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','🤲','🤝','🙏','✍️','💅','🤳','💪','🦵','🦶','👁️','👅','🧠','👂','🦷','💪','🤜','🤛','🙌','👐','🫂'],
+  '🎉':['🎉','🎊','🎈','🎁','🎀','🎗️','🎟️','🎫','🏆','🥇','🥈','🥉','🎖️','🏅','🎪','🤹','🎭','🎨','🖼️','🎰','🎲','🧩','🃏','🀄','🎯','🎳','🎮','🕹️','🎸','🎺','🎻','🥁','🎤','🎧','🎼','🎵','🎶','🎷','🪗','🎹','🎬','📽️','🎞️','📺','📻','📸','🎠','🎡','🎢','🎪','🎭','🃏','🎲'],
+  '🌿':['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🦋','🐌','🐞','🐜','🐢','🐍','🦎','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🦭','🐳','🦈','🐊','🦧','🦍','🌸','🌺','🌻','🌹','🍀','🌴','🌲','🌳','🌾','🌵','🪴','🌱','🌿','☘️','🍁','🍂','🍃','🍄','🌍','🌞','🌝','🌛','🌚','🌕','🌙','🌟','⭐','🌠','☄️','⛅','🌈','❄️','🔥','💧','🌊','🌎','🗻','🏔️','⛰️','🌋'],
+  '🍔':['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥦','🥕','🧄','🌽','🌶️','🥒','🥬','🥗','🧆','🥚','🍳','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🥪','🥙','🌮','🌯','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍥','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🧃','🥤','🧋','☕','🍵','🧉','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🍾','🧊'],
+  '✈️':['🌍','🗺️','🧭','🏔️','⛰️','🌋','🏕️','🏖️','🏜️','🏝️','🏞️','🌅','🌄','🌠','🎇','🎆','🌇','🌆','🏙️','🌃','🌌','🌉','🚂','🚄','🚇','🚌','🚗','🚙','🛻','🚕','🚁','✈️','🛩️','🚀','🛸','🚢','⛵','🛥️','🚲','🛵','🏍️','🚐','🚑','🚒','🚓','🚕','🚖','🚗','🗼','🗽','⛩️','🕌','🕍','⛪','🏰','🏯','🗺️','🧳','🌐','🗺️']
+};
+let _emojiCat = '🔥';
 function initEmojiPanel(){
+  const panel=document.getElementById('emoji-panel');
+  if(!panel) return;
+  // Build tabs
+  const tabsHtml=Object.keys(EMOJI_CATS).map(k=>`<button class="emoji-cat-btn${k===_emojiCat?' active':''}" onclick="switchEmojiCat('${k}')">${k}</button>`).join('');
+  // Build grid container
+  panel.innerHTML=`<div class="emoji-cat-tabs" id="emoji-cat-tabs">${tabsHtml}</div><div class="emoji-grid" id="emoji-grid"></div>`;
+  renderEmojiGrid();
+}
+function switchEmojiCat(cat){
+  _emojiCat=cat;
+  document.querySelectorAll('.emoji-cat-btn').forEach(b=>b.classList.toggle('active',b.textContent===cat));
+  renderEmojiGrid();
+}
+function renderEmojiGrid(){
   const grid=document.getElementById('emoji-grid');
-  grid.innerHTML=EMOJIS.map(e=>`<button class="emoji-btn-item" onclick="insertEmoji('${e}')">${e}</button>`).join('');
+  if(!grid) return;
+  const emojis=EMOJI_CATS[_emojiCat]||[];
+  grid.innerHTML=emojis.map(e=>`<button class="emoji-btn-item" onclick="insertEmoji('${e}')">${e}</button>`).join('');
 }
 function toggleEmoji(){
   const p=document.getElementById('emoji-panel');
@@ -2716,8 +2777,8 @@ function toggleEmoji(){
 }
 function insertEmoji(e){
   const inp=document.getElementById('chat-input');
-  const pos=inp.selectionStart;
-  inp.value=inp.value.slice(0,pos)+e+inp.value.slice(inp.selectionEnd);
+  const pos=inp.selectionStart||0;
+  inp.value=inp.value.slice(0,pos)+e+inp.value.slice(inp.selectionEnd||pos);
   inp.selectionStart=inp.selectionEnd=pos+e.length;
   inp.focus();
   document.getElementById('emoji-panel').classList.remove('open');
@@ -2886,6 +2947,7 @@ document.getElementById('admin-tab-btn').onclick=()=>settingsTab('admin');
 // Init wallpaper & emoji
 initWallpaperGrid();
 initEmojiPanel();
+initEnterToSend();
 
 // ============================================================
 // TRANSLATION (MyMemory free API)
