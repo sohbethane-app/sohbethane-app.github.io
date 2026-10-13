@@ -1653,6 +1653,12 @@ async function renderRoomList(rooms){
   const tab = S.sideTab || 'dm';
   // Kasa: hidden room IDs
   const kasaIds = getKasaRooms();
+  // Sadece DB'de gerçekten var olan odaları say (silinmiş odaları temizle)
+  const validKasaIds = kasaIds.filter(id=>(rooms||[]).some(r=>r.id===id));
+  if(validKasaIds.length!==kasaIds.length){
+    if(validKasaIds.length===0){ localStorage.removeItem('kasa_rooms'); localStorage.removeItem('kasa_hash'); S.kasaUnlocked=false; }
+    else localStorage.setItem('kasa_rooms',JSON.stringify(validKasaIds));
+  }
   let filtered = (rooms||[]).filter(r=>{
     if(kasaIds.includes(r.id)) return false; // gizli, kasaya al
     if(tab==='dm') return r.tur==='dm';
@@ -1717,7 +1723,7 @@ async function renderRoomList(rooms){
   // Normal odaları ekle
   for(const r of filtered) list.appendChild(await buildRoomEl(r));
   // KASA BÖLÜMÜ — kasa odaları varsa daima göster
-  if(kasaIds.length > 0){
+  if(validKasaIds.length > 0){
     const kasaDivider = document.createElement('div');
     kasaDivider.className='kasa-divider';
     kasaDivider.textContent='🗄️ Kasa';
@@ -1729,7 +1735,7 @@ async function renderRoomList(rooms){
       <div class="room-avatar" style="background:linear-gradient(135deg,#3d1a5a,#6b2fa0);font-size:1.1rem">🔐</div>
       <div class="room-info">
         <div class="room-name" style="color:#c77dff">${S.kasaUnlocked?'🔓 Kasa Açık':'🔒 Kasa'}</div>
-        <div class="room-preview">${kasaIds.length} gizli öğe · ${S.kasaUnlocked?'Kilitle':'Şifre ile aç'}</div>
+        <div class="room-preview">${validKasaIds.length} gizli öğe · ${S.kasaUnlocked?'Kilitle':'Şifre ile aç'}</div>
       </div>`;
     list.appendChild(kasaEl);
     // Kasa açıksa gizli odaları göster
