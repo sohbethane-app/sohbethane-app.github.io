@@ -112,17 +112,14 @@ a{color:var(--acc2);text-decoration:none}
 #sidebar-header{padding:.8rem 1rem;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:.5rem}
 #sidebar-header h2{flex:1;font-size:1rem;color:var(--acc2)}
 /* Sidebar sekmeler */
-#sidebar-tabs{display:flex;border-bottom:1px solid var(--brd);background:var(--bg2)}
-.s-tab{flex:1;padding:.55rem .2rem;background:none;color:var(--txt2);font-size:.68rem;font-weight:600;text-align:center;transition:.2s;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:.15rem}
+#sidebar-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--brd);background:var(--bg2)}
+.s-tab{flex:1;min-width:0;padding:.55rem .2rem;background:none;color:var(--txt2);font-size:.68rem;font-weight:600;text-align:center;transition:.2s;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:.15rem}
 .s-tab:hover{color:var(--txt);background:rgba(255,255,255,.04)}
 .s-tab.active{color:var(--acc2);border-bottom-color:var(--acc2);background:rgba(64,145,108,.06)}
 .s-tab-icon{font-size:.95rem;line-height:1}
-/* Sidebar create row */
-#sidebar-create-row{display:flex;gap:.5rem;padding:.5rem .7rem;border-bottom:1px solid var(--brd);background:var(--bg2)}
-.s-create-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:.4rem;padding:.5rem .6rem;border-radius:10px;font-size:.8rem;font-weight:700;border:1.5px dashed var(--brd);background:none;color:var(--txt2);transition:.2s;letter-spacing:.2px}
-.s-create-btn .s-cicon{font-size:1.1rem;line-height:1}
-.s-create-btn .s-cplus{font-size:.95rem;font-weight:900;color:var(--acc2);margin-left:.1rem}
-.s-create-btn:hover{border-color:var(--acc2);color:var(--acc2);background:rgba(64,145,108,.09);box-shadow:0 0 0 2px rgba(64,145,108,.12)}
+/* Create tabs (Grup+, Arşiv+) */
+.s-tab-new{flex:1;min-width:0;padding:.55rem .2rem;background:none;color:var(--acc2);font-size:.68rem;font-weight:700;text-align:center;transition:.2s;border-bottom:2px dashed rgba(64,145,108,.3);display:flex;flex-direction:column;align-items:center;gap:.15rem;opacity:.8}
+.s-tab-new:hover{opacity:1;background:rgba(64,145,108,.09);border-bottom-color:var(--acc2)}
 .icon-btn{background:none;color:var(--txt2);padding:.4rem;border-radius:6px;font-size:1.1rem;transition:.2s}
 .icon-btn:hover{background:var(--bg3);color:var(--txt)}
 #user-search-wrap{padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
@@ -554,14 +551,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       <button class="s-tab active" id="stab-dm" onclick="switchSideTab(this,'dm')"><span class="s-tab-icon">💬</span>Sohbetler</button>
       <button class="s-tab" id="stab-grup" onclick="switchSideTab(this,'grup')"><span class="s-tab-icon">🏠</span>Odalar</button>
       <button class="s-tab" id="stab-duvar" onclick="switchSideTab(this,'duvar')"><span class="s-tab-icon">📰</span>Zaman Tüneli</button>
-    </div>
-    <div id="sidebar-create-row" style="display:none">
-      <button class="s-create-btn" onclick="newRoomTab('grup');openModal('new-room-modal')" title="Yeni Grup Oluştur">
-        <span class="s-cicon">👥</span><span>Yeni Grup</span><span class="s-cplus">＋</span>
-      </button>
-      <button class="s-create-btn" onclick="newRoomTab('arsiv');openModal('new-room-modal')" title="Yeni Arşiv Oluştur">
-        <span class="s-cicon">📁</span><span>Yeni Arşiv</span><span class="s-cplus">＋</span>
-      </button>
+      <button class="s-tab-new" onclick="newRoomTab('grup');openModal('new-room-modal')"><span class="s-tab-icon">👥</span>Grup +</button>
+      <button class="s-tab-new" onclick="newRoomTab('arsiv');openModal('new-room-modal')"><span class="s-tab-icon">📁</span>Arşiv +</button>
     </div>
     <!-- Sub-tabs for Zaman Tüneli -->
     <div id="tunel-subtabs">
@@ -1480,9 +1471,6 @@ function switchSideTab(el, tab){
   document.querySelectorAll('.s-tab').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
   updateSectionInfo(tab);
-  // Show create row only on Odalar tab
-  const createRow = document.getElementById('sidebar-create-row');
-  if(createRow) createRow.style.display = (tab==='grup') ? 'flex' : 'none';
   const subtabs = document.getElementById('tunel-subtabs');
   const ikiliList = document.getElementById('ikili-tunel-sidebar-list');
   const userSearchWrap = document.getElementById('user-search-wrap');
