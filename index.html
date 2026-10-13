@@ -596,6 +596,25 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   </div>
 </div>
 </div>
+<!-- PROFIL KARTI -->
+<div class="modal-overlay" id="profil-modal" onclick="if(event.target===this)closeModal('profil-modal')">
+<div class="modal" style="max-width:360px">
+  <div class="modal-header"><span class="modal-title">👤 Profil</span><button class="modal-close" onclick="closeModal('profil-modal')">✕</button></div>
+  <div id="profil-modal-body" style="text-align:center;padding:.5rem 0 0">
+    <div id="pm-avatar" style="width:72px;height:72px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;overflow:hidden;margin:0 auto .6rem"></div>
+    <div id="pm-isim" style="font-size:1.1rem;font-weight:700"></div>
+    <div id="pm-kullanici" style="font-size:.85rem;color:var(--txt2);margin-bottom:.5rem"></div>
+    <div id="pm-hakkimda" style="font-size:.85rem;color:var(--txt);margin-bottom:.7rem;white-space:pre-line;text-align:left;padding:0 .5rem;display:none"></div>
+    <div id="pm-sosyal" style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:.8rem"></div>
+    <!-- profil linki kopyala -->
+    <div style="display:flex;gap:.4rem;align-items:center;margin:.5rem 0;background:var(--bg2);border-radius:8px;padding:.4rem .6rem">
+      <input id="pm-link" readonly style="flex:1;background:none;border:none;color:var(--txt2);font-size:.75rem;font-family:monospace" value="">
+      <button class="btn btn-secondary btn-sm" onclick="copyPmLink()" title="Kopyala">📋</button>
+    </div>
+    <div id="pm-actions" style="margin-top:.5rem"></div>
+  </div>
+</div>
+</div>
 <!-- SETTINGS -->
 <div class="modal-overlay" id="settings-modal">
 <div class="modal">
@@ -616,11 +635,23 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       </div>
     </div>
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="updateAvatar(this)">
-    <div class="form-group"><label>Görünen isim</label><input id="settings-goruntu-adi" placeholder="Adınız Soyadınız"></div>
-    <div class="form-group">
-      <label>Bağlantı bilgileri <span style="font-size:.75rem;color:var(--txt2)">(herkese görünür)</span></label>
-      <textarea id="settings-bio" placeholder="Telegram: @kullanici&#10;Telefon: +90 5xx xxx xx xx&#10;Web: https://..." rows="3" style="width:100%;resize:vertical;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.6rem;color:var(--txt);font-size:.88rem;font-family:inherit"></textarea>
+    <!-- Profil linki -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.7rem .8rem;margin-bottom:.8rem">
+      <div style="font-size:.75rem;color:var(--txt2);margin-bottom:.35rem">🔗 Profil linkin — paylaşarak seni bulsunlar</div>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <input id="profil-link-input" readonly style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:.35rem .55rem;color:var(--txt);font-size:.78rem;font-family:monospace" value="">
+        <button class="btn btn-secondary btn-sm" onclick="copyProfilLink()" title="Kopyala">📋</button>
+      </div>
     </div>
+    <div class="form-group"><label>Görünen isim</label><input id="settings-goruntu-adi" placeholder="Adınız Soyadınız"></div>
+    <div class="form-group"><label>Hakkımda</label><textarea id="settings-hakkimda" placeholder="Kendinizi kısaca tanıtın..." rows="2" style="width:100%;resize:vertical;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.6rem;color:var(--txt);font-size:.88rem;font-family:inherit"></textarea></div>
+    <div style="font-size:.8rem;font-weight:600;color:var(--txt2);margin:.6rem 0 .3rem">📱 Sosyal medya &amp; iletişim <span style="font-weight:400">(herkese görünür)</span></div>
+    <div class="form-group"><label>📸 Instagram</label><input id="settings-instagram" placeholder="@kullanici_adi" autocomplete="off"></div>
+    <div class="form-group"><label>🐦 X / Twitter</label><input id="settings-twitter" placeholder="@kullanici_adi" autocomplete="off"></div>
+    <div class="form-group"><label>✈️ Telegram</label><input id="settings-telegram" placeholder="@kullanici_adi veya link" autocomplete="off"></div>
+    <div class="form-group"><label>💬 WhatsApp</label><input id="settings-whatsapp" placeholder="+90 5xx xxx xx xx" autocomplete="off"></div>
+    <div class="form-group"><label>📘 Facebook</label><input id="settings-facebook" placeholder="profil adı veya URL" autocomplete="off"></div>
+    <div class="form-group"><label>🌐 Web sitesi</label><input id="settings-website" placeholder="https://..." autocomplete="off"></div>
     <button class="btn btn-primary" onclick="saveProfile()">Kaydet</button>
     <hr style="margin:1rem 0">
     <button class="btn btn-danger" onclick="doLogout()">Çıkış Yap</button>
@@ -983,9 +1014,40 @@ async function startApp(){
   // Notification permission
   if(Notification.permission==='default') Notification.requestPermission();
   // Settings form
-  document.getElementById('settings-goruntu-adi').value = S.profile.goruntu_adi||'';
-  document.getElementById('settings-bio').value = S.profile.bio||'';
+  populateSettingsProfile();
+  // Hash profil kontrolü
+  checkProfilHash();
   renderMyAvatar();
+}
+function populateSettingsProfile(){
+  const p=S.profile;
+  document.getElementById('settings-goruntu-adi').value = p.goruntu_adi||'';
+  document.getElementById('settings-hakkimda').value = p.hakkimda||'';
+  const soc=p.sosyal||{};
+  ['instagram','twitter','telegram','whatsapp','facebook','website'].forEach(k=>{
+    const el=document.getElementById('settings-'+k);
+    if(el) el.value=soc[k]||'';
+  });
+  // Profil linki
+  const link=`${location.origin}${location.pathname}#profil=${p.kullanici_adi}`;
+  const inp=document.getElementById('profil-link-input');
+  if(inp) inp.value=link;
+}
+function copyProfilLink(){
+  const v=document.getElementById('profil-link-input')?.value;
+  if(v) navigator.clipboard.writeText(v).then(()=>toast('Link kopyalandı!','success'));
+}
+function copyPmLink(){
+  const v=document.getElementById('pm-link')?.value;
+  if(v) navigator.clipboard.writeText(v).then(()=>toast('Link kopyalandı!','success'));
+}
+function checkProfilHash(){
+  const h=location.hash;
+  if(h.startsWith('#profil=')){
+    const uname=decodeURIComponent(h.slice(8));
+    if(uname) setTimeout(()=>viewProfileByUsername(uname),600);
+    history.replaceState(null,'',location.pathname);
+  }
 }
 function renderMyAvatar(){
   const a = document.getElementById('my-avatar');
@@ -1250,7 +1312,7 @@ function appendMessageEl(m, container, lastDate, setDate){
   // Context menu
   wrap.oncontextmenu=e=>{e.preventDefault();showMsgMenu(e,m);};
   wrap.innerHTML=`${avatarHtml}<div>
-    ${!own&&S.currentRoom?.tur!=='dm'?`<div class="msg-sender">${senderName}</div>`:''}
+    ${!own&&S.currentRoom?.tur!=='dm'?`<div class="msg-sender" style="cursor:pointer" onclick="viewProfile('${m.gonderen_id}')">${senderName}</div>`:''}
     <div class="msg-bubble">
       ${replyHtml}${content}
       <div class="msg-meta">${editedHtml}<span class="msg-time">${fmtTime(m.olusturma_tarihi)}</span>${own?`<span class="${tickClass}">${ticks}</span>`:''}<button class="msg-translate-btn" onclick="translateMsg('${m.id}',this)" title="Çevir">🌐</button></div>
@@ -1842,8 +1904,7 @@ async function searchUsers(q){
       const el=document.createElement('div');
       el.className='user-item';
       const avHtml=p.avatar_url?`<img src="${p.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span>`;
-      const bioHtml=p.bio?`<div style="font-size:.72rem;color:var(--txt2);margin-top:.15rem;white-space:pre-line;line-height:1.3;max-height:2.6em;overflow:hidden">${escHtml(p.bio)}</div>`:'';
-      el.innerHTML=`<div class="user-avatar-sm" style="background:${userColor(p.id)};flex-shrink:0">${avHtml}</div><div style="min-width:0"><div style="font-size:.9rem;font-weight:600">${escHtml(p.goruntu_adi||p.kullanici_adi)}</div><div style="font-size:.78rem;color:var(--txt2)">@${p.kullanici_adi}</div>${bioHtml}</div>`;
+      el.innerHTML=`<div class="user-avatar-sm" style="background:${userColor(p.id)};flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();viewProfile('${p.id}')">${avHtml}</div><div style="min-width:0"><div style="font-size:.9rem;font-weight:600">${escHtml(p.goruntu_adi||p.kullanici_adi)}</div><div style="font-size:.78rem;color:var(--txt2)">@${p.kullanici_adi}</div></div>`;
       el.onclick=()=>{document.getElementById('user-search').value='';res.style.display='none';list.style.display='';startDM(p.id);};
       res.appendChild(el);
     });
@@ -2415,6 +2476,74 @@ async function reportMessage(m){
   if(error) toast('Hata: '+error.message,'error');
   else toast('Şikayetiniz yöneticiye iletildi.','success');
 }
+// ============================================================
+// PROFİL KARTI
+// ============================================================
+const SOSYAL_META={
+  instagram:{icon:'📸',label:'Instagram',base:'https://instagram.com/'},
+  twitter:  {icon:'🐦',label:'X / Twitter',base:'https://x.com/'},
+  telegram: {icon:'✈️',label:'Telegram',base:'https://t.me/'},
+  whatsapp: {icon:'💬',label:'WhatsApp',base:'https://wa.me/'},
+  facebook: {icon:'📘',label:'Facebook',base:'https://facebook.com/'},
+  website:  {icon:'🌐',label:'Web sitesi',base:''}
+};
+async function viewProfile(uid){
+  let p=S.profiles[uid];
+  if(!p){
+    const {data}=await sb.from('profiller').select('id,kullanici_adi,goruntu_adi,avatar_url,hakkimda,sosyal').eq('id',uid).single();
+    if(!data) return;
+    p=data; S.profiles[uid]=p;
+  } else if(!p.sosyal&&p.sosyal!==null){
+    // refresh sosyal data
+    const {data}=await sb.from('profiller').select('hakkimda,sosyal').eq('id',uid).single();
+    if(data){p.hakkimda=data.hakkimda;p.sosyal=data.sosyal;}
+  }
+  _showProfilModal(p);
+}
+async function viewProfileByUsername(uname){
+  const {data}=await sb.from('profiller').select('id,kullanici_adi,goruntu_adi,avatar_url,hakkimda,sosyal').eq('kullanici_adi',uname).single();
+  if(!data){toast('Kullanıcı bulunamadı','error');return;}
+  S.profiles[data.id]=data;
+  _showProfilModal(data);
+}
+function _showProfilModal(p){
+  const modal=document.getElementById('profil-modal');
+  // Avatar
+  const av=document.getElementById('pm-avatar');
+  if(p.avatar_url) av.innerHTML=`<img src="${p.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  else{av.textContent=avatarInitials(p.goruntu_adi||p.kullanici_adi);av.style.background=userColor(p.id);}
+  document.getElementById('pm-isim').textContent=p.goruntu_adi||p.kullanici_adi||'?';
+  document.getElementById('pm-kullanici').textContent='@'+(p.kullanici_adi||'');
+  // Hakkımda
+  const hakEl=document.getElementById('pm-hakkimda');
+  if(p.hakkimda){hakEl.textContent=p.hakkimda;hakEl.style.display='';}
+  else hakEl.style.display='none';
+  // Sosyal
+  const soc=p.sosyal||{};
+  const socEl=document.getElementById('pm-sosyal');
+  socEl.innerHTML='';
+  Object.entries(SOSYAL_META).forEach(([k,meta])=>{
+    if(!soc[k]) return;
+    const val=soc[k];
+    const href=k==='website'?val:(k==='whatsapp'?meta.base+val.replace(/[^0-9]/g,''):meta.base+val.replace(/^@/,''));
+    const btn=document.createElement('a');
+    btn.href=href; btn.target='_blank'; btn.rel='noopener noreferrer';
+    btn.style.cssText='display:inline-flex;align-items:center;gap:.3rem;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:.3rem .7rem;font-size:.8rem;color:var(--txt);text-decoration:none';
+    btn.innerHTML=`${meta.icon} <span>${escHtml(val)}</span>`;
+    socEl.appendChild(btn);
+  });
+  // Link
+  const link=`${location.origin}${location.pathname}#profil=${p.kullanici_adi}`;
+  document.getElementById('pm-link').value=link;
+  // Aksiyon (kendi profilin ise yok, başkası ise mesaj)
+  const acts=document.getElementById('pm-actions');
+  if(p.id!==S.user?.id){
+    acts.innerHTML=`<button class="btn btn-primary" style="width:100%" onclick="closeModal('profil-modal');startDM('${p.id}')">💬 Mesaj Gönder</button>`;
+  } else {
+    acts.innerHTML=`<button class="btn btn-secondary" style="width:100%" onclick="closeModal('profil-modal');openModal('settings-modal')">✏️ Profili Düzenle</button>`;
+  }
+  openModal('profil-modal');
+}
 async function toggleAdmin(uid,makeAdmin){
   await sb.from('profiller').update({yonetici:makeAdmin}).eq('id',uid);
   toast(makeAdmin?'Yönetici yapıldı':'Yetki alındı','success');
@@ -2469,14 +2598,20 @@ async function unblockUser(uid){
 async function saveProfile(){
   const goruntu=document.getElementById('settings-goruntu-adi').value.trim();
   if(!goruntu){toast('Görünen isim boş olamaz','error');return;}
-  const bio=document.getElementById('settings-bio').value.trim();
-  const {error}=await sb.from('profiller').update({goruntu_adi:goruntu,bio}).eq('id',S.user.id);
+  const hakkimda=document.getElementById('settings-hakkimda').value.trim();
+  const sosyal={};
+  ['instagram','twitter','telegram','whatsapp','facebook','website'].forEach(k=>{
+    const v=(document.getElementById('settings-'+k)?.value||'').trim();
+    if(v) sosyal[k]=v;
+  });
+  const {error}=await sb.from('profiller').update({goruntu_adi:goruntu,hakkimda,sosyal}).eq('id',S.user.id);
   if(error){toast(error.message,'error');return;}
   S.profile.goruntu_adi=goruntu;
-  S.profile.bio=bio;
+  S.profile.hakkimda=hakkimda;
+  S.profile.sosyal=sosyal;
   S.profiles[S.user.id]=S.profile;
   renderMyAvatar();
-  toast('Profil kaydedildi','success');
+  toast('Profil kaydedildi ✅','success');
 }
 async function updateAvatar(input){
   if(!input.files?.length) return;
