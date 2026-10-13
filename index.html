@@ -435,6 +435,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .post-card.blurred .post-blur-zone > .post-text,
 .post-card.blurred .post-blur-zone > .post-media-wrap{filter:blur(18px);transition:.3s;pointer-events:none;user-select:none;display:block}
 /* Overlay floats on top of blurred content */
+.post-card.blurred .post-blur-zone{min-height:160px}
 .post-unblur-overlay{display:none}
 .post-card.blurred .post-unblur-overlay{
   display:flex;position:absolute;inset:0;z-index:10;
@@ -2443,6 +2444,9 @@ async function createGroup(tur){
     S.newRoomMembers=[];S.newDuvarMembers=[];
     closeModal('new-room-modal');
     await loadRooms();
+    // Odalar sekmesine geç ki yeni grup görünsün
+    const grupTabEl=document.getElementById('stab-grup');
+    if(grupTabEl) switchSideTab(grupTabEl,'grup');
     const newRoom=S.rooms.find(r=>r.id===room.id)||{...room,_otherUserId:null};
     openRoom(newRoom);
     toast('Oda oluşturuldu','success');
@@ -2461,6 +2465,9 @@ async function createArchive(){
     S.groupKeys[room.id]=groupKey;
     closeModal('new-room-modal');
     await loadRooms();
+    // Odalar sekmesine geç ki yeni arşiv görünsün
+    const grupTabEl=document.getElementById('stab-grup');
+    if(grupTabEl) switchSideTab(grupTabEl,'grup');
     const newRoom=S.rooms.find(r=>r.id===room.id)||{...room};
     openRoom(newRoom);
     toast('Arşiv oluşturuldu','success');
