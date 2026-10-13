@@ -2405,6 +2405,8 @@ async function loadAdminUsers(){
       <td>${p.son_gorulme?fmtTime(p.son_gorulme):'-'}</td>
       <td style="white-space:nowrap">
         ${p.id!==S.user.id?`
+        <button class="btn btn-secondary btn-sm" title="Profil gör" onclick="viewProfile('${p.id}')">👤</button>
+        <button class="btn btn-secondary btn-sm" title="Mesaj at" onclick="closeModal('settings-modal');startDM('${p.id}')">💬</button>
         <button class="btn btn-secondary btn-sm" title="${p.yonetici?'Yetkiyi al':'Yönetici yap'}" onclick="toggleAdmin('${p.id}',${!p.yonetici})">${p.yonetici?'☆':'⭐'}</button>
         ${p.banli?`<button class="btn btn-secondary btn-sm" title="Askıyı kaldır" onclick="setBan('${p.id}',false)">🔓</button>`:`<button class="btn btn-danger btn-sm" title="Askıya al" onclick="setBan('${p.id}',true)">🚫</button>`}
         <button class="btn btn-danger btn-sm" title="Sil" onclick="deleteUser('${p.id}')">🗑</button>
