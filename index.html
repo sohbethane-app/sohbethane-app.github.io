@@ -237,6 +237,11 @@ a{color:var(--acc2);text-decoration:none}
 #enter-send-row{display:flex;align-items:center;gap:.4rem;padding:.2rem 0 0;font-size:.75rem;color:var(--txt2);user-select:none}
 #enter-send-row label{display:flex;align-items:center;gap:.3rem;cursor:pointer}
 #enter-send-chk{width:13px;height:13px;accent-color:var(--acc);cursor:pointer}
+/* LANG BAR */
+#lang-bar{display:none;align-items:center;gap:.4rem;padding:.25rem 0 0;font-size:.73rem;color:var(--txt2)}
+.lang-indicator-btn{background:linear-gradient(135deg,rgba(64,145,108,.18),rgba(0,200,180,.12));border:1px solid var(--acc2);border-radius:20px;padding:.22rem .75rem;font-size:.75rem;color:var(--acc2);cursor:pointer;display:flex;align-items:center;gap:.3rem;transition:.2s;white-space:nowrap;font-weight:600}
+.lang-indicator-btn:hover{background:rgba(64,145,108,.28);transform:scale(1.03)}
+.lang-auto-badge{font-size:.65rem;background:var(--acc2);color:#fff;border-radius:10px;padding:.05rem .4rem;margin-left:.2rem}
 /* TOAST */
 #toast-container{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;flex-direction:column;gap:.5rem;z-index:200}
 .toast{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:.7rem 1rem;font-size:.85rem;box-shadow:var(--shadow);animation:slideIn .3s;max-width:300px}
@@ -507,6 +512,15 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <label><input type="checkbox" id="enter-send-chk" onchange="setEnterToSend(this.checked)"> Enter'a basınca gönder</label>
         <span id="enter-send-hint" style="color:var(--txt2);font-size:.7rem">(kapalı: Shift+Enter gönderir)</span>
       </div>
+      <div id="lang-bar">
+        <button class="lang-indicator-btn" id="lang-indicator-btn" onclick="toggleLangQuick()" title="Çeviri ayarları — tıklayarak aç/kapat">
+          <span id="lang-from-lbl">🌐</span>
+          <span>→</span>
+          <span id="lang-to-lbl">🌐</span>
+          <span id="lang-auto-badge" class="lang-auto-badge" style="display:none">OTO</span>
+        </button>
+        <span style="font-size:.7rem;color:var(--txt2)">otomatik çeviri</span>
+      </div>
     </div>
     <div id="emoji-panel">
       <div class="emoji-grid" id="emoji-grid"></div>
@@ -647,6 +661,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <button class="modal-tab" onclick="settingsTab('muted')">Sessize Alınanlar</button>
     <button class="modal-tab" onclick="settingsTab('blocked')">Engellediklerim</button>
     <button class="modal-tab" id="admin-tab-btn" style="display:none" onclick="settingsTab('admin')">👑 Yönetici</button>
+    <button class="modal-tab" id="lang-tab-btn" onclick="settingsTab('lang')">🌐 Çeviri</button>
   </div>
   <div id="settings-profile">
     <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
@@ -711,6 +726,45 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         </div>
         <div id="admin-sikayet-table"></div>
       </div>
+    </div>
+  </div>
+  <div id="settings-lang" style="display:none">
+    <div style="margin-bottom:.8rem">
+      <div style="font-weight:700;font-size:.95rem;margin-bottom:.3rem">🌐 Otomatik Çeviri</div>
+      <div style="font-size:.82rem;color:var(--txt2);line-height:1.5">Herkes kendi dilinde yazar, karşı taraf kendi dilinde okur. Altta dil seçimlerinizi yapın.</div>
+    </div>
+    <div class="form-group" style="margin-bottom:.7rem">
+      <label style="font-size:.82rem;color:var(--txt2)">🗣️ Benim dilim (yazdığım dil)</label>
+      <select id="lang-my-select" onchange="setMyLang(this.value)" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;color:var(--txt);font-size:.88rem"></select>
+    </div>
+    <div class="form-group" style="margin-bottom:.7rem">
+      <label style="font-size:.82rem;color:var(--txt2)">👤 Karşı tarafın dili (çevrileceği dil)</label>
+      <select id="lang-target-select" onchange="setTargetLang(this.value)" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;color:var(--txt);font-size:.88rem"></select>
+    </div>
+    <hr style="border-color:var(--brd);margin:.8rem 0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+      <div>
+        <div style="font-size:.88rem;font-weight:600">📤 Gönderirken çevir</div>
+        <div style="font-size:.75rem;color:var(--txt2)">Yazdıklarınız karşı tarafın dilinde gönderilir</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+        <input type="checkbox" id="auto-send-translate-chk" onchange="setAutoSendTranslate(this.checked)" style="width:16px;height:16px;accent-color:var(--acc2)">
+      </label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+      <div>
+        <div style="font-size:.88rem;font-weight:600">📥 Alırken çevir (mesaj çeviri butonu)</div>
+        <div style="font-size:.75rem;color:var(--txt2)">Mesajlardaki 🌐 butonu kendi dilinize çevirir</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+        <input type="checkbox" id="auto-recv-translate-chk" onchange="setAutoRecvTranslate(this.checked)" style="width:16px;height:16px;accent-color:var(--acc2)">
+      </label>
+    </div>
+    <div id="lang-preview-box" style="display:none;background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.6rem .8rem;font-size:.8rem;margin-top:.5rem">
+      <span id="lang-preview-text"></span>
+    </div>
+    <div style="margin-top:.8rem;padding:.5rem .7rem;background:rgba(64,145,108,.1);border:1px solid rgba(64,145,108,.3);border-radius:8px;font-size:.78rem;color:var(--acc2)">
+      ℹ️ Çeviri hizmeti: MyMemory (ücretsiz, günde 1000 kelime limiti). Çeviri şifreli mesajın içine gömülür.
     </div>
   </div>
 </div>
@@ -782,6 +836,44 @@ const S = {
 };
 
 // ============================================================
+// TRANSLATION CONSTANTS & STATE
+// ============================================================
+const LANGS = [
+  {code:'tr',name:'Türkçe',flag:'🇹🇷'},
+  {code:'en',name:'English',flag:'🇬🇧'},
+  {code:'de',name:'Deutsch',flag:'🇩🇪'},
+  {code:'fr',name:'Français',flag:'🇫🇷'},
+  {code:'es',name:'Español',flag:'🇪🇸'},
+  {code:'it',name:'Italiano',flag:'🇮🇹'},
+  {code:'pt',name:'Português',flag:'🇵🇹'},
+  {code:'ru',name:'Русский',flag:'🇷🇺'},
+  {code:'ar',name:'العربية',flag:'🇸🇦'},
+  {code:'zh',name:'中文',flag:'🇨🇳'},
+  {code:'ja',name:'日本語',flag:'🇯🇵'},
+  {code:'ko',name:'한국어',flag:'🇰🇷'},
+  {code:'nl',name:'Nederlands',flag:'🇳🇱'},
+  {code:'pl',name:'Polski',flag:'🇵🇱'},
+  {code:'sv',name:'Svenska',flag:'🇸🇪'},
+  {code:'no',name:'Norsk',flag:'🇳🇴'},
+  {code:'da',name:'Dansk',flag:'🇩🇰'},
+  {code:'fi',name:'Suomi',flag:'🇫🇮'},
+  {code:'el',name:'Ελληνικά',flag:'🇬🇷'},
+  {code:'cs',name:'Čeština',flag:'🇨🇿'},
+  {code:'ro',name:'Română',flag:'🇷🇴'},
+  {code:'hu',name:'Magyar',flag:'🇭🇺'},
+  {code:'uk',name:'Українська',flag:'🇺🇦'},
+  {code:'hi',name:'हिन्दी',flag:'🇮🇳'},
+  {code:'fa',name:'فارسی',flag:'🇮🇷'},
+  {code:'id',name:'Bahasa Indonesia',flag:'🇮🇩'},
+  {code:'vi',name:'Tiếng Việt',flag:'🇻🇳'},
+  {code:'th',name:'ภาษาไทย',flag:'🇹🇭'},
+];
+let _myLang = 'tr';
+let _targetLang = 'en';
+let _autoSendTranslate = false;
+let _autoRecvTranslate = false;
+
+// ============================================================
 // UTILITIES
 // ============================================================
 const b64e = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -818,6 +910,7 @@ function showSidebar(){
   document.getElementById('sidebar').classList.remove('hidden');
   document.getElementById('chat-area').style.display='none';
   S.currentRoom=null;
+  const lb=document.getElementById('lang-bar'); if(lb) lb.style.display='none';
   // Show global feed in right panel
   if(document.getElementById('tunel-area')&&!document.getElementById('tunel-area').classList.contains('visible')){
     showGlobalFeed();
@@ -1055,6 +1148,8 @@ async function startApp(){
   renderMyAvatar();
   // Ana sayfa: global feed
   setTimeout(()=>{ if(!S.currentRoom) showGlobalFeed(); }, 100);
+  // Translation system
+  initTranslation();
 }
 function populateSettingsProfile(){
   const p=S.profile;
@@ -1237,6 +1332,8 @@ async function openRoom(room){
   // Subscribe realtime
   subscribeMessages(room.id);
   hideSidebar();
+  // Update lang bar visibility
+  updateLangBar();
 }
 // ============================================================
 // MESSAGES — LOAD & DECRYPT
@@ -1421,6 +1518,14 @@ async function sendTextMessage(text, overrideRoom){
     if(S.tekGorun) row.tek_gorun=true;
     if(S.replyTo) row.yanit_id=S.replyTo.id;
     if(room.tur==='dm'){
+      // Auto-translate outgoing message if enabled
+      let sendText = text;
+      if(_autoSendTranslate && _myLang && _targetLang && _myLang !== _targetLang){
+        try{
+          const translated = await myMemoryTranslate(text, _myLang, _targetLang);
+          if(translated && translated !== text) sendText = translated;
+        }catch(te){ /* silently ignore translation errors */ }
+      }
       const op=await getProfile(room._otherUserId);
       if(!op?.acik_anahtar) throw new Error('Karşı taraf henüz şifreleme anahtarını oluşturmamış.');
       const ephPair=await generateKeyPair();
@@ -1429,8 +1534,8 @@ async function sendTextMessage(text, overrideRoom){
       const sendPub=await importPublicJwk(S.profile.acik_anahtar);
       const recipKey=await deriveSharedKey(ephPair.privateKey,recipPub);
       const sendKey=await deriveSharedKey(ephPair.privateKey,sendPub);
-      const {enc:ea,iv:ia}=await aesEncrypt(recipKey,text);
-      const {enc:es,iv:is}=await aesEncrypt(sendKey,text);
+      const {enc:ea,iv:ia}=await aesEncrypt(recipKey,sendText);
+      const {enc:es,iv:is}=await aesEncrypt(sendKey,sendText);
       // Check if blocked
       const {data:bl}=await sb.from('engellemeler').select('id').eq('engelleyen_id',op.id).eq('engellenen_id',S.user.id).single();
       if(bl) throw new Error('Bu kişi sizi engelledi.');
@@ -2770,9 +2875,10 @@ async function deleteUser(uid){
 // SETTINGS TABS
 // ============================================================
 function settingsTab(tab){
-  ['profile','muted','blocked','admin'].forEach(t=>{const el=document.getElementById('settings-'+t);if(el) el.style.display=t===tab?'block':'none';});
+  ['profile','muted','blocked','admin','lang'].forEach(t=>{const el=document.getElementById('settings-'+t);if(el) el.style.display=t===tab?'block':'none';});
   document.querySelectorAll('#settings-modal .modal-tab').forEach(b=>b.classList.remove('active'));
   event?.target?.classList.add('active');
+  if(tab==='lang') populateLangSelects();
   if(tab==='profile') populateSettingsProfile();
   if(tab==='admin'){ loadAdminUsers(); adminSubTab('users'); }
   if(tab==='muted') loadMutedList();
@@ -3081,9 +3187,10 @@ document.getElementById('pm-pending-btn').addEventListener('click',()=>setTimeou
 
 // Settings tabs fix
 document.querySelectorAll('#settings-modal .modal-tab').forEach((b,i)=>{
-  b.onclick=()=>settingsTab(['profile','muted','blocked','admin'][i]);
+  b.onclick=()=>settingsTab(['profile','muted','blocked','admin','lang'][i]);
 });
 document.getElementById('admin-tab-btn').onclick=()=>settingsTab('admin');
+document.getElementById('lang-tab-btn').onclick=()=>settingsTab('lang');
 
 // Init wallpaper & emoji
 initWallpaperGrid();
@@ -3093,6 +3200,103 @@ initEnterToSend();
 // ============================================================
 // TRANSLATION (MyMemory free API)
 // ============================================================
+function detectBrowserLang(){
+  const raw = (navigator.language||navigator.userLanguage||'tr').toLowerCase().split('-')[0];
+  return LANGS.find(l=>l.code===raw)?.code || 'tr';
+}
+function langInfo(code){ return LANGS.find(l=>l.code===code)||{code,name:code,flag:'🌐'}; }
+function updateLangBar(){
+  const bar = document.getElementById('lang-bar');
+  const fromLbl = document.getElementById('lang-from-lbl');
+  const toLbl = document.getElementById('lang-to-lbl');
+  const badge = document.getElementById('lang-auto-badge');
+  if(!bar) return;
+  const from = langInfo(_myLang);
+  const to = langInfo(_targetLang);
+  if(fromLbl) fromLbl.textContent = from.flag+from.code.toUpperCase();
+  if(toLbl) toLbl.textContent = to.flag+to.code.toUpperCase();
+  if(badge) badge.style.display = _autoSendTranslate ? 'inline' : 'none';
+  // Show bar only when in a DM
+  if(S.currentRoom?.tur==='dm'){
+    bar.style.display='flex';
+  } else {
+    bar.style.display='none';
+  }
+}
+function initTranslation(){
+  // Load from localStorage
+  try{
+    const saved = JSON.parse(localStorage.getItem('translationSettings')||'{}');
+    _myLang = saved.myLang || detectBrowserLang();
+    _targetLang = saved.targetLang || 'en';
+    _autoSendTranslate = !!saved.autoSend;
+    _autoRecvTranslate = !!saved.autoRecv;
+  }catch(x){
+    _myLang = detectBrowserLang();
+    _targetLang = 'en';
+  }
+  // Populate selects
+  populateLangSelects();
+  updateLangBar();
+}
+function saveTranslationSettings(){
+  try{
+    localStorage.setItem('translationSettings',JSON.stringify({
+      myLang:_myLang, targetLang:_targetLang,
+      autoSend:_autoSendTranslate, autoRecv:_autoRecvTranslate
+    }));
+  }catch(x){}
+}
+function populateLangSelects(){
+  ['lang-my-select','lang-target-select'].forEach((id,idx)=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    sel.innerHTML = LANGS.map(l=>`<option value="${l.code}">${l.flag} ${l.name}</option>`).join('');
+    sel.value = idx===0 ? _myLang : _targetLang;
+  });
+  const sSend = document.getElementById('auto-send-translate-chk');
+  const sRecv = document.getElementById('auto-recv-translate-chk');
+  if(sSend) sSend.checked = _autoSendTranslate;
+  if(sRecv) sRecv.checked = _autoRecvTranslate;
+}
+function setMyLang(code){
+  _myLang = code;
+  saveTranslationSettings();
+  updateLangBar();
+  toast('Dilim: '+langInfo(code).flag+' '+langInfo(code).name,'success');
+}
+function setTargetLang(code){
+  _targetLang = code;
+  saveTranslationSettings();
+  updateLangBar();
+  toast('Hedef dil: '+langInfo(code).flag+' '+langInfo(code).name,'success');
+}
+function setAutoSendTranslate(val){
+  _autoSendTranslate = val;
+  saveTranslationSettings();
+  updateLangBar();
+}
+function setAutoRecvTranslate(val){
+  _autoRecvTranslate = val;
+  saveTranslationSettings();
+}
+function toggleLangQuick(){
+  // Quick toggle auto-send
+  _autoSendTranslate = !_autoSendTranslate;
+  const chk = document.getElementById('auto-send-translate-chk');
+  if(chk) chk.checked = _autoSendTranslate;
+  saveTranslationSettings();
+  updateLangBar();
+  toast(_autoSendTranslate ? '✅ Otomatik çeviri açık — '+langInfo(_myLang).flag+'→'+langInfo(_targetLang).flag : '🔕 Otomatik çeviri kapalı', _autoSendTranslate?'success':'info');
+}
+async function myMemoryTranslate(text, from, to){
+  if(!text||!from||!to||from===to) return text;
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,500))}&langpair=${from}|${to}`;
+  const r = await fetch(url);
+  const d = await r.json();
+  const out = d.responseData?.translatedText;
+  return (out && out !== text) ? out : text;
+}
 async function translateMsg(msgId, btn){
   const trEl = document.getElementById('tr_'+msgId);
   if(!trEl) return;
@@ -3102,9 +3306,8 @@ async function translateMsg(msgId, btn){
   if(!txt||txt.length<2) return;
   btn.textContent='⏳'; btn.disabled=true;
   try{
-    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(txt.slice(0,500))}&langpair=autodetect|tr`);
-    const d = await r.json();
-    const out = d.responseData?.translatedText;
+    const toLang = _myLang || 'tr';
+    const out = await myMemoryTranslate(txt, 'autodetect', toLang);
     if(out&&out!==txt){
       trEl.textContent='🌐 '+out;
       trEl.style.display='block';
