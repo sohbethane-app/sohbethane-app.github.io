@@ -922,8 +922,7 @@ async function doRegister(){
   try{
     // Check if first user
     const {data:hasUser} = await sb.rpc('kullanici_var_mi');
-    if(hasUser){
-      if(!inviteCode){err.textContent='Davet kodu gerekli.';return;}
+    if(hasUser&&inviteCode){
       const now = new Date().toISOString();
       const {data:inv,error:ie} = await sb.from('davetler').select('*').eq('kod',inviteCode).single();
       if(ie||!inv){err.textContent='Geçersiz davet kodu.';return;}
@@ -2666,8 +2665,7 @@ window.doRegister=async function(){
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
   try{
     const {data:hasUser}=await sb.rpc('kullanici_var_mi');
-    if(hasUser){
-      if(!inviteCode){err.textContent='Davet kodu gerekli.';return;}
+    if(hasUser&&inviteCode){
       const now=new Date().toISOString();
       const {data:inv,error:ie}=await sb.from('davetler').select('*').eq('kod',inviteCode).single();
       if(ie||!inv){err.textContent='Geçersiz davet kodu.';return;}
