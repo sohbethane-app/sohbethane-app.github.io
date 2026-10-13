@@ -166,9 +166,27 @@ a{color:var(--acc2);text-decoration:none}
 #messages.wallpaper-sade{background:var(--bg)}
 /* MESSAGES */
 .msg-group{display:flex;flex-direction:column;gap:.1rem}
-.msg-wrap{display:flex;align-items:flex-end;gap:.5rem;max-width:75%;margin:.1rem 0}
+.msg-wrap{display:flex;align-items:flex-end;gap:.5rem;max-width:75%;margin:.1rem 0;position:relative}
 .msg-wrap.own{align-self:flex-end;flex-direction:row-reverse}
 .msg-wrap.other{align-self:flex-start}
+/* ⋮ mesaj menü butonu */
+.msg-more-btn{position:absolute;top:.2rem;right:-.4rem;display:none;background:var(--bg2);border:1px solid var(--brd);border-radius:50%;width:22px;height:22px;font-size:.8rem;align-items:center;justify-content:center;z-index:5;color:var(--txt2);line-height:1;padding:0;transition:.15s}
+.msg-wrap.own .msg-more-btn{right:auto;left:-.4rem}
+.msg-wrap:hover .msg-more-btn{display:flex}
+.msg-more-btn:hover{background:var(--bg3);color:var(--txt)}
+/* Resim önizleme */
+.msg-img-preview{max-width:220px;max-height:180px;border-radius:8px;cursor:zoom-in;object-fit:cover;display:block;margin:.2rem 0}
+/* Dosya kartı */
+.msg-file{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;background:rgba(255,255,255,.05);border-radius:10px;margin-top:.2rem;border:1px solid var(--brd)}
+.msg-file-dl{background:none;border:1px solid var(--brd);border-radius:7px;padding:.25rem .5rem;font-size:.78rem;color:var(--acc2);cursor:pointer;transition:.15s;flex-shrink:0;white-space:nowrap}
+.msg-file-dl:hover{background:rgba(64,145,108,.12);border-color:var(--acc2)}
+/* Resim lightbox */
+#img-lightbox{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem;cursor:zoom-out}
+#img-lightbox.show{display:flex}
+#img-lightbox-img{max-width:90vw;max-height:78vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 48px rgba(0,0,0,.6)}
+#img-lightbox-actions{display:flex;gap:.7rem}
+.lb-btn{background:rgba(33,38,45,.9);border:1px solid var(--brd);color:var(--txt);border-radius:10px;padding:.55rem 1.1rem;font-size:.88rem;cursor:pointer;transition:.2s;backdrop-filter:blur(8px)}
+.lb-btn:hover{background:var(--bg3);border-color:var(--acc2)}
 .msg-avatar{width:28px;height:28px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;overflow:hidden}
 .msg-avatar img{width:100%;height:100%;object-fit:cover}
 .msg-bubble{background:var(--bg3);border-radius:12px;padding:.5rem .8rem;position:relative;max-width:100%}
@@ -701,6 +719,14 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 </div>
 <!-- TOAST -->
 <div id="toast-container"></div>
+<!-- RESIM LIGHTBOX -->
+<div id="img-lightbox" onclick="this.classList.remove('show')">
+  <img id="img-lightbox-img" src="" alt="Önizleme" onclick="event.stopPropagation()">
+  <div id="img-lightbox-actions" onclick="event.stopPropagation()">
+    <button class="lb-btn" id="lb-dl-btn">⬇️ İndir</button>
+    <button class="lb-btn" onclick="document.getElementById('img-lightbox').classList.remove('show')">✕ Kapat</button>
+  </div>
+</div>
 <!-- MODALS -->
 <!-- NEW ROOM -->
 <div class="modal-overlay" id="new-room-modal">
@@ -1740,6 +1766,8 @@ async function loadMessages(roomId){
   }
   S.messages=decrypted;
   renderMessages(decrypted);
+  // Resimleri arka planda yükle
+  setTimeout(loadImgPreviews, 100);
 }
 async function decryptMessage(m){
   if(m.silindi) return null;
@@ -1840,7 +1868,7 @@ function appendMessageEl(m, container, lastDate, setDate){
   const editedHtml = m.duzenle_tarihi?`<span class="msg-edited">(düzenlendi)</span>`:'';
   // Context menu
   wrap.oncontextmenu=e=>{e.preventDefault();showMsgMenu(e,m);};
-  wrap.innerHTML=`${avatarHtml}<div>
+  wrap.innerHTML=`${avatarHtml}<div style="position:relative">
     ${!own&&S.currentRoom?.tur!=='dm'?`<div class="msg-sender" style="cursor:pointer" onclick="viewProfile('${m.gonderen_id}')">${senderName}</div>`:''}
     <div class="msg-bubble">
       ${replyHtml}${content}
@@ -1849,14 +1877,27 @@ function appendMessageEl(m, container, lastDate, setDate){
       ${reactHtml}
     </div>
     ${countdown}${pendingHtml}
-  </div>`;
+  </div>
+  <button class="msg-more-btn" onclick="showMsgMenuBtn(event,'${m.id}')" title="İşlemler">⋮</button>`;
   container.appendChild(wrap);
 }
 function renderFileContent(m){
   const name = m.dosya_adi||'Dosya';
   const size = fmtSize(m.dosya_boyut);
-  const icon = m.dosya_tipi?.startsWith('image/')?'🖼️':m.dosya_tipi?.startsWith('video/')?'🎬':'📄';
-  return `<div class="msg-file" onclick="downloadFile('${m.id}')"><span class="msg-file-icon">${icon}</span><div class="msg-file-info"><div class="msg-file-name">${name}</div><div class="msg-file-size">${size}</div></div></div>`;
+  const isImg = m.dosya_tipi?.startsWith('image/');
+  const isVid = m.dosya_tipi?.startsWith('video/');
+  if(isImg){
+    // Resim: önizleme + İndir butonu
+    return `<div>
+      <img class="msg-img-preview" src="" data-msg-id="${m.id}" onclick="openImgLightbox('${m.id}')" alt="${name}" onerror="this.style.display='none'">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem">
+        <span style="font-size:.72rem;color:var(--txt2);flex:1">${name} · ${size}</span>
+        <button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button>
+      </div>
+    </div>`;
+  }
+  const icon = isVid?'🎬':'📄';
+  return `<div class="msg-file"><span class="msg-file-icon">${icon}</span><div class="msg-file-info"><div class="msg-file-name">${name}</div><div class="msg-file-size">${size}</div></div><button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button></div>`;
 }
 function renderVoiceContent(m){
   return `<div class="msg-file" onclick="playVoice('${m.id}')"><span class="msg-file-icon">🎤</span><div class="msg-file-info"><div class="msg-file-name">Ses mesajı</div><audio id="audio_${m.id}" style="display:none"></audio></div></div>`;
@@ -2255,37 +2296,66 @@ async function handleFileSelect(input){
     await loadMessages(room.id);
   } catch(e){ toast('Dosya gönderilemedi: '+e.message,'error'); }
 }
-async function downloadFile(msgId){
+async function decryptFileToBlobUrl(msgId){
   const m=S.messages.find(x=>x.id===msgId);
-  if(!m||!m.dosya_url) return;
+  if(!m||!m.dosya_url) return null;
+  let keyMetaStr;
+  const room=S.currentRoom;
+  if(room.tur==='dm'){
+    const isSender=m.gonderen_id===S.user.id;
+    const ephPub=await importPublicJwk(m.eph_anahtar);
+    const shared=await deriveSharedKey(S.privateKey,ephPub);
+    keyMetaStr=await aesDecrypt(shared,isSender?m.enc_gonderen:m.enc_alici,isSender?m.iv_gonderen:m.iv_alici);
+  } else {
+    const gk=await getGroupKey(room.id);
+    keyMetaStr=await aesDecrypt(gk,m.enc,m.iv);
+  }
+  const {key:keyB64,iv:ivB64}=JSON.parse(keyMetaStr);
+  const fileKey=await importGroupKey(b64d(keyB64));
+  const resp=await fetch(m.dosya_url);
+  if(!resp.ok) throw new Error('Dosya indirilemedi');
+  const encBuf=await resp.arrayBuffer();
+  const decBuf=await aesDecryptBytes(fileKey,encBuf,b64d(ivB64));
+  const blob=new Blob([decBuf],{type:m.dosya_tipi||'application/octet-stream'});
+  return {url:URL.createObjectURL(blob), name:m.dosya_adi||'dosya', type:m.dosya_tipi||''};
+}
+async function downloadFile(msgId){
   try{
-    // Get key meta from message
-    let keyMetaStr;
-    const room=S.currentRoom;
-    if(room.tur==='dm'){
-      const isSender=m.gonderen_id===S.user.id;
-      const ephPub=await importPublicJwk(m.eph_anahtar);
-      const shared=await deriveSharedKey(S.privateKey,ephPub);
-      keyMetaStr=await aesDecrypt(shared,isSender?m.enc_gonderen:m.enc_alici,isSender?m.iv_gonderen:m.iv_alici);
-    } else {
-      const gk=await getGroupKey(room.id);
-      keyMetaStr=await aesDecrypt(gk,m.enc,m.iv);
-    }
-    const {key:keyB64,iv:ivB64}=JSON.parse(keyMetaStr);
-    const fileKey=await importGroupKey(b64d(keyB64));
-    // Fetch encrypted file
-    toast('İndiriliyor...','info');
-    const resp=await fetch(m.dosya_url);
-    if(!resp.ok) throw new Error('Dosya indirilemedi');
-    const encBuf=await resp.arrayBuffer();
-    // Decrypt
-    const decBuf=await aesDecryptBytes(fileKey,encBuf,b64d(ivB64));
-    const blob=new Blob([decBuf],{type:m.dosya_tipi||'application/octet-stream'});
+    toast('Hazırlanıyor...','info');
+    const f=await decryptFileToBlobUrl(msgId);
+    if(!f) return;
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=m.dosya_adi||'dosya';
-    a.click();
+    a.href=f.url; a.download=f.name; a.click();
   } catch(e){ toast('İndirme hatası: '+e.message,'error'); }
+}
+async function openImgLightbox(msgId){
+  try{
+    const lb=document.getElementById('img-lightbox');
+    if(!lb) return;
+    lb.classList.add('show');
+    document.getElementById('img-lightbox-img').src='';
+    const f=await decryptFileToBlobUrl(msgId);
+    if(!f){lb.classList.remove('show');return;}
+    document.getElementById('img-lightbox-img').src=f.url;
+    document.getElementById('lb-dl-btn').onclick=()=>{const a=document.createElement('a');a.href=f.url;a.download=f.name;a.click();};
+  } catch(e){ toast('Önizleme hatası: '+e.message,'error'); document.getElementById('img-lightbox')?.classList.remove('show'); }
+}
+// Resim önizlemelerini sayfa yüklenince doldur
+async function loadImgPreviews(){
+  const imgs=document.querySelectorAll('img.msg-img-preview[data-msg-id]');
+  for(const img of imgs){
+    if(img.src&&img.src!==window.location.href) continue; // already loaded
+    const msgId=img.dataset.msgId;
+    try{
+      const f=await decryptFileToBlobUrl(msgId);
+      if(f) img.src=f.url;
+    } catch(e){}
+  }
+}
+function showMsgMenuBtn(e,msgId){
+  e.stopPropagation();
+  const m=S.messages.find(x=>x.id===msgId);
+  if(m) showMsgMenu(e,m);
 }
 async function playVoice(msgId){
   const m=S.messages.find(x=>x.id===msgId);
