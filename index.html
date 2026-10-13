@@ -1893,11 +1893,17 @@ function appendMessageEl(m, container, lastDate, setDate){
   <button class="msg-more-btn" onclick="showMsgMenuBtn(event,'${m.id}')" title="İşlemler">⋮</button>`;
   container.appendChild(wrap);
 }
+function mimeFromFilename(name=''){
+  const ext=(name.split('.').pop()||'').toLowerCase();
+  const map={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',bmp:'image/bmp',svg:'image/svg+xml',heic:'image/heic',mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime',avi:'video/x-msvideo',mkv:'video/x-matroska',mp3:'audio/mpeg',ogg:'audio/ogg',wav:'audio/wav'};
+  return map[ext]||'';
+}
 function renderFileContent(m){
   const name = m.dosya_adi||'Dosya';
   const size = fmtSize(m.dosya_boyut);
-  const isImg = m.dosya_tipi?.startsWith('image/');
-  const isVid = m.dosya_tipi?.startsWith('video/');
+  const mime = m.dosya_tipi || mimeFromFilename(name);
+  const isImg = mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|svg|heic)$/i.test(name);
+  const isVid = mime.startsWith('video/') || /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(name);
   if(isImg){
     const blurKey='msgblur_'+m.id;
     const isBlurred=(()=>{try{return localStorage.getItem(blurKey)==='1';}catch(e){return false;}})();
@@ -2349,8 +2355,9 @@ async function decryptFileToBlobUrl(msgId){
     encBuf=await resp.arrayBuffer();
   }
   const decBuf=await aesDecryptBytes(fileKey,encBuf,b64d(ivB64));
-  const blob=new Blob([decBuf],{type:m.dosya_tipi||'application/octet-stream'});
-  return {url:URL.createObjectURL(blob), name:m.dosya_adi||'dosya', type:m.dosya_tipi||''};
+  const mime=m.dosya_tipi||mimeFromFilename(m.dosya_adi||'')||'application/octet-stream';
+  const blob=new Blob([decBuf],{type:mime});
+  return {url:URL.createObjectURL(blob), name:m.dosya_adi||'dosya', type:mime};
 }
 async function downloadFile(msgId){
   try{
@@ -2377,11 +2384,11 @@ async function openImgLightbox(msgId){
 async function loadImgPreviews(){
   const imgs=document.querySelectorAll('img.msg-img-preview[data-msg-id]');
   for(const img of imgs){
-    if(img.src&&img.src!==window.location.href) continue; // already loaded
+    if(img.dataset.loaded==='1') continue; // already loaded
     const msgId=img.dataset.msgId;
     try{
       const f=await decryptFileToBlobUrl(msgId);
-      if(f) img.src=f.url;
+      if(f){img.src=f.url;img.dataset.loaded='1';}
     } catch(e){}
   }
 }
