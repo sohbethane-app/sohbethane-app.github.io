@@ -416,10 +416,26 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 /* 18+ CONTENT */
 .onsekiz-toggle{background:none;border:1px solid var(--brd);border-radius:7px;padding:.25rem .5rem;font-size:.82rem;color:var(--txt2);cursor:pointer;transition:.15s}
 .onsekiz-toggle.on{border-color:#f85149;color:#f85149;background:rgba(248,81,73,.1)}
-.post-card.blurred .post-text,.post-card.blurred .post-media-wrap{filter:blur(14px);transition:.3s;pointer-events:none;user-select:none}
-.post-blur-notice{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:.5rem .8rem;font-size:.78rem;color:#f85149;margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-.unblur-btn{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:6px;padding:.25rem .6rem;font-size:.75rem;color:#f85149;cursor:pointer;transition:.15s;flex-shrink:0}
-.unblur-btn:hover{background:rgba(248,81,73,.2)}
+/* Blur zone wrapper */
+.post-blur-zone{position:relative;border-radius:10px;overflow:hidden;min-height:60px}
+.post-card.blurred .post-blur-zone > .post-text,
+.post-card.blurred .post-blur-zone > .post-media-wrap{filter:blur(18px);transition:.3s;pointer-events:none;user-select:none;display:block}
+/* Overlay floats on top of blurred content */
+.post-unblur-overlay{display:none}
+.post-card.blurred .post-unblur-overlay{
+  display:flex;position:absolute;inset:0;z-index:10;
+  background:rgba(10,15,10,.72);backdrop-filter:blur(2px);
+  align-items:center;justify-content:center;flex-direction:column;gap:.7rem;
+  border-radius:10px;text-align:center;padding:1.2rem
+}
+.unblur-btn{
+  background:linear-gradient(135deg,#8b0000,#c0392b);
+  border:none;border-radius:10px;padding:.65rem 1.4rem;
+  font-size:.9rem;font-weight:700;color:#fff;cursor:pointer;
+  box-shadow:0 4px 18px rgba(200,0,0,.45);transition:.2s;
+  letter-spacing:.3px
+}
+.unblur-btn:hover{transform:scale(1.04);box-shadow:0 6px 24px rgba(200,0,0,.65)}
 </style>
 </head>
 <body>
@@ -521,6 +537,11 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       <button class="s-tab active" id="stab-dm" onclick="switchSideTab(this,'dm')"><span class="s-tab-icon">💬</span>Sohbetler</button>
       <button class="s-tab" id="stab-grup" onclick="switchSideTab(this,'grup')"><span class="s-tab-icon">🏠</span>Odalar</button>
       <button class="s-tab" id="stab-duvar" onclick="switchSideTab(this,'duvar')"><span class="s-tab-icon">📰</span>Zaman Tüneli</button>
+    </div>
+    <!-- Quick create bar (shown on Odalar tab) -->
+    <div id="oda-create-bar" style="display:none;gap:.4rem;padding:.4rem .5rem;border-bottom:1px solid var(--brd);background:var(--bg2)">
+      <button class="btn btn-secondary btn-sm" style="flex:1;font-size:.8rem" onclick="newRoomTab('grup');openModal('new-room-modal')">👥 + Grup Oluştur</button>
+      <button class="btn btn-secondary btn-sm" style="flex:1;font-size:.8rem" onclick="newRoomTab('arsiv');openModal('new-room-modal')">📁 + Arşiv Oluştur</button>
     </div>
     <!-- Sub-tabs for Zaman Tüneli -->
     <div id="tunel-subtabs">
@@ -655,9 +676,12 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
           <input type="file" id="post-file-input" accept="image/*,video/*,audio/*,.gif" style="display:none" onchange="handlePostFile(this)">
         </label>
         <span style="flex:1"></span>
-        <button id="post-onsekiz-btn" class="onsekiz-toggle" onclick="toggleOnsekiz()" title="+18 içerik olarak işaretle">🔞 +18</button>
         <button id="post-privacy-btn" class="privacy-toggle" onclick="togglePostPrivacy()" title="Paylaşım gizliliği">🔒 Sadece bende</button>
         <button class="btn btn-primary btn-sm" onclick="createPost()">Paylaş</button>
+      </div>
+      <div style="margin-top:.35rem;padding:.3rem .4rem;border-radius:8px;background:rgba(248,81,73,.05);border:1px dashed rgba(248,81,73,.18);display:flex;align-items:center;gap:.5rem">
+        <button id="post-onsekiz-btn" class="onsekiz-toggle" onclick="toggleOnsekiz()" style="font-size:.8rem;padding:.3rem .65rem">🔞 +18 içerik işaretle</button>
+        <span id="onsekiz-label" style="font-size:.73rem;color:var(--txt2)">Bu gönderide yetişkinlere yönelik içerik var mı?</span>
       </div>
     </div>
     <div id="feed-list"></div>
@@ -1440,6 +1464,8 @@ function switchSideTab(el, tab){
   const ikiliList = document.getElementById('ikili-tunel-sidebar-list');
   const userSearchWrap = document.getElementById('user-search-wrap');
   const roomList = document.getElementById('room-list');
+  const odaBar = document.getElementById('oda-create-bar');
+  if(odaBar) odaBar.style.display = tab==='grup' ? 'flex' : 'none';
   if(tab==='duvar'){
     // Show sub-tabs, hide normal search/room list
     subtabs.classList.add('show');
@@ -2667,6 +2693,9 @@ function toggleOnsekiz(){
   _postOnsekiz=!_postOnsekiz;
   const btn=document.getElementById('post-onsekiz-btn');
   if(btn) btn.classList.toggle('on',_postOnsekiz);
+  const lbl=document.getElementById('onsekiz-label');
+  if(lbl) lbl.textContent=_postOnsekiz?'✅ İşaretlendi — bu gönderi buzlanacak':'Bu gönderide yetişkinlere yönelik içerik var mı?';
+  if(lbl) lbl.style.color=_postOnsekiz?'#f85149':'var(--txt2)';
 }
 function togglePostPrivacy(){
   if(_postIkiliTunelId) return;
@@ -2783,9 +2812,15 @@ async function buildPostEl(post){
       </div>
       ${canDelete?`<button class="icon-btn" onclick="deletePost('${post.id}',this)" title="Sil" style="font-size:.85rem;color:var(--danger)">🗑️</button>`:''}
     </div>
-    ${isOnsekiz&&!isUnblurred?`<div class="post-blur-notice">⚠️ Bu içerik +18 olarak işaretlenmiştir. Bu içerikler buzlanacaktır siz buzlanmayı devre dışı bırak butonuna basana kadar.<button class="unblur-btn" onclick="unblurPost('${post.id}')">Buzlanmayı Devre Dışı Bırak</button></div>`:''}
-    ${displayMetin?`<div class="post-text post-media-wrap" style="font-size:.9rem;line-height:1.55;margin-bottom:.5rem;white-space:pre-wrap;word-break:break-word">${escHtml(displayMetin)}</div>`:''}
-    <div class="post-media-wrap">${mediaHtml}</div>
+    <div class="post-blur-zone">
+      <div class="post-unblur-overlay">
+        <span style="font-size:2.2rem">🔞</span>
+        <span style="font-size:.82rem;color:rgba(230,237,243,.75);line-height:1.4;max-width:220px">Bu içerik +18 olarak işaretlenmiştir. Buzlanmayı devre dışı bırakmak için butona basın.</span>
+        <button class="unblur-btn" onclick="unblurPost('${post.id}')">🔓 Buzlanmayı Devre Dışı Bırak</button>
+      </div>
+      ${displayMetin?`<div class="post-text" style="font-size:.9rem;line-height:1.55;margin-bottom:.5rem;white-space:pre-wrap;word-break:break-word">${escHtml(displayMetin)}</div>`:''}
+      <div class="post-media-wrap">${mediaHtml}</div>
+    </div>
     <div class="post-actions">
       <button class="post-action-btn${liked?' liked':''}" data-liked="${liked}" onclick="toggleLike('${post.id}',this)">
         ${liked?'❤️':'🤍'} <span class="like-count">${post.begeni_sayisi||0}</span>
@@ -2810,8 +2845,8 @@ function unblurPost(postId){
   const card = document.querySelector(`.post-card[data-post-id="${postId}"]`);
   if(!card) return;
   card.classList.remove('blurred');
-  const notice = card.querySelector('.post-blur-notice');
-  if(notice) notice.remove();
+  const overlay = card.querySelector('.post-unblur-overlay');
+  if(overlay) overlay.style.display='none';
   try{ localStorage.setItem('unblur_'+postId,'1'); }catch(e){}
 }
 
@@ -2898,7 +2933,7 @@ async function createPost(){
     if(error) throw error;
     if(document.getElementById('post-input')) document.getElementById('post-input').value='';
     clearPostMedia();
-    if(_postOnsekiz){ _postOnsekiz=false; const ob=document.getElementById('post-onsekiz-btn'); if(ob) ob.classList.remove('on'); }
+    if(_postOnsekiz){ _postOnsekiz=false; const ob=document.getElementById('post-onsekiz-btn'); if(ob) ob.classList.remove('on'); const lbl=document.getElementById('onsekiz-label'); if(lbl){lbl.textContent='Bu gönderide yetişkinlere yönelik içerik var mı?';lbl.style.color='var(--txt2)';} }
     toast('Gönderi paylaşıldı! 🎉','success');
     loadFeed(true);
   } catch(e){toast(e.message||'Paylaşım başarısız','error');}
