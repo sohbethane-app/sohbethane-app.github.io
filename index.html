@@ -113,13 +113,13 @@ a{color:var(--acc2);text-decoration:none}
 #sidebar-header h2{flex:1;font-size:1rem;color:var(--acc2)}
 /* Sidebar sekmeler */
 #sidebar-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--brd);background:var(--bg2)}
-.s-tab{flex:1;min-width:0;padding:.55rem .2rem;background:none;color:var(--txt2);font-size:.68rem;font-weight:600;text-align:center;transition:.2s;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:.15rem}
+.s-tab{flex:1 1 90px;padding:.6rem .4rem;background:none;color:var(--txt2);font-size:.72rem;font-weight:600;text-align:center;transition:.2s;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:.15rem;min-height:50px;white-space:nowrap}
 .s-tab:hover{color:var(--txt);background:rgba(255,255,255,.04)}
 .s-tab.active{color:var(--acc2);border-bottom-color:var(--acc2);background:rgba(64,145,108,.06)}
-.s-tab-icon{font-size:.95rem;line-height:1}
-/* Create tabs (Grup+, Arşiv+) */
-.s-tab-new{flex:1;min-width:0;padding:.55rem .2rem;background:none;color:var(--acc2);font-size:.68rem;font-weight:700;text-align:center;transition:.2s;border-bottom:2px dashed rgba(64,145,108,.3);display:flex;flex-direction:column;align-items:center;gap:.15rem;opacity:.8}
-.s-tab-new:hover{opacity:1;background:rgba(64,145,108,.09);border-bottom-color:var(--acc2)}
+.s-tab-icon{font-size:1rem;line-height:1}
+/* Yeni oluştur sekmeleri (Grup+, Arşiv+) */
+.s-tab-new{flex:1 1 90px;padding:.6rem .4rem;background:none;color:var(--acc2);font-size:.72rem;font-weight:700;text-align:center;transition:.2s;border-bottom:2px dashed rgba(64,145,108,.35);display:flex;flex-direction:column;align-items:center;gap:.15rem;min-height:50px;white-space:nowrap}
+.s-tab-new:hover{background:rgba(64,145,108,.1);border-bottom-color:var(--acc2)}
 .icon-btn{background:none;color:var(--txt2);padding:.4rem;border-radius:6px;font-size:1.1rem;transition:.2s}
 .icon-btn:hover{background:var(--bg3);color:var(--txt)}
 #user-search-wrap{padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
