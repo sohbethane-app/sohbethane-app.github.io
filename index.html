@@ -401,6 +401,25 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .lock-input:focus{border-color:var(--acc2);outline:none}
 /* Sohbet lock badge */
 .conv-lock-badge{font-size:.7rem;color:var(--warn);margin-left:.3rem}
+/* SECTION INFO STRIP */
+#room-section-info{padding:.55rem 1rem;border-bottom:1px solid var(--brd);background:rgba(64,145,108,.05);font-size:.75rem;color:var(--txt2);line-height:1.45;display:none}
+#room-section-info.show{display:block}
+#room-section-info strong{color:var(--acc2);display:block;font-size:.78rem;margin-bottom:.15rem}
+/* CHAT AREA SECTION BANNER (archive etc) */
+#chat-section-banner{padding:.5rem 1rem;background:rgba(64,145,108,.06);border-bottom:1px solid rgba(64,145,108,.15);font-size:.76rem;color:var(--txt2);display:none;line-height:1.45}
+#chat-section-banner.show{display:block}
+#chat-section-banner strong{color:var(--acc2)}
+/* ARCHIVE NAME CHIPS */
+.arsiv-chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.5rem 0}
+.arsiv-chip{background:var(--bg3);border:1px solid var(--brd);border-radius:20px;padding:.25rem .6rem;font-size:.78rem;cursor:pointer;color:var(--txt2);transition:.15s}
+.arsiv-chip:hover{border-color:var(--acc2);color:var(--acc2);background:rgba(64,145,108,.08)}
+/* 18+ CONTENT */
+.onsekiz-toggle{background:none;border:1px solid var(--brd);border-radius:7px;padding:.25rem .5rem;font-size:.82rem;color:var(--txt2);cursor:pointer;transition:.15s}
+.onsekiz-toggle.on{border-color:#f85149;color:#f85149;background:rgba(248,81,73,.1)}
+.post-card.blurred .post-text,.post-card.blurred .post-media-wrap{filter:blur(14px);transition:.3s;pointer-events:none;user-select:none}
+.post-blur-notice{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:.5rem .8rem;font-size:.78rem;color:#f85149;margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.unblur-btn{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);border-radius:6px;padding:.25rem .6rem;font-size:.75rem;color:#f85149;cursor:pointer;transition:.15s;flex-shrink:0}
+.unblur-btn:hover{background:rgba(248,81,73,.2)}
 </style>
 </head>
 <body>
@@ -511,6 +530,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     </div>
     <!-- İkili Tünel contacts list (shown when tstab-ikili is active) -->
     <div id="ikili-tunel-sidebar-list"></div>
+    <!-- Section info strip (shown for dm / grup tabs) -->
+    <div id="room-section-info"></div>
     <div id="user-search-wrap">
       <input id="user-search" placeholder="Kullanıcı ara... (@kullanici_adi ile de ara)" oninput="searchUsers(this.value)">
     </div>
@@ -532,6 +553,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div id="search-bar" style="display:none;padding:.5rem 1rem;border-bottom:1px solid var(--brd);background:var(--bg2)">
       <input id="search-input" style="width:100%;background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.5rem .8rem;color:var(--txt)" placeholder="Mesajlarda ara..." oninput="searchMessages(this.value)">
     </div>
+    <!-- Context info banner (archive/group/dm descriptions) -->
+    <div id="chat-section-banner"></div>
     <div id="typing-indicator"></div>
     <div id="messages"><div class="empty-state"><span class="icon">💬</span><p>Bir sohbet seçin</p></div></div>
     <div id="reply-bar">
@@ -632,6 +655,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
           <input type="file" id="post-file-input" accept="image/*,video/*,audio/*,.gif" style="display:none" onchange="handlePostFile(this)">
         </label>
         <span style="flex:1"></span>
+        <button id="post-onsekiz-btn" class="onsekiz-toggle" onclick="toggleOnsekiz()" title="+18 içerik olarak işaretle">🔞 +18</button>
         <button id="post-privacy-btn" class="privacy-toggle" onclick="togglePostPrivacy()" title="Paylaşım gizliliği">🔒 Sadece bende</button>
         <button class="btn btn-primary btn-sm" onclick="createPost()">Paylaş</button>
       </div>
@@ -658,8 +682,21 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <button class="btn btn-primary" onclick="createGroup('grup')">Grup Oluştur</button>
   </div>
   <div id="new-room-arsiv" style="display:none">
-    <div class="form-group"><label>Arşiv adı</label><input id="nr-arsiv-name" placeholder="Arşiv adı"></div>
-    <p class="text-muted">Yalnızca size ait şifreli depolama alanı.</p>
+    <p class="text-muted" style="margin-bottom:.6rem">📁 Sadece size ait gizli alan. Birden fazla arşiv oluşturabilirsiniz — her biri ayrı bir klasör gibi çalışır. İsterseniz şifre koyabilirsiniz.</p>
+    <div class="form-group">
+      <label>Arşiv adı</label>
+      <input id="nr-arsiv-name" placeholder="ör: Kitap Arşivim, Özel Notlarım...">
+    </div>
+    <p style="font-size:.75rem;color:var(--txt2);margin-bottom:.3rem">Hızlı seçim:</p>
+    <div class="arsiv-chips">
+      <button class="arsiv-chip" onclick="document.getElementById('nr-arsiv-name').value='📚 Kitap Arşivim'">📚 Kitap</button>
+      <button class="arsiv-chip" onclick="document.getElementById('nr-arsiv-name').value='🎬 Video Arşivim'">🎬 Video</button>
+      <button class="arsiv-chip" onclick="document.getElementById('nr-arsiv-name').value='🖼️ Resim Arşivim'">🖼️ Resim</button>
+      <button class="arsiv-chip" onclick="document.getElementById('nr-arsiv-name').value='🎵 Müzik Arşivim'">🎵 Müzik</button>
+      <button class="arsiv-chip" onclick="document.getElementById('nr-arsiv-name').value='📝 Notlarım'">📝 Notlar</button>
+      <button class="arsiv-chip" onclick="document.getElementById('nr-arsiv-name').value='🔗 Linklerim'">🔗 Linkler</button>
+      <button class="arsiv-chip" onclick="document.getElementById('nr-arsiv-name').value='🔞 +18 Arşivim'" style="border-color:rgba(248,81,73,.3);color:#f85149">🔞 +18</button>
+    </div>
     <button class="btn btn-primary mt" onclick="createArchive()">Arşiv Oluştur</button>
   </div>
 </div>
@@ -1368,10 +1405,37 @@ async function loadRooms(){
   });
   renderRoomList(S.rooms);
 }
+function updateSectionInfo(tab){
+  const si = document.getElementById('room-section-info');
+  if(!si) return;
+  const infos = {
+    dm: {
+      title: '💬 Sohbetler',
+      text: 'Birebir özel sohbetleriniz. Mesajlarınız uçtan uca şifrelenir, yalnızca siz ve karşınızdaki kişi görebilir. Hiç kimse bu konuşmalara erişemez.'
+    },
+    grup: {
+      title: '🏠 Odalar',
+      text: 'Tıpkı WhatsApp grupları gibi istediğiniz kadar kişiyi bir odaya ekleyebilir, birlikte sohbet edebilir ve paylaşımlar yapabilirsiniz. Arşiv odaları ise yalnızca size özeldir.'
+    },
+    duvar: {
+      title: '📰 Zaman Tüneli',
+      text: 'Fotoğraf, video ve yazılarınızı paylaşabileceğiniz kişisel alanınız. Herkese açık veya sadece kendinize özel paylaşım yapabilirsiniz. İkili Tünel sekmesiyle seçtiğiniz biriyle özel paylaşım alanı oluşturabilirsiniz.'
+    }
+  };
+  const info = infos[tab];
+  if(info){
+    si.innerHTML = `<strong>${info.title}</strong>${info.text}`;
+    si.classList.add('show');
+  } else {
+    si.classList.remove('show');
+  }
+}
+
 function switchSideTab(el, tab){
   S.sideTab=tab;
   document.querySelectorAll('.s-tab').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+  updateSectionInfo(tab);
   const subtabs = document.getElementById('tunel-subtabs');
   const ikiliList = document.getElementById('ikili-tunel-sidebar-list');
   const userSearchWrap = document.getElementById('user-search-wrap');
@@ -1589,6 +1653,19 @@ async function openRoom(room){
   }
   document.getElementById('chat-header-name').textContent=name;
   document.getElementById('chat-header-sub').textContent=sub;
+  // Chat section banner
+  const bannerEl = document.getElementById('chat-section-banner');
+  if(bannerEl){
+    const bannerTexts = {
+      dm: `<strong>💬 Birebir Sohbet</strong> Mesajlarınız <strong>uçtan uca şifrelenir</strong> — sunucu dahil kimse okuyamaz. Süreli mesaj ve tek görüntülemelik özelliklerini kullanabilirsiniz.`,
+      grup: `<strong>👥 Grup Odası</strong> Birden fazla kişiyle aynı anda sohbet edin. Oda ayarlarından duvar kağıdı değiştirebilir ve <strong>🔐 şifre koruması</strong> ekleyebilirsiniz.`,
+      arsiv: `<strong>📁 Arşiv Odası</strong> Yalnızca <strong>size özel</strong> bir alan. Notlarınızı, linklerinizi, medyalarınızı burada saklayın. İsteğe bağlı <strong>🔐 şifre</strong> ile koruyabilirsiniz.`,
+      duvar: `<strong>📰 Zaman Tüneli</strong> Kişisel paylaşım alanınız. Gönderi, fotoğraf ve video paylaşabilirsiniz.`
+    };
+    const bText = bannerTexts[room.tur] || '';
+    if(bText){ bannerEl.innerHTML=bText; bannerEl.classList.add('show'); }
+    else bannerEl.classList.remove('show');
+  }
   // Quick action buttons visibility
   const isDM = room.tur==='dm';
   document.getElementById('qa-tunel-btn').style.display = isDM ? '' : 'none';
@@ -2585,6 +2662,12 @@ function closeFeedProfile(){
 
 let _postGenel=false;
 let _postIkiliTunelId=null;
+let _postOnsekiz=false;
+function toggleOnsekiz(){
+  _postOnsekiz=!_postOnsekiz;
+  const btn=document.getElementById('post-onsekiz-btn');
+  if(btn) btn.classList.toggle('on',_postOnsekiz);
+}
 function togglePostPrivacy(){
   if(_postIkiliTunelId) return;
   _postGenel=!_postGenel;
@@ -2679,8 +2762,13 @@ async function buildPostEl(post){
   const {data:myLike}=await sb.from('begeniler').select('gonderi_id').eq('gonderi_id',post.id).eq('kullanici_id',S.user.id).maybeSingle();
   const liked=!!myLike;
   const canDelete=post.kullanici_id===S.user?.id||S.profile?.yonetici;
+  // Detect +18 content
+  const isOnsekiz = post.metin && post.metin.startsWith('[🔞] ');
+  const displayMetin = isOnsekiz ? post.metin.replace(/^\[🔞\]\s*/,'') : post.metin;
+  const blurKey = 'unblur_'+post.id;
+  const isUnblurred = (() => { try { return localStorage.getItem(blurKey)==='1'; } catch(e){ return false; } })();
   const el=document.createElement('div');
-  el.className='post-card';
+  el.className='post-card'+(isOnsekiz&&!isUnblurred?' blurred':'');
   el.dataset.postId=post.id;
   el.innerHTML=`
     <div class="post-header">
@@ -2689,13 +2777,15 @@ async function buildPostEl(post){
         <div style="font-weight:700;font-size:.9rem">${escHtml(name)}</div>
         <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
           <span style="font-size:.73rem;color:var(--txt2)">${dateStr}</span>
+          ${isOnsekiz?`<span class="post-privacy-label" style="background:rgba(248,81,73,.12);color:#f85149;border:1px solid rgba(248,81,73,.25);border-radius:6px;padding:.1rem .4rem;font-size:.7rem">🔞 +18</span>`:''}
           ${post.ikili_tunel_id?`<span class="post-privacy-label pub">🔗 İkili Tünel</span>`:post.genel?`<span class="post-privacy-label pub">🌐 Herkese açık</span>`:''}
         </div>
       </div>
       ${canDelete?`<button class="icon-btn" onclick="deletePost('${post.id}',this)" title="Sil" style="font-size:.85rem;color:var(--danger)">🗑️</button>`:''}
     </div>
-    ${post.metin?`<div class="post-text" style="font-size:.9rem;line-height:1.55;margin-bottom:.5rem;white-space:pre-wrap;word-break:break-word">${escHtml(post.metin)}</div>`:''}
-    ${mediaHtml}
+    ${isOnsekiz&&!isUnblurred?`<div class="post-blur-notice">⚠️ Bu içerik +18 olarak işaretlenmiştir. Bu içerikler buzlanacaktır siz buzlanmayı devre dışı bırak butonuna basana kadar.<button class="unblur-btn" onclick="unblurPost('${post.id}')">Buzlanmayı Devre Dışı Bırak</button></div>`:''}
+    ${displayMetin?`<div class="post-text post-media-wrap" style="font-size:.9rem;line-height:1.55;margin-bottom:.5rem;white-space:pre-wrap;word-break:break-word">${escHtml(displayMetin)}</div>`:''}
+    <div class="post-media-wrap">${mediaHtml}</div>
     <div class="post-actions">
       <button class="post-action-btn${liked?' liked':''}" data-liked="${liked}" onclick="toggleLike('${post.id}',this)">
         ${liked?'❤️':'🤍'} <span class="like-count">${post.begeni_sayisi||0}</span>
@@ -2714,6 +2804,15 @@ async function buildPostEl(post){
       </div>
     </div>`;
   return el;
+}
+
+function unblurPost(postId){
+  const card = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+  if(!card) return;
+  card.classList.remove('blurred');
+  const notice = card.querySelector('.post-blur-notice');
+  if(notice) notice.remove();
+  try{ localStorage.setItem('unblur_'+postId,'1'); }catch(e){}
 }
 
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -2786,7 +2885,7 @@ async function createPost(){
       else medya_tip='resim';
     }
     // Auto-translate post text if enabled
-    let finalText = text||null;
+    let finalText = _postOnsekiz ? '[🔞] '+(text||'') : (text||null);
     if(finalText && _autoSendTranslate && _myLang && _targetLang && _myLang!==_targetLang){
       try{
         const translated = await myMemoryTranslate(finalText, _myLang, _targetLang);
@@ -2799,6 +2898,7 @@ async function createPost(){
     if(error) throw error;
     if(document.getElementById('post-input')) document.getElementById('post-input').value='';
     clearPostMedia();
+    if(_postOnsekiz){ _postOnsekiz=false; const ob=document.getElementById('post-onsekiz-btn'); if(ob) ob.classList.remove('on'); }
     toast('Gönderi paylaşıldı! 🎉','success');
     loadFeed(true);
   } catch(e){toast(e.message||'Paylaşım başarısız','error');}
