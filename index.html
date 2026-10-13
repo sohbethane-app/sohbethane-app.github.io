@@ -241,6 +241,13 @@ a{color:var(--acc2);text-decoration:none}
 .toast.error{border-color:var(--danger);color:var(--danger)}
 .toast.info{border-color:var(--info);color:var(--info)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+/* PRIVACY TOGGLE & IKILI TUNEL */
+.privacy-toggle{background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.3rem .7rem;font-size:.78rem;cursor:pointer;color:var(--txt2);transition:.15s;display:flex;align-items:center;gap:.3rem}
+.privacy-toggle:hover{border-color:var(--acc2)}
+.privacy-toggle.pub{border-color:var(--acc2);color:var(--acc2);background:rgba(64,145,108,.1)}
+.post-privacy-label{font-size:.7rem;padding:.1rem .4rem;border-radius:4px;background:var(--bg3);color:var(--txt2)}
+.post-privacy-label.pub{background:rgba(64,145,108,.15);color:var(--acc2)}
+.ikili-tunel-header{display:flex;align-items:center;gap:.5rem;background:rgba(64,145,108,.1);border-radius:8px;padding:.4rem .7rem;font-size:.82rem;color:var(--acc2);margin-bottom:.4rem}
 /* USER LIST (search results) */
 .user-item{display:flex;align-items:center;gap:.7rem;padding:.6rem;border-radius:8px;cursor:pointer;transition:.15s}
 .user-item:hover{background:var(--bg3)}
@@ -520,6 +527,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
           <input type="file" id="post-file-input" accept="image/*,video/*,audio/*,.gif" style="display:none" onchange="handlePostFile(this)">
         </label>
         <span style="flex:1"></span>
+        <button id="post-privacy-btn" class="privacy-toggle" onclick="togglePostPrivacy()" title="Paylaşım gizliliği">🔒 Sadece bende</button>
         <button class="btn btn-primary btn-sm" onclick="createPost()">Paylaş</button>
       </div>
     </div>
@@ -574,6 +582,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   </div>
   <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.8rem">
     <button id="pm-tunel-btn" class="btn btn-secondary btn-sm hidden" onclick="openUserTunel()" style="color:var(--acc2);border-color:rgba(64,145,108,.3)">📰 Zaman Tünelie Bak</button>
+    <button id="pm-ikili-tunel-btn" class="btn btn-secondary btn-sm hidden" onclick="openIkiliTunel()" style="color:var(--acc2);border-color:rgba(64,145,108,.3)">🔗 İkili Tünel</button>
     <button id="pm-block-btn" class="btn btn-secondary btn-sm" onclick="toggleBlock()"></button>
     <button id="pm-mute-btn" class="btn btn-secondary btn-sm" onclick="toggleMute()"></button>
     <button id="pm-convert-btn" class="btn btn-secondary btn-sm hidden" onclick="convertToGroup()">Bu sohbeti gruba dönüştür</button>
@@ -765,6 +774,8 @@ const S = {
   voiceTimer: null,
   voiceSeconds: 0,
   pendingRoomId: null,// for convert to group
+  feedMode: null,     // null=kişisel, 'genel'=global, {tunelId,otherUserId}=İkili Tünel
+  feedUserId: null,   // başka kullanıcının tünelini görmek için
 };
 
 // ============================================================
@@ -800,7 +811,15 @@ function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');}));
 function autoResize(ta){ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,120)+'px'; }
-function showSidebar(){ document.getElementById('sidebar').classList.remove('hidden'); document.getElementById('chat-area').style.display='none'; }
+function showSidebar(){
+  document.getElementById('sidebar').classList.remove('hidden');
+  document.getElementById('chat-area').style.display='none';
+  S.currentRoom=null;
+  // Show global feed in right panel
+  if(document.getElementById('tunel-area')&&!document.getElementById('tunel-area').classList.contains('visible')){
+    showGlobalFeed();
+  }
+}
 function hideSidebar(){ if(window.innerWidth<=640){ document.getElementById('sidebar').classList.add('hidden'); document.getElementById('chat-area').style.display='flex'; } }
 function authTab(tab){
   document.getElementById('login-form').style.display = tab==='login'?'block':'none';
@@ -1031,6 +1050,8 @@ async function startApp(){
   // Hash profil kontrolü
   checkProfilHash();
   renderMyAvatar();
+  // Ana sayfa: global feed
+  setTimeout(()=>{ if(!S.currentRoom) showGlobalFeed(); }, 100);
 }
 function populateSettingsProfile(){
   const p=S.profile;
@@ -1112,9 +1133,14 @@ function switchSideTab(el, tab){
     document.getElementById('tunel-area').classList.add('visible');
     if(typeof showFeed==='function') showFeed(null);
   } else {
-    document.getElementById('tunel-area').classList.remove('visible');
-    document.getElementById('chat-area').style.display='flex';
     renderRoomList(S.rooms||[]);
+    if(S.currentRoom){
+      document.getElementById('tunel-area').classList.remove('visible');
+      document.getElementById('chat-area').style.display='flex';
+    } else {
+      // No room open → show global feed
+      showGlobalFeed();
+    }
   }
 }
 async function renderRoomList(rooms){
@@ -2055,6 +2081,9 @@ async function openPersonModal(){
     const tunelBtn=document.getElementById('pm-tunel-btn');
     tunelBtn.classList.remove('hidden');
     tunelBtn.dataset.uid=p.id;
+    const ikiliBtn=document.getElementById('pm-ikili-tunel-btn');
+    ikiliBtn.classList.remove('hidden');
+    ikiliBtn.dataset.uid=p.id;
   } else {
     // Group/archive/wall
     const members=await getRoomMembers(room.id);
@@ -2064,6 +2093,7 @@ async function openPersonModal(){
     document.getElementById('pm-secnum-wrap').style.display='none';
     document.getElementById('pm-convert-btn').classList.add('hidden');
     document.getElementById('pm-tunel-btn').classList.add('hidden');
+    document.getElementById('pm-ikili-tunel-btn').classList.add('hidden');
     const av=document.getElementById('pm-avatar');
     av.textContent=room.tur==='arsiv'?'📁':room.tur==='duvar'?'📰':'👥';
     av.style.background='var(--acc)';
@@ -2092,24 +2122,38 @@ const FEED_PAGE_SIZE = 15;
 let _feedLoading = false;
 let _postFileData = null;
 
-function showFeed(userId){
-  S.feedUserId = userId || null;
+function showGlobalFeed(){
+  S.feedMode='genel'; S.feedUserId=null;
   document.getElementById('chat-area').style.display='none';
   document.getElementById('tunel-area').classList.add('visible');
-  const titleEl = document.getElementById('feed-title');
-  const backBtn = document.getElementById('feed-back-btn');
-  const postWrap = document.getElementById('post-create-wrap');
-  if(userId && userId !== S.user?.id){
+  const titleEl=document.getElementById('feed-title');
+  const backBtn=document.getElementById('feed-back-btn');
+  const postWrap=document.getElementById('post-create-wrap');
+  if(titleEl) titleEl.textContent='🌐 SohbetHane Akışı';
+  if(backBtn) backBtn.style.display='none';
+  if(postWrap) postWrap.style.display='none';
+  loadFeed(true);
+}
+
+function showFeed(userId){
+  S.feedMode=null; S.feedUserId=userId||null;
+  document.getElementById('chat-area').style.display='none';
+  document.getElementById('tunel-area').classList.add('visible');
+  const titleEl=document.getElementById('feed-title');
+  const backBtn=document.getElementById('feed-back-btn');
+  const postWrap=document.getElementById('post-create-wrap');
+  _postIkiliTunelId=null;
+  updatePrivacyToggle();
+  if(userId && userId!==S.user?.id){
     getProfile(userId).then(p=>{
       if(titleEl) titleEl.textContent='📰 '+(p?.goruntu_adi||p?.kullanici_adi||'Zaman Tüneli');
     });
     if(backBtn) backBtn.style.display='inline-flex';
     if(postWrap) postWrap.style.display='none';
   } else {
-    if(titleEl) titleEl.textContent='📰 Zaman Tüneli';
+    if(titleEl) titleEl.textContent='📰 Zaman Tüneliniz';
     if(backBtn) backBtn.style.display='none';
     if(postWrap) postWrap.style.display='block';
-    // Set my avatar in compose box
     const myAv=document.getElementById('my-feed-avatar');
     if(myAv && S.profile){
       if(S.profile.avatar_url) myAv.innerHTML=`<img src="${S.profile.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
@@ -2119,9 +2163,64 @@ function showFeed(userId){
   loadFeed(true);
 }
 
+async function openIkiliTunel(){
+  const uid=document.getElementById('pm-ikili-tunel-btn').dataset.uid;
+  if(!uid){ toast('Kullanıcı bulunamadı','error'); return; }
+  toast('İkili Tünel yükleniyor...','info');
+  const {data:tunelId,error}=await sb.rpc('ikili_tunel_bul_veya_olustur',{diger_uid:uid});
+  if(error){ toast('İkili Tünel hatası: '+error.message,'error'); return; }
+  const otherProf=await getProfile(uid);
+  S.feedMode={tunelId,otherUserId:uid}; S.feedUserId=null;
+  document.getElementById('chat-area').style.display='none';
+  document.getElementById('tunel-area').classList.add('visible');
+  const titleEl=document.getElementById('feed-title');
+  const backBtn=document.getElementById('feed-back-btn');
+  const postWrap=document.getElementById('post-create-wrap');
+  if(titleEl) titleEl.innerHTML=`🔗 İkili Tünel <small style="font-size:.75rem;opacity:.7">@ ${escHtml(otherProf?.goruntu_adi||otherProf?.kullanici_adi||'?')}</small>`;
+  if(backBtn){ backBtn.style.display='inline-flex'; backBtn.onclick=()=>{ S.feedMode=null; showGlobalFeed(); }; }
+  if(postWrap){
+    postWrap.style.display='block';
+    _postIkiliTunelId=tunelId;
+    updatePrivacyToggle();
+    const myAv=document.getElementById('my-feed-avatar');
+    if(myAv && S.profile){
+      if(S.profile.avatar_url) myAv.innerHTML=`<img src="${S.profile.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      else myAv.innerHTML=`<span style="color:#fff">${avatarInitials(S.profile.goruntu_adi||S.profile.kullanici_adi)}</span>`;
+    }
+    const postInput=document.getElementById('post-input');
+    if(postInput) postInput.placeholder=`${otherProf?.goruntu_adi||'Arkadaşına'} paylaş...`;
+  }
+  loadFeed(true);
+}
+
 function closeFeedProfile(){
-  S.feedUserId=null;
+  S.feedUserId=null; S.feedMode=null;
   showFeed(null);
+}
+
+let _postGenel=false;
+let _postIkiliTunelId=null;
+function togglePostPrivacy(){
+  if(_postIkiliTunelId) return;
+  _postGenel=!_postGenel;
+  updatePrivacyToggle();
+}
+function updatePrivacyToggle(){
+  const btn=document.getElementById('post-privacy-btn');
+  if(!btn) return;
+  if(_postIkiliTunelId){
+    btn.textContent='🔗 İkili Tünel';
+    btn.className='privacy-toggle pub';
+    btn.style.cursor='default';
+  } else if(_postGenel){
+    btn.textContent='🌐 SohbetHane\'de paylaş';
+    btn.className='privacy-toggle pub';
+    btn.style.cursor='pointer';
+  } else {
+    btn.textContent='🔒 Sadece bende';
+    btn.className='privacy-toggle';
+    btn.style.cursor='pointer';
+  }
 }
 
 async function loadFeed(reset){
@@ -2136,7 +2235,19 @@ async function loadFeed(reset){
   try{
     let q=sb.from('gonderiler').select('*').order('olusturma_tarihi',{ascending:false})
       .range((S.feedPage||0)*FEED_PAGE_SIZE, ((S.feedPage||0)+1)*FEED_PAGE_SIZE-1);
-    if(S.feedUserId) q=q.eq('kullanici_id',S.feedUserId);
+    if(S.feedMode==='genel'){
+      // Global akış: herkese açık, İkili Tünel dışı paylaşımlar
+      q=q.eq('genel',true).is('ikili_tunel_id',null);
+    } else if(S.feedMode&&typeof S.feedMode==='object'&&S.feedMode.tunelId){
+      // İkili Tünel gönderileri
+      q=q.eq('ikili_tunel_id',S.feedMode.tunelId);
+    } else if(S.feedUserId){
+      // Başka kullanıcının herkese açık gönderileri
+      q=q.eq('kullanici_id',S.feedUserId);
+    } else {
+      // Kendi kişisel tünel (tüm kendi gönderileri)
+      q=q.eq('kullanici_id',S.user.id);
+    }
     const {data:posts,error}=await q;
     if(error) throw error;
     if(reset) list.innerHTML='';
@@ -2191,7 +2302,10 @@ async function buildPostEl(post){
       <div class="room-avatar" style="width:42px;height:42px;background:${color};flex-shrink:0;cursor:pointer" onclick="viewUserFeed('${post.kullanici_id}')">${avatarHtml}</div>
       <div class="post-author" style="cursor:pointer" onclick="viewUserFeed('${post.kullanici_id}')">
         <div style="font-weight:700;font-size:.9rem">${escHtml(name)}</div>
-        <div style="font-size:.73rem;color:var(--txt2)">${dateStr}</div>
+        <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
+          <span style="font-size:.73rem;color:var(--txt2)">${dateStr}</span>
+          ${post.ikili_tunel_id?`<span class="post-privacy-label pub">🔗 İkili Tünel</span>`:post.genel?`<span class="post-privacy-label pub">🌐 Herkese açık</span>`:''}
+        </div>
       </div>
       ${canDelete?`<button class="icon-btn" onclick="deletePost('${post.id}',this)" title="Sil" style="font-size:.85rem;color:var(--danger)">🗑️</button>`:''}
     </div>
@@ -2258,7 +2372,9 @@ async function createPost(){
       else if(t.startsWith('audio/')) medya_tip='ses';
       else medya_tip='resim';
     }
-    const {error}=await sb.from('gonderiler').insert({kullanici_id:S.user.id,metin:text||null,medya_url,medya_tip,medya_adi});
+    const insertData={kullanici_id:S.user.id,metin:text||null,medya_url,medya_tip,medya_adi,genel:_postGenel||false};
+    if(_postIkiliTunelId) insertData.ikili_tunel_id=_postIkiliTunelId;
+    const {error}=await sb.from('gonderiler').insert(insertData);
     if(error) throw error;
     if(document.getElementById('post-input')) document.getElementById('post-input').value='';
     clearPostMedia();
