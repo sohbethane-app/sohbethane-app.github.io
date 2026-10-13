@@ -128,6 +128,9 @@ a{color:var(--acc2);text-decoration:none}
 .room-item{display:flex;align-items:center;padding:.7rem 1rem;cursor:pointer;transition:.1s;gap:.7rem;position:relative}
 .room-item:hover{background:var(--bg3)}
 .room-item.active{background:var(--dm)}
+.room-ctx-btn{display:none;background:none;color:var(--txt2);padding:.2rem .45rem;border-radius:6px;font-size:1.1rem;line-height:1;transition:.15s;flex-shrink:0;margin-left:.1rem}
+.room-item:hover .room-ctx-btn,.room-item.active .room-ctx-btn{display:block}
+.room-ctx-btn:hover{background:rgba(255,255,255,.1);color:var(--txt)}
 .room-avatar{width:42px;height:42px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;overflow:hidden;position:relative}
 .room-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .online-dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#3fb950;border:2px solid var(--bg2)}
@@ -177,11 +180,12 @@ a{color:var(--acc2);text-decoration:none}
 /* Resim önizleme */
 .msg-video-preview{max-width:280px;max-height:200px;border-radius:8px;display:block;margin:.2rem 0;background:#000;outline:none}
 .msg-video-loading{font-size:.75rem;color:var(--txt2);padding:.3rem 0}
-.msg-img-wrap{position:relative;display:inline-block;border-radius:8px;overflow:hidden;margin:.2rem 0}
+.msg-img-wrap{position:relative;display:inline-block;border-radius:8px;overflow:hidden;margin:.2rem 0;min-width:80px;min-height:46px;background:var(--bg3)}
 .msg-img-wrap.blurred .msg-img-preview{filter:blur(22px);pointer-events:none}
 .msg-img-blur-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.55);align-items:center;justify-content:center;flex-direction:column;gap:.35rem;cursor:pointer;border-radius:8px}
 .msg-img-wrap.blurred .msg-img-blur-overlay{display:flex}
 .msg-img-preview{max-width:220px;max-height:180px;border-radius:8px;cursor:zoom-in;object-fit:cover;display:block}
+.msg-img-loading{font-size:.72rem;color:var(--txt2);padding:.5rem .7rem;display:flex;align-items:center;gap:.3rem}
 /* Dosya kartı */
 .msg-file{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;background:rgba(255,255,255,.05);border-radius:10px;margin-top:.2rem;border:1px solid var(--brd)}
 .msg-file-dl{background:none;border:1px solid var(--brd);border-radius:7px;padding:.25rem .5rem;font-size:.78rem;color:var(--acc2);cursor:pointer;transition:.15s;flex-shrink:0;white-space:nowrap}
@@ -1697,7 +1701,8 @@ async function renderRoomList(rooms){
       </div>
       <div class="room-meta">
         <div class="room-time">${r._lastMsg?fmtTime(r._lastMsg.olusturma_tarihi):''}</div>
-      </div>`;
+      </div>
+      <button class="room-ctx-btn" title="Seçenekler" onclick="showRoomMenu(event,'${r.id}')">⋮</button>`;
     list.appendChild(el);
   }
 }
@@ -1911,7 +1916,8 @@ function renderFileContent(m){
     const isBlurred=(()=>{try{return localStorage.getItem(blurKey)==='1';}catch(e){return false;}})();
     return `<div>
       <div class="msg-img-wrap${isBlurred?' blurred':''}" id="imgwrap_${m.id}">
-        <img class="msg-img-preview" src="" data-msg-id="${m.id}" onclick="openImgLightbox('${m.id}')" alt="${name}" onerror="this.style.display='none'">
+        <div class="msg-img-loading" id="imgload_${m.id}">🔓 Şifre çözülüyor…</div>
+        <img class="msg-img-preview" id="imgel_${m.id}" data-msg-id="${m.id}" onclick="openImgLightbox('${m.id}')" alt="${name}" style="display:none">
         <div class="msg-img-blur-overlay" onclick="unblurMsgImg('${m.id}')">
           <span style="font-size:1.6rem">🔒</span>
           <span style="font-size:.76rem;color:#fff;font-weight:600">Görmek için tıkla</span>
@@ -2204,9 +2210,13 @@ function showMsgMenu(e,m){
   const items=[];
   items.push({label:'↩️ Yanıtla',fn:()=>setReply(m)});
   items.push({label:'😊 Tepki ekle',fn:()=>showReactionPicker(e,m)});
-  if(m.mesaj_tipi==='dosya'&&m.dosya_tipi?.startsWith('image/')){
-    const isBlurred=(()=>{try{return localStorage.getItem('msgblur_'+m.id)==='1';}catch(e){return false;}})();
-    items.push({label:isBlurred?'👁️ Görünür Yap':'🔲 Buzla',fn:()=>toggleMsgImgBlur(m.id)});
+  if(m.mesaj_tipi==='dosya'){
+    const _mime=m.dosya_tipi||mimeFromFilename(m.dosya_adi||'');
+    const _isImgMsg=_mime.startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|svg|heic)$/i.test(m.dosya_adi||'');
+    if(_isImgMsg){
+      const isBlurred=(()=>{try{return localStorage.getItem('msgblur_'+m.id)==='1';}catch(e){return false;}})();
+      items.push({label:isBlurred?'👁️ Görünür Yap':'🔲 Buzla',fn:()=>toggleMsgImgBlur(m.id)});
+    }
   }
   if(own||isAdmin){
     if(own&&!m.silindi) items.push({label:'✏️ Düzenle',fn:()=>editMessage(m)});
@@ -2399,15 +2409,25 @@ async function openImgLightbox(msgId){
 }
 // Resim + video önizlemelerini sayfa yüklenince doldur
 async function loadImgPreviews(){
-  // Resimler
+  // Resimler — imgel_ ve imgload_ id'leri ile eşleştirilmiş
   const imgs=document.querySelectorAll('img.msg-img-preview[data-msg-id]');
   for(const img of imgs){
     if(img.dataset.loaded==='1') continue;
     const msgId=img.dataset.msgId;
+    const loadLbl=document.getElementById('imgload_'+msgId);
     try{
       const f=await decryptFileToBlobUrl(msgId);
-      if(f){img.src=f.url;img.dataset.loaded='1';}
-    } catch(e){}
+      if(f){
+        img.src=f.url;
+        img.style.display='block';
+        img.dataset.loaded='1';
+        if(loadLbl) loadLbl.style.display='none';
+      } else {
+        if(loadLbl) loadLbl.textContent='⚠️ Yüklenemedi';
+      }
+    } catch(e){
+      if(loadLbl) loadLbl.textContent='⚠️ '+( e.message||'Yüklenemedi');
+    }
   }
   // Videolar
   const vids=document.querySelectorAll('video.msg-video-preview[data-msg-id]');
@@ -2424,7 +2444,7 @@ async function loadImgPreviews(){
       }
     } catch(e){
       const lbl=document.getElementById('vidload_'+msgId);
-      if(lbl) lbl.textContent='⚠️ Video yüklenemedi';
+      if(lbl) lbl.textContent='⚠️ Video yüklenemedi: '+(e.message||'');
     }
   }
 }
@@ -2440,6 +2460,61 @@ function unblurMsgImg(msgId){
   const wrap=document.getElementById('imgwrap_'+msgId);
   if(wrap) wrap.classList.remove('blurred');
 }
+// ============================================================
+// ROOM CONTEXT MENU (sidebar ⋮)
+// ============================================================
+function showRoomMenu(e,roomId){
+  e.stopPropagation();
+  const room=S.rooms.find(r=>r.id===roomId);
+  if(!room) return;
+  const items=[];
+  if(room.tur!=='dm') items.push({label:'✏️ Yeniden Adlandır',fn:()=>renameRoom(roomId)});
+  if(room.tur!=='arsiv') items.push({label:'📁 Arşive Taşı',fn:()=>moveRoomToArchive(roomId)});
+  items.push({label:'🗑️ Sil',fn:()=>deleteRoom(roomId)});
+  showContextMenu(e.clientX,e.clientY,items);
+}
+async function renameRoom(roomId){
+  const room=S.rooms.find(r=>r.id===roomId);
+  if(!room) return;
+  const newName=(prompt('Yeni isim:',room.isim||''))||'';
+  if(!newName.trim()||newName.trim()===room.isim) return;
+  const {error}=await sb.from('odalar').update({isim:newName.trim()}).eq('id',roomId);
+  if(error){ toast('Hata: '+error.message,'error'); return; }
+  room.isim=newName.trim();
+  renderRoomList(S.rooms);
+  toast('İsim güncellendi ✓','success');
+}
+async function deleteRoom(roomId){
+  const room=S.rooms.find(r=>r.id===roomId);
+  if(!room) return;
+  const label=room.isim||(room.tur==='dm'?'DM Sohbeti':'Sohbet');
+  if(!confirm(`"${label}" silinsin mi?\nBu işlem geri alınamaz.`)) return;
+  const {error}=await sb.from('odalar').delete().eq('id',roomId);
+  if(error){ toast('Silinemedi: '+error.message,'error'); return; }
+  S.rooms=S.rooms.filter(r=>r.id!==roomId);
+  if(S.currentRoom?.id===roomId){
+    S.currentRoom=null;
+    document.getElementById('messages').innerHTML='';
+    const hdr=document.getElementById('chat-header-name');
+    if(hdr) hdr.textContent='SohbetHane';
+  }
+  renderRoomList(S.rooms);
+  toast('Silindi ✓');
+}
+async function moveRoomToArchive(roomId){
+  const room=S.rooms.find(r=>r.id===roomId);
+  if(!room) return;
+  const {error}=await sb.from('odalar').update({tur:'arsiv'}).eq('id',roomId);
+  if(error){ toast('Taşınamadı: '+error.message,'error'); return; }
+  room.tur='arsiv';
+  if(S.currentRoom?.id===roomId) S.currentRoom.tur='arsiv';
+  // Arşivler sekmesine geç ve listele
+  const arsivTabEl=document.getElementById('stab-arsiv');
+  if(arsivTabEl) switchSideTab(arsivTabEl,'arsiv');
+  else renderRoomList(S.rooms);
+  toast('Arşive taşındı ✓','success');
+}
+// ============================================================
 function showMsgMenuBtn(e,msgId){
   e.stopPropagation();
   const m=S.messages.find(x=>x.id===msgId);
