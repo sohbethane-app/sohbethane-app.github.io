@@ -242,6 +242,22 @@ a{color:var(--acc2);text-decoration:none}
 .lang-indicator-btn{background:linear-gradient(135deg,rgba(64,145,108,.18),rgba(0,200,180,.12));border:1px solid var(--acc2);border-radius:20px;padding:.22rem .75rem;font-size:.75rem;color:var(--acc2);cursor:pointer;display:flex;align-items:center;gap:.3rem;transition:.2s;white-space:nowrap;font-weight:600}
 .lang-indicator-btn:hover{background:rgba(64,145,108,.28);transform:scale(1.03)}
 .lang-auto-badge{font-size:.65rem;background:var(--acc2);color:#fff;border-radius:10px;padding:.05rem .4rem;margin-left:.2rem}
+/* TRANSLATE QUICK PANEL */
+#translate-quick-panel{display:none;position:fixed;background:var(--bg2);border:1px solid var(--brd);border-radius:14px;padding:.8rem;width:300px;max-width:94vw;box-shadow:0 8px 40px rgba(0,0,0,.6);z-index:9000}
+#translate-quick-panel.open{display:block}
+.tqp-title{font-size:.82rem;font-weight:700;color:var(--txt);margin-bottom:.6rem;display:flex;align-items:center;gap:.4rem}
+.tqp-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.45rem}
+.tqp-label{font-size:.75rem;color:var(--txt2);flex:0 0 70px}
+.tqp-select{flex:1;background:var(--bg3);border:1px solid var(--brd);border-radius:7px;padding:.3rem .45rem;color:var(--txt);font-size:.8rem}
+.tqp-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:.35rem 0;border-top:1px solid var(--brd);margin-top:.4rem}
+.tqp-toggle-label{font-size:.78rem;color:var(--txt)}
+.tqp-chk{width:15px;height:15px;accent-color:var(--acc2);cursor:pointer}
+.tqp-btn-row{display:flex;gap:.4rem;margin-top:.5rem}
+#translate-input-btn{background:none;border:1px solid var(--brd);border-radius:8px;padding:.28rem .55rem;font-size:.88rem;cursor:pointer;color:var(--txt2);transition:.15s;position:relative}
+#translate-input-btn:hover{border-color:var(--acc2);color:var(--acc2)}
+#translate-input-btn.active{border-color:var(--acc2);color:var(--acc2);background:rgba(64,145,108,.12)}
+#translate-input-btn .tib-badge{position:absolute;top:-4px;right:-4px;background:var(--acc2);color:#fff;font-size:.55rem;border-radius:6px;padding:0 .28rem;font-weight:700;display:none}
+#translate-input-btn.active .tib-badge{display:block}
 /* TOAST */
 #toast-container{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;flex-direction:column;gap:.5rem;z-index:200}
 .toast{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:.7rem 1rem;font-size:.85rem;box-shadow:var(--shadow);animation:slideIn .3s;max-width:300px}
@@ -504,6 +520,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <button class="input-btn" onclick="document.getElementById('file-input').click()">📎</button>
         <input type="file" id="file-input" style="display:none" onchange="handleFileSelect(this)">
         <textarea id="chat-input" placeholder="Mesaj yaz..." rows="1" onkeydown="inputKeyDown(event)" oninput="autoResize(this);sendTyping()"></textarea>
+        <button id="translate-input-btn" onclick="toggleTranslatePanel()" title="Çeviri Ayarları">🌐<span class="tib-badge">OTO</span></button>
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
         <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
         <button id="send-btn" onclick="sendMessage()">Gönder</button>
@@ -524,6 +541,25 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     </div>
     <div id="emoji-panel">
       <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+    <div id="translate-quick-panel">
+      <div class="tqp-title">🌐 Çeviri Ayarları</div>
+      <div class="tqp-row">
+        <span class="tqp-label">🗣️ Dilim</span>
+        <select class="tqp-select" id="tqp-my-lang" onchange="setMyLang(this.value)"></select>
+      </div>
+      <div class="tqp-row">
+        <span class="tqp-label">👤 Hedef dil</span>
+        <select class="tqp-select" id="tqp-target-lang" onchange="setTargetLang(this.value)"></select>
+      </div>
+      <div class="tqp-toggle-row">
+        <span class="tqp-toggle-label">📤 Göndermeden önce otomatik çevir</span>
+        <input type="checkbox" class="tqp-chk" id="tqp-auto-send" onchange="setAutoSendTranslate(this.checked)">
+      </div>
+      <div class="tqp-toggle-row" style="border-top:none;padding-top:.1rem">
+        <span class="tqp-toggle-label">📥 Mesaj 🌐 butonu kendi dilime çevirsin</span>
+        <input type="checkbox" class="tqp-chk" id="tqp-auto-recv" onchange="setAutoRecvTranslate(this.checked)">
+      </div>
     </div>
   </div>
   <!-- ZAMAN TÜNELİ AREA (Social Wall) -->
@@ -3216,12 +3252,63 @@ function updateLangBar(){
   if(fromLbl) fromLbl.textContent = from.flag+from.code.toUpperCase();
   if(toLbl) toLbl.textContent = to.flag+to.code.toUpperCase();
   if(badge) badge.style.display = _autoSendTranslate ? 'inline' : 'none';
+  // Translate input button
+  const tibBtn = document.getElementById('translate-input-btn');
+  if(tibBtn){
+    tibBtn.classList.toggle('active', _autoSendTranslate);
+    const lbl = tibBtn.querySelector('.tib-badge');
+    if(lbl) lbl.style.display = _autoSendTranslate ? 'block' : 'none';
+    tibBtn.title = _autoSendTranslate
+      ? `Çeviri AÇIK: ${from.flag}${from.code.toUpperCase()} → ${to.flag}${to.code.toUpperCase()} — Kapatmak için tıkla`
+      : 'Çeviri Ayarları';
+  }
   // Show bar only when in a DM
   if(S.currentRoom?.tur==='dm'){
     bar.style.display='flex';
   } else {
     bar.style.display='none';
   }
+}
+function toggleTranslatePanel(){
+  const p = document.getElementById('translate-quick-panel');
+  if(p.classList.contains('open')){ p.classList.remove('open'); return; }
+  // Position above the button
+  const btn = document.getElementById('translate-input-btn');
+  if(btn){
+    const rect = btn.getBoundingClientRect();
+    const pw = 300;
+    const ph = 220;
+    let left = rect.right - pw;
+    if(left < 8) left = 8;
+    if(left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    const top = rect.top - ph - 8;
+    p.style.left = left + 'px';
+    p.style.top = (top < 8 ? rect.bottom + 8 : top) + 'px';
+    p.style.bottom = 'auto';
+    p.style.right = 'auto';
+  }
+  // Populate panel selects fresh
+  ['tqp-my-lang','tqp-target-lang'].forEach((id,idx)=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    if(!sel.options.length) sel.innerHTML = LANGS.map(l=>`<option value="${l.code}">${l.flag} ${l.name}</option>`).join('');
+    sel.value = idx===0 ? _myLang : _targetLang;
+  });
+  const cs = document.getElementById('tqp-auto-send');
+  const cr = document.getElementById('tqp-auto-recv');
+  if(cs) cs.checked = _autoSendTranslate;
+  if(cr) cr.checked = _autoRecvTranslate;
+  p.classList.add('open');
+  // Close on outside click
+  setTimeout(()=>{
+    function outsideClick(e){
+      if(!p.contains(e.target) && e.target.id!=='translate-input-btn'){
+        p.classList.remove('open');
+        document.removeEventListener('click',outsideClick,true);
+      }
+    }
+    document.addEventListener('click',outsideClick,true);
+  },50);
 }
 function initTranslation(){
   // Load from localStorage
@@ -3248,6 +3335,7 @@ function saveTranslationSettings(){
   }catch(x){}
 }
 function populateLangSelects(){
+  // Settings modal selects
   ['lang-my-select','lang-target-select'].forEach((id,idx)=>{
     const sel = document.getElementById(id);
     if(!sel) return;
@@ -3258,6 +3346,17 @@ function populateLangSelects(){
   const sRecv = document.getElementById('auto-recv-translate-chk');
   if(sSend) sSend.checked = _autoSendTranslate;
   if(sRecv) sRecv.checked = _autoRecvTranslate;
+  // Mini panel selects (pre-fill when not yet open)
+  ['tqp-my-lang','tqp-target-lang'].forEach((id,idx)=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    sel.innerHTML = LANGS.map(l=>`<option value="${l.code}">${l.flag} ${l.name}</option>`).join('');
+    sel.value = idx===0 ? _myLang : _targetLang;
+  });
+  const cs = document.getElementById('tqp-auto-send');
+  const cr = document.getElementById('tqp-auto-recv');
+  if(cs) cs.checked = _autoSendTranslate;
+  if(cr) cr.checked = _autoRecvTranslate;
 }
 function setMyLang(code){
   _myLang = code;
