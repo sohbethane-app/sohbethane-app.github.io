@@ -2548,8 +2548,8 @@ async function _searchMembersToAdd(q,resId,selId,arr,tur){
 // NEW ROOM TABS
 // ============================================================
 function newRoomTab(tab){
-  ['grup','arsiv','duvar'].forEach(t=>{document.getElementById('new-room-'+t).style.display=t===tab?'block':'none';});
-  document.querySelectorAll('#new-room-modal .modal-tab').forEach((b,i)=>b.classList.toggle('active',['grup','arsiv','duvar'][i]===tab));
+  ['grup','arsiv'].forEach(t=>{const el=document.getElementById('new-room-'+t);if(el)el.style.display=t===tab?'block':'none';});
+  document.querySelectorAll('#new-room-modal .modal-tab').forEach((b,i)=>b.classList.toggle('active',['grup','arsiv'][i]===tab));
 }
 
 // ============================================================
