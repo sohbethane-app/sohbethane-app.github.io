@@ -2393,8 +2393,8 @@ async function loadFeed(reset){
       // İkili Tünel gönderileri
       q=q.eq('ikili_tunel_id',S.feedMode.tunelId);
     } else if(S.feedUserId){
-      // Başka kullanıcının herkese açık gönderileri
-      q=q.eq('kullanici_id',S.feedUserId);
+      // Başka kullanıcının yalnızca herkese açık gönderileri
+      q=q.eq('kullanici_id',S.feedUserId).eq('genel',true).is('ikili_tunel_id',null);
     } else {
       // Kendi kişisel tünel (tüm kendi gönderileri)
       q=q.eq('kullanici_id',S.user.id);
@@ -2469,7 +2469,9 @@ async function buildPostEl(post){
       <button class="post-action-btn" onclick="toggleComments('${post.id}',this)">
         💬 <span class="comment-count">${post.yorum_sayisi||0}</span> Yorum
       </button>
+      ${post.metin?`<button class="post-action-btn" onclick="translatePost('${post.id}',this)" title="Çevir" style="margin-left:auto;font-size:.8rem">🌐 Çevir</button>`:''}
     </div>
+    <div class="post-translation" id="post-tr-${post.id}" style="display:none;font-size:.85rem;color:var(--txt2);background:var(--bg3);border-radius:8px;padding:.5rem .7rem;margin-top:.3rem;line-height:1.5"></div>
     <div class="post-comments" id="comments-${post.id}">
       <div class="comment-list" id="comment-list-${post.id}"></div>
       <div class="comment-input">
@@ -2503,6 +2505,32 @@ function clearPostMedia(){
   if(fi) fi.value='';
 }
 
+async function translatePost(postId, btn){
+  const trEl = document.getElementById('post-tr-'+postId);
+  if(!trEl) return;
+  if(trEl.style.display!=='none'){ trEl.style.display='none'; btn.textContent='🌐 Çevir'; btn.style.color=''; return; }
+  // Find the post text from DOM
+  const card = btn.closest('.post-card');
+  const textEl = card?.querySelector('.post-text');
+  const txt = textEl?.textContent?.trim();
+  if(!txt||txt.length<2){ toast('Çevrilecek metin yok','info'); return; }
+  btn.textContent='⏳'; btn.disabled=true;
+  try{
+    const toLang = _myLang || 'tr';
+    const out = await myMemoryTranslate(txt, 'autodetect', toLang);
+    if(out && out !== txt){
+      trEl.innerHTML='🌐 <em>'+escHtml(out)+'</em>';
+      trEl.style.display='block';
+      btn.style.color='var(--acc2)';
+      btn.textContent='🌐 Kapat';
+    } else {
+      toast('Çeviri bulunamadı','info');
+    }
+  }catch(e){ toast('Çeviri hatası','error'); }
+  btn.disabled=false;
+  if(btn.textContent==='⏳') btn.textContent='🌐 Çevir';
+}
+
 async function createPost(){
   const text=document.getElementById('post-input')?.value?.trim();
   if(!text&&!_postFileData){toast('Bir şeyler yazın veya medya ekleyin.','error');return;}
@@ -2523,7 +2551,15 @@ async function createPost(){
       else if(t.startsWith('audio/')) medya_tip='ses';
       else medya_tip='resim';
     }
-    const insertData={kullanici_id:S.user.id,metin:text||null,medya_url,medya_tip,medya_adi,genel:_postGenel||false};
+    // Auto-translate post text if enabled
+    let finalText = text||null;
+    if(finalText && _autoSendTranslate && _myLang && _targetLang && _myLang!==_targetLang){
+      try{
+        const translated = await myMemoryTranslate(finalText, _myLang, _targetLang);
+        if(translated && translated!==finalText) finalText=translated;
+      }catch(te){}
+    }
+    const insertData={kullanici_id:S.user.id,metin:finalText,medya_url,medya_tip,medya_adi,genel:_postGenel||false};
     if(_postIkiliTunelId) insertData.ikili_tunel_id=_postIkiliTunelId;
     const {error}=await sb.from('gonderiler').insert(insertData);
     if(error) throw error;
