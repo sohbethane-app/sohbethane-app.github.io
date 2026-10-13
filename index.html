@@ -426,7 +426,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       <h2>SohbetHane</h2>
       <button class="icon-btn" title="Yeni sohbet" onclick="openModal('new-room-modal')">✏️</button>
       <button class="icon-btn" title="Davet" onclick="openModal('invite-modal')">✉️</button>
-      <button class="icon-btn" title="Ayarlar" onclick="openModal('settings-modal')">⚙️</button>
+      <button class="icon-btn" title="Ayarlar" onclick="openModal('settings-modal');populateSettingsProfile()">⚙️</button>
     </div>
     <div id="sidebar-tabs">
       <button class="s-tab active" id="stab-dm" onclick="switchSideTab(this,'dm')"><span class="s-tab-icon">💬</span>Sohbetler</button>
@@ -2571,6 +2571,7 @@ function settingsTab(tab){
   ['profile','muted','blocked','admin'].forEach(t=>{const el=document.getElementById('settings-'+t);if(el) el.style.display=t===tab?'block':'none';});
   document.querySelectorAll('#settings-modal .modal-tab').forEach(b=>b.classList.remove('active'));
   event?.target?.classList.add('active');
+  if(tab==='profile') populateSettingsProfile();
   if(tab==='admin'){ loadAdminUsers(); adminSubTab('users'); }
   if(tab==='muted') loadMutedList();
   if(tab==='blocked') loadBlockedList();
