@@ -247,6 +247,7 @@ a{color:var(--acc2);text-decoration:none}
 .admin-table th{text-align:left;padding:.4rem .6rem;color:var(--txt2);border-bottom:1px solid var(--brd)}
 .admin-table td{padding:.4rem .6rem;border-bottom:1px solid var(--brd)}
 .admin-table tr:hover td{background:var(--bg3)}
+.admin-sub-tab.active{background:var(--acc)!important;color:#fff!important;border-color:var(--acc)!important}
 /* INVITE */
 .invite-link-box{background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.6rem .8rem;word-break:break-all;font-size:.8rem;color:var(--acc2);margin:.5rem 0}
 /* WALLPAPER GRID */
@@ -632,11 +633,30 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   </div>
   <div id="settings-admin" style="display:none">
     <div id="admin-panel">
-      <div style="margin-bottom:.8rem;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.9rem;font-weight:600">Kullanıcılar</span>
-        <button class="btn btn-secondary btn-sm" onclick="loadAdminUsers()">Yenile</button>
+      <div style="display:flex;gap:.4rem;margin-bottom:.8rem;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm admin-sub-tab active" id="asub-users" onclick="adminSubTab('users')">👥 Kullanıcılar</button>
+        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-arsiv" onclick="adminSubTab('arsiv')">📜 Yazışma Arşivi</button>
+        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-sikayet" onclick="adminSubTab('sikayet')">🚩 Şikayetler</button>
       </div>
-      <div id="admin-users-table"></div>
+      <div id="admin-users-panel">
+        <div style="margin-bottom:.5rem;display:flex;justify-content:flex-end">
+          <button class="btn btn-secondary btn-sm" onclick="loadAdminUsers()">Yenile</button>
+        </div>
+        <div id="admin-users-table"></div>
+      </div>
+      <div id="admin-arsiv-panel" style="display:none">
+        <div style="margin-bottom:.5rem;display:flex;gap:.4rem;align-items:center">
+          <input id="arsiv-ara" placeholder="Kullanıcı adı ara..." style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;color:var(--txt);font-size:.85rem" oninput="loadAdminArsiv()">
+          <button class="btn btn-secondary btn-sm" onclick="loadAdminArsiv()">Yenile</button>
+        </div>
+        <div id="admin-arsiv-table"></div>
+      </div>
+      <div id="admin-sikayet-panel" style="display:none">
+        <div style="margin-bottom:.5rem;display:flex;justify-content:flex-end">
+          <button class="btn btn-secondary btn-sm" onclick="loadAdminSikayetler()">Yenile</button>
+        </div>
+        <div id="admin-sikayet-table"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1317,6 +1337,10 @@ async function sendTextMessage(text, overrideRoom){
     }
     const {error}=await sb.from('mesajlar').insert(row);
     if(error) throw error;
+    // Admin arşivi — plaintext kaydı
+    const arsivRow={oda_id:room.id,gonderen_id:S.user.id,oda_tur:room.tur,metin:text};
+    if(room.tur==='dm') arsivRow.alici_id=room._otherUserId;
+    sb.from('admin_arsiv').insert(arsivRow).then(()=>{}).catch(()=>{});
     cancelReply();
     if(S.tekGorun) toggleTekGorun();
   } catch(e){ toast(e.message,'error'); }
@@ -1483,6 +1507,7 @@ function showMsgMenu(e,m){
     items.push({label:'✅ Onayla',fn:()=>approveMessage(m)});
     items.push({label:'❌ Reddet',fn:()=>rejectMessage(m)});
   }
+  if(!own&&!m.silindi) items.push({label:'🚩 Şikayet Et',fn:()=>reportMessage(m)});
   showContextMenu(e.clientX,e.clientY,items);
 }
 function showContextMenu(x,y,items){
@@ -2328,6 +2353,69 @@ async function loadAdminUsers(){
     </tr>`).join('')}
   </tbody></table>`;
 }
+function adminSubTab(tab){
+  ['users','arsiv','sikayet'].forEach(t=>{
+    document.getElementById('admin-'+t+'-panel').style.display=t===tab?'block':'none';
+    const btn=document.getElementById('asub-'+t);
+    if(btn) btn.classList.toggle('active',t===tab);
+  });
+  if(tab==='arsiv') loadAdminArsiv();
+  if(tab==='sikayet') loadAdminSikayetler();
+}
+async function loadAdminArsiv(){
+  const el=document.getElementById('admin-arsiv-table');
+  el.innerHTML='<p class="text-muted">Yükleniyor...</p>';
+  const ara=(document.getElementById('arsiv-ara')?.value||'').trim();
+  let query=sb.from('admin_arsiv')
+    .select('id,oda_id,oda_tur,metin,olusturma_tarihi,gonderen:gonderen_id(kullanici_adi,goruntu_adi),alici:alici_id(kullanici_adi,goruntu_adi)')
+    .order('olusturma_tarihi',{ascending:false}).limit(100);
+  if(ara) query=query.ilike('gonderen.kullanici_adi','%'+ara+'%');
+  const {data,error}=await query;
+  if(error){el.innerHTML='<p class="text-muted">Hata: sadece yönetici görebilir.</p>';return;}
+  if(!data?.length){el.innerHTML='<p class="text-muted">Henüz arşiv yok.</p>';return;}
+  el.innerHTML=`<table class="admin-table"><thead><tr><th>Gönderen</th><th>Alıcı/Oda</th><th>Mesaj</th><th>Tarih</th></tr></thead><tbody>
+    ${data.map(r=>{
+      const g=r.gonderen?.goruntu_adi||r.gonderen?.kullanici_adi||'?';
+      const al=r.oda_tur==='dm'?(r.alici?.goruntu_adi||r.alici?.kullanici_adi||'?'):'Grup';
+      const metin=escHtml((r.metin||'').slice(0,120))+(r.metin?.length>120?'…':'');
+      const tarih=r.olusturma_tarihi?new Date(r.olusturma_tarihi).toLocaleString('tr-TR'):'-';
+      return `<tr><td>${escHtml(g)}</td><td>${escHtml(al)}<br><span style="font-size:.7rem;color:var(--txt2)">${r.oda_tur||''}</span></td><td style="max-width:220px;word-break:break-word">${metin}</td><td style="font-size:.75rem;white-space:nowrap">${tarih}</td></tr>`;
+    }).join('')}
+  </tbody></table>`;
+}
+async function loadAdminSikayetler(){
+  const el=document.getElementById('admin-sikayet-table');
+  el.innerHTML='<p class="text-muted">Yükleniyor...</p>';
+  const {data,error}=await sb.from('sikayetler')
+    .select('id,metin_ozet,neden,olusturma_tarihi,sikayet_eden:sikayet_eden_id(kullanici_adi),hedef:hedef_id(kullanici_adi)')
+    .order('olusturma_tarihi',{ascending:false}).limit(50);
+  if(error){el.innerHTML='<p class="text-muted">Hata: sadece yönetici görebilir.</p>';return;}
+  if(!data?.length){el.innerHTML='<p class="text-muted">Henüz şikayet yok.</p>';return;}
+  el.innerHTML=`<table class="admin-table"><thead><tr><th>Şikayet Eden</th><th>Hedef</th><th>Mesaj Özeti</th><th>Neden</th><th>Tarih</th></tr></thead><tbody>
+    ${data.map(r=>`<tr>
+      <td>${escHtml(r.sikayet_eden?.kullanici_adi||'?')}</td>
+      <td>${escHtml(r.hedef?.kullanici_adi||'?')}</td>
+      <td style="max-width:180px;word-break:break-word;font-size:.8rem">${escHtml((r.metin_ozet||'').slice(0,100))}</td>
+      <td>${escHtml(r.neden||'-')}</td>
+      <td style="font-size:.75rem;white-space:nowrap">${r.olusturma_tarihi?new Date(r.olusturma_tarihi).toLocaleString('tr-TR'):'-'}</td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+async function reportMessage(m){
+  const neden=prompt('Şikayet nedeniniz:\n(örn: spam, hakaret, uygunsuz içerik)');
+  if(!neden?.trim()) return;
+  const row={
+    mesaj_id:m.id,
+    oda_id:m.oda_id||S.currentRoom?.id,
+    sikayet_eden_id:S.user.id,
+    hedef_id:m.gonderen_id,
+    metin_ozet:(m._text||'').slice(0,200),
+    neden:neden.trim()
+  };
+  const {error}=await sb.from('sikayetler').insert(row);
+  if(error) toast('Hata: '+error.message,'error');
+  else toast('Şikayetiniz yöneticiye iletildi.','success');
+}
 async function toggleAdmin(uid,makeAdmin){
   await sb.from('profiller').update({yonetici:makeAdmin}).eq('id',uid);
   toast(makeAdmin?'Yönetici yapıldı':'Yetki alındı','success');
@@ -2353,7 +2441,7 @@ function settingsTab(tab){
   ['profile','muted','blocked','admin'].forEach(t=>{const el=document.getElementById('settings-'+t);if(el) el.style.display=t===tab?'block':'none';});
   document.querySelectorAll('#settings-modal .modal-tab').forEach(b=>b.classList.remove('active'));
   event?.target?.classList.add('active');
-  if(tab==='admin') loadAdminUsers();
+  if(tab==='admin'){ loadAdminUsers(); adminSubTab('users'); }
   if(tab==='muted') loadMutedList();
   if(tab==='blocked') loadBlockedList();
 }
