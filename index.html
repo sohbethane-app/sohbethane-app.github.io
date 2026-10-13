@@ -117,6 +117,9 @@ a{color:var(--acc2);text-decoration:none}
 .s-tab:hover{color:var(--txt);background:rgba(255,255,255,.04)}
 .s-tab.active{color:var(--acc2);border-bottom-color:var(--acc2);background:rgba(64,145,108,.06)}
 .s-tab-icon{font-size:.95rem;line-height:1}
+.s-tab-create{padding:.45rem .3rem;background:none;color:var(--txt2);font-size:.88rem;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:.05rem;transition:.2s;line-height:1}
+.s-tab-create span{font-size:.6rem;font-weight:800;color:var(--acc2);line-height:1}
+.s-tab-create:hover{color:var(--acc2);background:rgba(64,145,108,.08)}
 .icon-btn{background:none;color:var(--txt2);padding:.4rem;border-radius:6px;font-size:1.1rem;transition:.2s}
 .icon-btn:hover{background:var(--bg3);color:var(--txt)}
 #user-search-wrap{padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
@@ -536,12 +539,9 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div id="sidebar-tabs">
       <button class="s-tab active" id="stab-dm" onclick="switchSideTab(this,'dm')"><span class="s-tab-icon">💬</span>Sohbetler</button>
       <button class="s-tab" id="stab-grup" onclick="switchSideTab(this,'grup')"><span class="s-tab-icon">🏠</span>Odalar</button>
+      <button class="s-tab-create" onclick="newRoomTab('grup');openModal('new-room-modal')" title="Yeni Grup">👥<span>+</span></button>
+      <button class="s-tab-create" onclick="newRoomTab('arsiv');openModal('new-room-modal')" title="Yeni Arşiv">📁<span>+</span></button>
       <button class="s-tab" id="stab-duvar" onclick="switchSideTab(this,'duvar')"><span class="s-tab-icon">📰</span>Zaman Tüneli</button>
-    </div>
-    <!-- Quick create bar (shown on Odalar tab) -->
-    <div id="oda-create-bar" style="display:none;gap:.4rem;padding:.4rem .5rem;border-bottom:1px solid var(--brd);background:var(--bg2)">
-      <button class="btn btn-secondary btn-sm" style="flex:1;font-size:.8rem" onclick="newRoomTab('grup');openModal('new-room-modal')">👥 + Grup Oluştur</button>
-      <button class="btn btn-secondary btn-sm" style="flex:1;font-size:.8rem" onclick="newRoomTab('arsiv');openModal('new-room-modal')">📁 + Arşiv Oluştur</button>
     </div>
     <!-- Sub-tabs for Zaman Tüneli -->
     <div id="tunel-subtabs">
@@ -1464,8 +1464,6 @@ function switchSideTab(el, tab){
   const ikiliList = document.getElementById('ikili-tunel-sidebar-list');
   const userSearchWrap = document.getElementById('user-search-wrap');
   const roomList = document.getElementById('room-list');
-  const odaBar = document.getElementById('oda-create-bar');
-  if(odaBar) odaBar.style.display = tab==='grup' ? 'flex' : 'none';
   if(tab==='duvar'){
     // Show sub-tabs, hide normal search/room list
     subtabs.classList.add('show');
