@@ -1064,7 +1064,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // ============================================================
 // STATE
 // ============================================================
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
 const S = {
   user: null,         // auth user
   profile: null,      // profiller row
@@ -3926,17 +3928,22 @@ async function init(){
     // Auto-login attempt if user has stored authKey in sessionStorage
     const storedWrap=localStorage.getItem('wk_'+S.user.id);
     if(storedWrap){
-      try{
-        const prof=await getProfile(S.user.id);
-        if(prof&&!prof.banli){
+      let prof=null;
+      try{ prof=await getProfile(S.user.id); } catch(e){ prof=null; }
+      if(prof&&!prof.banli){
+        try{
           S.profile=prof;
           const wk=b64d(storedWrap);
           S.privateKey=await unwrapPrivateKey(prof.sarili_ozel_anahtar,prof.sarlama_iv,wk);
           S.publicKey=await importPublicJwk(prof.acik_anahtar);
           await startApp();
           return;
+        } catch(cryptoErr){
+          // Sadece kripto/anahtar hatası wk_'yı geçersiz kılar — sil
+          localStorage.removeItem('wk_'+S.user.id);
         }
-      } catch(e){ localStorage.removeItem('wk_'+S.user.id); }
+      }
+      // Ağ hatası veya profil yüklenemedi: wk_ koru, giriş ekranı göster
     }
   }
   // Check invite hash
