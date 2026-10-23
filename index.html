@@ -2019,13 +2019,15 @@ async function renderRoomList(rooms){
     el.onclick=()=>openRoom(r);
     let name=r.isim||'Sohbet', avatarHtml='';
     if(r.tur==='dm'){
-      const {data:members} = await sb.from('oda_uyeleri').select('kullanici_id').eq('oda_id',r.id);
-      const otherId = members?.find(m=>m.kullanici_id!==S.user.id)?.kullanici_id;
-      const op = otherId ? await getProfile(otherId) : null;
+      // Cache _otherUserId — do NOT overwrite if already set (race condition guard)
+      if(!r._otherUserId){
+        const {data:members} = await sb.from('oda_uyeleri').select('kullanici_id').eq('oda_id',r.id);
+        r._otherUserId = members?.find(m=>m.kullanici_id!==S.user.id)?.kullanici_id;
+      }
+      const op = r._otherUserId ? await getProfile(r._otherUserId) : null;
       name = op?.goruntu_adi||op?.kullanici_adi||'DM';
       if(op?.avatar_url) avatarHtml=`<img src="${op.avatar_url}" alt="">`;
       else avatarHtml=`<span style="color:#fff;font-size:.85rem">${avatarInitials(name)}</span>`;
-      r._otherUserId=otherId;
     } else {
       const icon = r.tur==='arsiv'?'📁':r.tur==='duvar'?'📰':'👥';
       avatarHtml=`<span>${icon}</span>`;
