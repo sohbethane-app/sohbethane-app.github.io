@@ -1525,6 +1525,13 @@ function updateTabBadge(){
     lnk.href=cv.toDataURL();
   }catch(e){}
 }
+// When user switches back to this tab, clear unread for the open room
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&S.currentRoom){
+    const r=S.rooms.find(r=>r.id===S.currentRoom.id);
+    if(r&&r._unread){r._unread=0;renderRoomList(S.rooms);updateTabBadge();}
+  }
+});
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');}));
@@ -2497,16 +2504,20 @@ function subscribeRooms(){
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'mesajlar',filter:`oda_id=in.(${roomIds.join(',')})`},async payload=>{
       const m=payload.new;
       if(m.gonderen_id===S.user.id) return;
-      if(S.currentRoom?.id===m.oda_id){
-        if(document.hidden){
-          const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
-          if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
-        }
-        return;
-      }
       const r=S.rooms.find(r=>r.id===m.oda_id);
       if(!r) return;
       r._lastMsg=m;
+      if(S.currentRoom?.id===m.oda_id){
+        // Active room but tab hidden — still badge + notify
+        if(document.hidden){
+          r._unread=(r._unread||0)+1;
+          renderRoomList(S.rooms);
+          const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
+          if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
+          updateTabBadge();
+        }
+        return;
+      }
       if(!r._bcSeen) r._unread=(r._unread||0)+1; // avoid double-count if broadcast already fired
       r._bcSeen=false;
       renderRoomList(S.rooms);
@@ -2539,7 +2550,10 @@ function subscribeRooms(){
             if(cont){appendMessageEl(enriched,cont,'',()=>{});cont.scrollTop=cont.scrollHeight;}
             r._lastMsg=lm[0];
           }
+          // If tab is hidden (user on another tab), badge + OS notification still needed
           if(document.hidden){
+            r._unread=(r._unread||0)+1;
+            renderRoomList(S.rooms);
             const name=S.profiles[from]?.goruntu_adi||S.profiles[from]?.kullanici_adi||'Biri';
             if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
           }
