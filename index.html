@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net https://ipapi.co;">
 <meta name="referrer" content="no-referrer">
 <title>SohbetHane</title>
 <style>
@@ -1498,6 +1498,16 @@ function toast(msg, type='info'){
 }
 function avatarInitials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 function userColor(uid){ const h = uid ? parseInt(uid.slice(0,6),16)%360 : 180; return `hsl(${h},40%,35%)`; }
+// Detect country via IP (ipapi.co — free, no key needed, 1000/day)
+async function detectCountry(){
+  try{
+    const res=await fetch('https://ipapi.co/json/',{signal:AbortSignal.timeout(4000)});
+    if(!res.ok) return null;
+    const d=await res.json();
+    // Returns e.g. {country_code:"TR",country_name:"Turkey",city:"Istanbul",...}
+    return d?.country_name||null;
+  }catch(_){return null;}
+}
 function _rrect(cx,x,y,w,h,r){
   // roundRect polyfill — works in all browsers
   cx.beginPath();
@@ -1692,6 +1702,8 @@ async function doLogin(){
     const prof = await getProfile(S.user.id);
     if(!prof) throw new Error('Profil bulunamadı.');
     if(prof.banli) throw new Error('Bu hesap askıya alındı.');
+    // Update country on every login (IP may change)
+    detectCountry().then(ulke=>{if(ulke) sb.from('profiller').update({ulke,son_giris:new Date().toISOString()}).eq('id',S.user.id).then(()=>{}).catch(()=>{});});
     S.profile = prof;
     S.privateKey = await unwrapPrivateKey(prof.sarili_ozel_anahtar, prof.sarlama_iv, wrapKey);
     S.publicKey = await importPublicJwk(prof.acik_anahtar);
@@ -1728,9 +1740,12 @@ async function doRegister(){
     S.privateKey = kp.privateKey;
     const pubJwk = await exportPublicJwk(kp.publicKey);
     const {sarili,iv:sarlama_iv} = await wrapPrivateKey(kp.privateKey, wrapKey);
+    const kayitUlke = await detectCountry();
     const {error:pe} = await sb.from('profiller').insert({
       id:S.user.id, kullanici_adi:username, goruntu_adi:goruntu,
-      acik_anahtar:pubJwk, sarili_ozel_anahtar:sarili, sarlama_iv
+      acik_anahtar:pubJwk, sarili_ozel_anahtar:sarili, sarlama_iv,
+      ...(kayitUlke?{ulke:kayitUlke}:{}),
+      son_giris:new Date().toISOString()
     });
     if(pe) throw pe;
     // Increment invite usage
@@ -4005,12 +4020,13 @@ async function loadAdminUsers(){
   const {data}=await sb.from('profiller').select('*').order('kayit_tarihi',{ascending:true});
   const el=document.getElementById('admin-users-table');
   if(!data?.length){el.innerHTML='<p class="text-muted">Kullanıcı yok.</p>';return;}
-  el.innerHTML=`<table class="admin-table"><thead><tr><th>Kullanıcı</th><th>Dil</th><th>Kayıt</th><th>Son</th><th>İşlem</th></tr></thead><tbody>
+  el.innerHTML=`<table class="admin-table"><thead><tr><th>Kullanıcı</th><th>Ülke</th><th>Dil</th><th>Kayıt</th><th>Son Giriş</th><th>İşlem</th></tr></thead><tbody>
     ${data.map(p=>`<tr>
       <td><b>${p.goruntu_adi||p.kullanici_adi}</b><br><span style="color:var(--txt2);font-size:.75rem">@${p.kullanici_adi}</span>${p.yonetici?'<span class="badge-admin" style="margin-left:.3rem">Y</span>':''}${p.banli?'<span style="background:var(--danger);color:#fff;padding:.1rem .3rem;border-radius:4px;font-size:.65rem;margin-left:.3rem">BAN</span>':''}</td>
+      <td style="font-size:.82rem">${p.ulke||'—'}</td>
       <td>${p.dil||'tr'}</td>
       <td>${p.kayit_tarihi?new Date(p.kayit_tarihi).toLocaleDateString('tr-TR'):'-'}</td>
-      <td>${p.son_gorulme?fmtTime(p.son_gorulme):'-'}</td>
+      <td>${p.son_giris?new Date(p.son_giris).toLocaleString('tr-TR'):'-'}</td>
       <td style="white-space:nowrap">
         ${p.id!==S.user.id?`
         <button class="btn btn-secondary btn-sm" title="Profil gör" onclick="viewProfile('${p.id}')">👤</button>
@@ -4474,7 +4490,8 @@ window.doRegister=async function(){
     S.publicKey=kp.publicKey; S.privateKey=kp.privateKey;
     const pubJwk=await exportPublicJwk(kp.publicKey);
     const {sarili,iv:sarlama_iv}=await wrapPrivateKey(kp.privateKey,wrapKey);
-    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv});
+    const kayitUlke2=await detectCountry();
+    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(kayitUlke2?{ulke:kayitUlke2}:{}),son_giris:new Date().toISOString()});
     if(pe) throw pe;
     if(hasUser&&inviteCode){
       const {data:inv2}=await sb.from('davetler').select('id,kullanim').eq('kod',inviteCode).single();
