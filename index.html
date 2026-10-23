@@ -152,6 +152,7 @@ a{color:var(--acc2);text-decoration:none}
 .room-preview{font-size:.78rem;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.15rem}
 .room-meta{display:flex;flex-direction:column;align-items:flex-end;gap:.3rem}
 .room-time{font-size:.72rem;color:var(--txt2)}
+.unread-badge{background:var(--acc);color:#fff;border-radius:999px;font-size:.7rem;font-weight:700;min-width:18px;height:18px;padding:0 5px;display:flex;align-items:center;justify-content:center;animation:badgePop .2s ease}
 .unread-badge{background:var(--acc2);color:#fff;border-radius:50%;width:18px;height:18px;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-weight:700}
 .pending-badge{background:var(--warn);color:#000;border-radius:50%;width:18px;height:18px;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-weight:700}
 /* CHAT */
@@ -1413,7 +1414,8 @@ const S = {
   timerSecs: 0,       // timed message seconds
   tekGorun: false,    // one-time view
   typing: {},         // roomId → timeout
-  subs: [],           // realtime subscriptions
+  subs: [],           // realtime subscriptions (room-specific)
+  globalSubs: [],     // realtime subscriptions (global — all rooms)
   newRoomMembers: [], // selected members for new group
   newDuvarMembers:[],
   blockList: [],      // uids I blocked
@@ -2052,6 +2054,7 @@ async function renderRoomList(rooms){
       </div>
       <div class="room-meta">
         <div class="room-time">${r._lastMsg?fmtTime(r._lastMsg.olusturma_tarihi):''}</div>
+        ${(r._unread>0&&S.currentRoom?.id!==r.id)?`<div class="unread-badge">${r._unread>99?'99+':r._unread}</div>`:''}
       </div>
       <button class="room-ctx-btn" title="Seçenekler" onclick="showRoomMenu(event,'${r.id}',${fromKasa})">⋮</button>`;
     return el;
@@ -2091,6 +2094,8 @@ async function openRoom(room){
   }
   S.currentRoom=room;
   S.messages=[];
+  // Clear unread badge for this room
+  room._unread=0;
   // Update header
   let name=room.isim||'Sohbet';
   let sub='';
@@ -2447,12 +2452,46 @@ async function sendTyping(){
 // REALTIME
 // ============================================================
 function subscribeRooms(){
-  // Subscribe to all my rooms for new messages
-  S.subs.forEach(s=>sb.removeChannel(s));
-  S.subs=[];
+  // Clear old global subs
+  (S.globalSubs||[]).forEach(s=>sb.removeChannel(s));
+  S.globalSubs=[];
+  if(!S.rooms?.length) return;
+  const roomIds=S.rooms.map(r=>r.id);
+  if(!roomIds.length) return;
+  // Subscribe to INSERT events across all user rooms
+  const globalCh=sb.channel('global_msgs_'+S.user.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'mesajlar',filter:`oda_id=in.(${roomIds.join(',')})`},async payload=>{
+      const m=payload.new;
+      // Ignore own messages
+      if(m.gonderen_id===S.user.id) return;
+      // If this is the current open room, subscribeMessages() handles display
+      // but we still fire OS notification if page is hidden
+      if(S.currentRoom?.id===m.oda_id){
+        if(document.hidden){
+          const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
+          if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
+        }
+        return;
+      }
+      // Message arrived in a room the user is NOT currently viewing
+      const r=S.rooms.find(r=>r.id===m.oda_id);
+      if(!r) return;
+      r._lastMsg=m;
+      r._unread=(r._unread||0)+1;
+      renderRoomList(S.rooms);
+      // OS notification regardless of page visibility
+      const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
+      if(Notification.permission==='granted'){
+        new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
+      } else if(Notification.permission==='default'){
+        Notification.requestPermission();
+      }
+    })
+    .subscribe();
+  S.globalSubs=[globalCh];
 }
 function subscribeMessages(roomId){
-  // Remove old message subs
+  // Remove old ROOM-SPECIFIC subs only — global subs stay alive
   S.subs.forEach(s=>sb.removeChannel(s));
   S.subs=[];
   // Messages channel
@@ -3158,7 +3197,7 @@ async function createGroup(tur){
     S.groupKeys[room.id]=groupKey;
     S.newRoomMembers=[];S.newDuvarMembers=[];
     closeModal('new-room-modal');
-    await loadRooms();
+    await loadRooms(); subscribeRooms();
     // Odalar sekmesine geç ki yeni grup görünsün
     const grupTabEl=document.getElementById('stab-grup');
     if(grupTabEl) switchSideTab(grupTabEl,'grup');
@@ -3179,7 +3218,7 @@ async function createArchive(){
     await sb.from('oda_uyeleri').insert({oda_id:room.id,kullanici_id:S.user.id,grup_anahtar_enc:w.enc,grup_anahtar_iv:w.iv,grup_anahtar_eph:w.eph});
     S.groupKeys[room.id]=groupKey;
     closeModal('new-room-modal');
-    await loadRooms();
+    await loadRooms(); subscribeRooms();
     // Arşivler sekmesine geç ki yeni arşiv görünsün
     const arsivTabEl=document.getElementById('stab-arsiv');
     if(arsivTabEl) switchSideTab(arsivTabEl,'arsiv');
@@ -3204,7 +3243,7 @@ async function startDM(userId){
     {oda_id:room.id,kullanici_id:S.user.id},
     {oda_id:room.id,kullanici_id:userId}
   ]);
-  await loadRooms();
+  await loadRooms(); subscribeRooms();
   const newRoom=S.rooms.find(r=>r.id===room.id)||{...room,_otherUserId:userId};
   if(!newRoom._otherUserId) newRoom._otherUserId=userId;
   await openRoom(newRoom);
@@ -3827,7 +3866,7 @@ async function doConvertToGroup(){
     ]);
     S.groupKeys[newRoom.id]=groupKey;
     closeModal('convert-modal');
-    await loadRooms();
+    await loadRooms(); subscribeRooms();
     const nr=S.rooms.find(r=>r.id===newRoom.id)||{...newRoom};
     openRoom(nr);
     toast('Gruba dönüştürüldü','success');
