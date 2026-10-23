@@ -1416,6 +1416,7 @@ const S = {
   typing: {},         // roomId → timeout
   subs: [],           // realtime subscriptions (room-specific)
   globalSubs: [],     // realtime subscriptions (global — all rooms)
+  bcChannels: {},     // roomId → broadcast channel reference
   newRoomMembers: [], // selected members for new group
   newDuvarMembers:[],
   blockList: [],      // uids I blocked
@@ -1497,6 +1498,24 @@ function toast(msg, type='info'){
 }
 function avatarInitials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 function userColor(uid){ const h = uid ? parseInt(uid.slice(0,6),16)%360 : 180; return `hsl(${h},40%,35%)`; }
+function updateTabBadge(){
+  const n=(S.rooms||[]).reduce((s,r)=>s+(r._unread||0),0);
+  document.title=n>0?`(${n}) SohbetHane`:'SohbetHane';
+  try{
+    const sz=32,cv=document.createElement('canvas');cv.width=sz;cv.height=sz;
+    const cx=cv.getContext('2d');
+    cx.fillStyle='#667eea';cx.beginPath();cx.roundRect(0,0,sz,sz,7);cx.fill();
+    cx.fillStyle='#fff';cx.font=`bold ${Math.round(sz*.58)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('S',sz/2,sz/2+1);
+    if(n>0){
+      cx.fillStyle='#e53e3e';cx.beginPath();cx.arc(sz*.76,sz*.26,sz*.28,0,2*Math.PI);cx.fill();
+      cx.fillStyle='#fff';cx.font=`bold ${Math.round(sz*.22)}px sans-serif`;
+      cx.fillText(n>99?'99+':String(n),sz*.76,sz*.26);
+    }
+    let lnk=document.querySelector("link[rel~='icon']");
+    if(!lnk){lnk=document.createElement('link');lnk.rel='shortcut icon';document.head.appendChild(lnk);}
+    lnk.href=cv.toDataURL();
+  }catch(e){}
+}
 function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o) o.classList.remove('open');}));
@@ -2096,6 +2115,7 @@ async function openRoom(room){
   S.messages=[];
   // Clear unread badge for this room
   room._unread=0;
+  updateTabBadge();
   // Update header
   let name=room.isim||'Sohbet';
   let sub='';
@@ -2411,6 +2431,8 @@ async function sendTextMessage(text, overrideRoom){
     }
     const {error}=await sb.from('mesajlar').insert(row);
     if(error) throw error;
+    // Broadcast to room channel so other party gets instant notification (bypasses RLS)
+    try{const bc=S.bcChannels?.[room.id];if(bc)bc.send({type:'broadcast',event:'msg',payload:{from:S.user.id,oda_id:room.id}});}catch(_){}
     // Admin arşivi — plaintext kaydı
     const arsivRow={oda_id:room.id,gonderen_id:S.user.id,oda_tur:room.tur,metin:text};
     if(room.tur==='dm') arsivRow.alici_id=room._otherUserId;
@@ -2452,20 +2474,18 @@ async function sendTyping(){
 // REALTIME
 // ============================================================
 function subscribeRooms(){
-  // Clear old global subs
   (S.globalSubs||[]).forEach(s=>sb.removeChannel(s));
   S.globalSubs=[];
+  S.bcChannels={};
   if(!S.rooms?.length) return;
   const roomIds=S.rooms.map(r=>r.id);
   if(!roomIds.length) return;
-  // Subscribe to INSERT events across all user rooms
-  const globalCh=sb.channel('global_msgs_'+S.user.id)
+
+  // ── Backup: postgres_changes (may be filtered by RLS) ──────────────────
+  const pgCh=sb.channel('global_pg_'+S.user.id)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'mesajlar',filter:`oda_id=in.(${roomIds.join(',')})`},async payload=>{
       const m=payload.new;
-      // Ignore own messages
       if(m.gonderen_id===S.user.id) return;
-      // If this is the current open room, subscribeMessages() handles display
-      // but we still fire OS notification if page is hidden
       if(S.currentRoom?.id===m.oda_id){
         if(document.hidden){
           const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
@@ -2473,22 +2493,62 @@ function subscribeRooms(){
         }
         return;
       }
-      // Message arrived in a room the user is NOT currently viewing
       const r=S.rooms.find(r=>r.id===m.oda_id);
       if(!r) return;
       r._lastMsg=m;
-      r._unread=(r._unread||0)+1;
+      if(!r._bcSeen) r._unread=(r._unread||0)+1; // avoid double-count if broadcast already fired
+      r._bcSeen=false;
       renderRoomList(S.rooms);
-      // OS notification regardless of page visibility
       const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
-      if(Notification.permission==='granted'){
-        new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
-      } else if(Notification.permission==='default'){
-        Notification.requestPermission();
-      }
+      if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
+      else if(Notification.permission==='default') Notification.requestPermission();
+      updateTabBadge();
     })
     .subscribe();
-  S.globalSubs=[globalCh];
+  S.globalSubs.push(pgCh);
+
+  // ── Primary: per-room broadcast channel (bypasses RLS) ─────────────────
+  // Both participants subscribe here; sender broadcasts after insert
+  S.rooms.forEach(room=>{
+    const bcCh=sb.channel('room_bc_'+room.id)
+      .on('broadcast',{event:'msg'},async({payload})=>{
+        const{from,oda_id}=payload||{};
+        if(!from||from===S.user.id) return; // ignore own sends
+        const r=S.rooms.find(r=>r.id===oda_id);
+        if(!r) return;
+        if(S.currentRoom?.id===oda_id){
+          // Currently in this room — backup-fetch in case postgres_changes missed it
+          const{data:lm}=await sb.from('mesajlar').select('*').eq('oda_id',oda_id).order('olusturma_tarihi',{ascending:false}).limit(1);
+          if(lm?.[0]&&!S.messages.find(x=>x.id===lm[0].id)){
+            const d=await decryptMessage({...lm[0],_room:S.currentRoom});
+            const enriched={...lm[0],_text:d};
+            S.messages.push(enriched);
+            const cont=document.getElementById('messages');
+            const es=cont?.querySelector('.empty-state');if(es)es.remove();
+            if(cont){appendMessageEl(enriched,cont,'',()=>{});cont.scrollTop=cont.scrollHeight;}
+            r._lastMsg=lm[0];
+          }
+          if(document.hidden){
+            const name=S.profiles[from]?.goruntu_adi||S.profiles[from]?.kullanici_adi||'Biri';
+            if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
+          }
+        } else {
+          // Different room — update preview, unread badge, OS notification
+          const{data:lm}=await sb.from('mesajlar').select('*').eq('oda_id',oda_id).order('olusturma_tarihi',{ascending:false}).limit(1);
+          if(lm?.[0]) r._lastMsg=lm[0];
+          r._unread=(r._unread||0)+1;
+          r._bcSeen=true; // postgres_changes duplicate guard
+          renderRoomList(S.rooms);
+          const name=S.profiles[from]?.goruntu_adi||S.profiles[from]?.kullanici_adi||'Biri';
+          if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
+          else if(Notification.permission==='default') Notification.requestPermission();
+        }
+        updateTabBadge();
+      })
+      .subscribe();
+    S.globalSubs.push(bcCh);
+    S.bcChannels[room.id]=bcCh;
+  });
 }
 function subscribeMessages(roomId){
   // Remove old ROOM-SPECIFIC subs only — global subs stay alive
