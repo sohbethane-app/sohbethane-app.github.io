@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net;">
 <meta name="referrer" content="no-referrer">
 <title>SohbetHane</title>
 <style>
@@ -1053,8 +1053,340 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 <div id="reaction-picker" style="display:none;position:fixed;background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:.4rem;z-index:150;box-shadow:var(--shadow)">
   <div style="display:flex;gap:.2rem" id="reaction-emojis"></div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<script>if(!window.supabase||!window.supabase.createClient){document.write('<scr'+'ipt src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"><\/scr'+'ipt>');}</script>
 <script>
+// ============================================================
+// I18N — Dil paketi ve çeviri sistemi
+// ============================================================
+const _UI_LANG=(()=>{const l=(navigator.language||'en').toLowerCase().split('-')[0];return['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'].includes(l)?l:'en';})();
+const I18N={
+tr:{
+  'auth.tagline1':'Mesajlarınız yalnızca size aittir.',
+  'auth.tagline2':'Sunucu tek bir harf bile göremez.',
+  'auth.badge.zero':'Sıfır veri kaydı','auth.badge.translate':'Otomatik çeviri',
+  'auth.preview.1':'Merhaba! Uygulama nasıl? 👋','auth.preview.2':'Harika — tamamen şifreli! 🔐',
+  'auth.preview.3':'Kimse okuyamıyor mu gerçekten?','auth.preview.4':'Sunucu bile göremez, söz ✓',
+  'auth.preview.lock':'🔒 Bu konuşma uçtan uca şifreli',
+  'auth.subtitle.top':'Uçtan uca şifreli mesajlaşma',
+  'auth.welcome':'Hoş geldin 👋','auth.subtitle':'Hesabına giriş yap veya yeni hesap oluştur',
+  'auth.tab.login':'Giriş Yap','auth.tab.register':'Kayıt Ol',
+  'auth.lbl.user':'Kullanıcı adı','auth.lbl.pass':'Şifre',
+  'auth.lbl.name':'Görünen isim','auth.lbl.invite':'Davet kodu',
+  'auth.ph.user':'kullanici_adi','auth.ph.name':'Adınız Soyadınız',
+  'auth.ph.invite':'XXXX-XXXX  (zorunlu değil, varsa yazın)',
+  'auth.btn.login':'✦ Giriş Yap','auth.btn.register':'✦ Kayıt Ol',
+  'nav.chats':'Sohbetler','nav.groups':'Gruplar','nav.archives':'Arşivler','nav.timeline':'Zaman Tüneli',
+  'nav.feed':'🌐 SohbetHane Akışı','nav.mine':'📰 Tünelim','nav.pair':'🔗 İkili',
+  'nav.new':'Yeni sohbet','nav.invite':'Davet','nav.settings':'Ayarlar',
+  'nav.search':'Kullanıcı ara... (@kullanici_adi ile de ara)',
+  'chat.empty':'Bir sohbet seçin',
+  'room.empty.dm':'Henüz sohbet yok','room.empty.grup':'Henüz grup yok. Aşağıdaki buton ile oluşturabilirsin.',
+  'room.empty.arsiv':'Henüz arşiv yok. Aşağıdaki buton ile oluşturabilirsin.',
+},
+en:{
+  'auth.tagline1':'Your messages belong only to you.',
+  'auth.tagline2':'The server cannot see a single character.',
+  'auth.badge.zero':'Zero data logging','auth.badge.translate':'Auto translate',
+  'auth.preview.1':'Hey! How\'s the app? 👋','auth.preview.2':'Amazing — fully encrypted! 🔐',
+  'auth.preview.3':'Really, nobody can read it?','auth.preview.4':'Not even the server, promise ✓',
+  'auth.preview.lock':'🔒 This conversation is end-to-end encrypted',
+  'auth.subtitle.top':'End-to-end encrypted messaging',
+  'auth.welcome':'Welcome 👋','auth.subtitle':'Sign in or create a new account',
+  'auth.tab.login':'Sign In','auth.tab.register':'Sign Up',
+  'auth.lbl.user':'Username','auth.lbl.pass':'Password',
+  'auth.lbl.name':'Display name','auth.lbl.invite':'Invite code',
+  'auth.ph.user':'username','auth.ph.name':'Your Full Name',
+  'auth.ph.invite':'XXXX-XXXX  (optional, enter if you have one)',
+  'auth.btn.login':'✦ Sign In','auth.btn.register':'✦ Sign Up',
+  'nav.chats':'Chats','nav.groups':'Groups','nav.archives':'Archives','nav.timeline':'Timeline',
+  'nav.feed':'🌐 SohbetHane Feed','nav.mine':'📰 My Timeline','nav.pair':'🔗 Pair',
+  'nav.new':'New chat','nav.invite':'Invite','nav.settings':'Settings',
+  'nav.search':'Search users... (use @username)',
+  'chat.empty':'Select a conversation',
+  'room.empty.dm':'No chats yet','room.empty.grup':'No groups yet. Create one below.',
+  'room.empty.arsiv':'No archives yet. Create one below.',
+},
+id:{
+  'auth.tagline1':'Pesan Anda hanya milik Anda.',
+  'auth.tagline2':'Server tidak bisa melihat satu huruf pun.',
+  'auth.badge.zero':'Nol pencatatan data','auth.badge.translate':'Terjemahan otomatis',
+  'auth.preview.1':'Halo! Bagaimana aplikasinya? 👋','auth.preview.2':'Luar biasa — terenkripsi penuh! 🔐',
+  'auth.preview.3':'Benar-benar tidak ada yang bisa baca?','auth.preview.4':'Server pun tidak bisa, janji ✓',
+  'auth.preview.lock':'🔒 Percakapan ini terenkripsi ujung ke ujung',
+  'auth.subtitle.top':'Pesan terenkripsi ujung ke ujung',
+  'auth.welcome':'Selamat datang 👋','auth.subtitle':'Masuk atau buat akun baru',
+  'auth.tab.login':'Masuk','auth.tab.register':'Daftar',
+  'auth.lbl.user':'Nama pengguna','auth.lbl.pass':'Kata sandi',
+  'auth.lbl.name':'Nama tampilan','auth.lbl.invite':'Kode undangan',
+  'auth.ph.user':'nama_pengguna','auth.ph.name':'Nama Lengkap Anda',
+  'auth.ph.invite':'XXXX-XXXX  (opsional, isi jika punya)',
+  'auth.btn.login':'✦ Masuk','auth.btn.register':'✦ Daftar',
+  'nav.chats':'Obrolan','nav.groups':'Grup','nav.archives':'Arsip','nav.timeline':'Linimasa',
+  'nav.feed':'🌐 Umpan SohbetHane','nav.mine':'📰 Linimasa Saya','nav.pair':'🔗 Berpasangan',
+  'nav.new':'Obrolan baru','nav.invite':'Undang','nav.settings':'Pengaturan',
+  'nav.search':'Cari pengguna... (gunakan @username)',
+  'chat.empty':'Pilih percakapan',
+  'room.empty.dm':'Belum ada obrolan','room.empty.grup':'Belum ada grup. Buat di bawah.',
+  'room.empty.arsiv':'Belum ada arsip. Buat di bawah.',
+},
+ar:{
+  'auth.tagline1':'رسائلك ملكك أنت فقط.','auth.tagline2':'الخادم لا يرى حرفاً واحداً.',
+  'auth.badge.zero':'لا تسجيل للبيانات','auth.badge.translate':'ترجمة تلقائية',
+  'auth.preview.1':'مرحباً! كيف التطبيق؟ 👋','auth.preview.2':'رائع — مشفر بالكامل! 🔐',
+  'auth.preview.3':'حقاً لا أحد يستطيع القراءة؟','auth.preview.4':'حتى الخادم لا يرى، وعد ✓',
+  'auth.preview.lock':'🔒 هذه المحادثة مشفرة من طرف إلى طرف',
+  'auth.subtitle.top':'رسائل مشفرة من طرف إلى طرف',
+  'auth.welcome':'مرحباً 👋','auth.subtitle':'سجّل الدخول أو أنشئ حساباً جديداً',
+  'auth.tab.login':'تسجيل الدخول','auth.tab.register':'إنشاء حساب',
+  'auth.lbl.user':'اسم المستخدم','auth.lbl.pass':'كلمة المرور',
+  'auth.lbl.name':'الاسم المعروض','auth.lbl.invite':'رمز الدعوة',
+  'auth.ph.user':'اسم_المستخدم','auth.ph.name':'اسمك الكامل',
+  'auth.ph.invite':'XXXX-XXXX  (اختياري)',
+  'auth.btn.login':'✦ تسجيل الدخول','auth.btn.register':'✦ إنشاء حساب',
+  'nav.chats':'المحادثات','nav.groups':'المجموعات','nav.archives':'الأرشيف','nav.timeline':'الخط الزمني',
+  'nav.feed':'🌐 تغذية SohbetHane','nav.mine':'📰 خطي الزمني','nav.pair':'🔗 ثنائي',
+  'nav.new':'محادثة جديدة','nav.invite':'دعوة','nav.settings':'الإعدادات',
+  'nav.search':'ابحث عن مستخدمين...',
+  'chat.empty':'اختر محادثة',
+  'room.empty.dm':'لا محادثات بعد','room.empty.grup':'لا مجموعات بعد.','room.empty.arsiv':'لا أرشيف بعد.',
+},
+de:{
+  'auth.tagline1':'Ihre Nachrichten gehören nur Ihnen.','auth.tagline2':'Der Server kann keinen Buchstaben sehen.',
+  'auth.badge.zero':'Keine Datenspeicherung','auth.badge.translate':'Auto-Übersetzung',
+  'auth.preview.1':'Hallo! Wie gefällt die App? 👋','auth.preview.2':'Super — vollständig verschlüsselt! 🔐',
+  'auth.preview.3':'Wirklich kann niemand lesen?','auth.preview.4':'Nicht mal der Server, Versprechen ✓',
+  'auth.preview.lock':'🔒 Dieses Gespräch ist Ende-zu-Ende verschlüsselt',
+  'auth.subtitle.top':'Ende-zu-Ende verschlüsselte Nachrichten',
+  'auth.welcome':'Willkommen 👋','auth.subtitle':'Anmelden oder neues Konto erstellen',
+  'auth.tab.login':'Anmelden','auth.tab.register':'Registrieren',
+  'auth.lbl.user':'Benutzername','auth.lbl.pass':'Passwort',
+  'auth.lbl.name':'Anzeigename','auth.lbl.invite':'Einladungscode',
+  'auth.ph.user':'benutzername','auth.ph.name':'Ihr vollständiger Name',
+  'auth.ph.invite':'XXXX-XXXX  (optional)',
+  'auth.btn.login':'✦ Anmelden','auth.btn.register':'✦ Registrieren',
+  'nav.chats':'Chats','nav.groups':'Gruppen','nav.archives':'Archive','nav.timeline':'Zeitlinie',
+  'nav.feed':'🌐 SohbetHane Feed','nav.mine':'📰 Meine Zeitlinie','nav.pair':'🔗 Paar',
+  'nav.new':'Neuer Chat','nav.invite':'Einladen','nav.settings':'Einstellungen',
+  'nav.search':'Benutzer suchen... (@benutzername)',
+  'chat.empty':'Gespräch auswählen',
+  'room.empty.dm':'Noch keine Chats','room.empty.grup':'Noch keine Gruppen.','room.empty.arsiv':'Noch kein Archiv.',
+},
+fr:{
+  'auth.tagline1':'Vos messages vous appartiennent uniquement.','auth.tagline2':'Le serveur ne peut voir aucune lettre.',
+  'auth.badge.zero':'Zéro enregistrement','auth.badge.translate':'Traduction auto',
+  'auth.preview.1':'Salut ! Comment est l\'app ? 👋','auth.preview.2':'Incroyable — totalement chiffré ! 🔐',
+  'auth.preview.3':'Vraiment, personne ne peut lire ?','auth.preview.4':'Même pas le serveur, promis ✓',
+  'auth.preview.lock':'🔒 Cette conversation est chiffrée de bout en bout',
+  'auth.subtitle.top':'Messagerie chiffrée de bout en bout',
+  'auth.welcome':'Bienvenue 👋','auth.subtitle':'Connectez-vous ou créez un compte',
+  'auth.tab.login':'Connexion','auth.tab.register':'S\'inscrire',
+  'auth.lbl.user':'Nom d\'utilisateur','auth.lbl.pass':'Mot de passe',
+  'auth.lbl.name':'Nom affiché','auth.lbl.invite':'Code d\'invitation',
+  'auth.ph.user':'nom_utilisateur','auth.ph.name':'Votre nom complet',
+  'auth.ph.invite':'XXXX-XXXX  (facultatif)',
+  'auth.btn.login':'✦ Connexion','auth.btn.register':'✦ S\'inscrire',
+  'nav.chats':'Discussions','nav.groups':'Groupes','nav.archives':'Archives','nav.timeline':'Fil du temps',
+  'nav.feed':'🌐 Fil SohbetHane','nav.mine':'📰 Mon fil','nav.pair':'🔗 Paire',
+  'nav.new':'Nouveau chat','nav.invite':'Inviter','nav.settings':'Paramètres',
+  'nav.search':'Rechercher des utilisateurs...',
+  'chat.empty':'Sélectionner une conversation',
+  'room.empty.dm':'Aucune discussion','room.empty.grup':'Aucun groupe.','room.empty.arsiv':'Aucune archive.',
+},
+es:{
+  'auth.tagline1':'Tus mensajes son solo tuyos.','auth.tagline2':'El servidor no puede ver ni una letra.',
+  'auth.badge.zero':'Cero registro','auth.badge.translate':'Traducción auto',
+  'auth.preview.1':'¡Hola! ¿Cómo está la app? 👋','auth.preview.2':'¡Increíble — totalmente cifrado! 🔐',
+  'auth.preview.3':'¿Realmente nadie puede leer?','auth.preview.4':'Ni el servidor, lo prometo ✓',
+  'auth.preview.lock':'🔒 Esta conversación está cifrada de extremo a extremo',
+  'auth.subtitle.top':'Mensajería cifrada de extremo a extremo',
+  'auth.welcome':'Bienvenido 👋','auth.subtitle':'Inicia sesión o crea una cuenta',
+  'auth.tab.login':'Iniciar sesión','auth.tab.register':'Registrarse',
+  'auth.lbl.user':'Nombre de usuario','auth.lbl.pass':'Contraseña',
+  'auth.lbl.name':'Nombre visible','auth.lbl.invite':'Código de invitación',
+  'auth.ph.user':'nombre_usuario','auth.ph.name':'Tu nombre completo',
+  'auth.ph.invite':'XXXX-XXXX  (opcional)',
+  'auth.btn.login':'✦ Iniciar sesión','auth.btn.register':'✦ Registrarse',
+  'nav.chats':'Chats','nav.groups':'Grupos','nav.archives':'Archivos','nav.timeline':'Línea de tiempo',
+  'nav.feed':'🌐 Feed de SohbetHane','nav.mine':'📰 Mi línea','nav.pair':'🔗 Par',
+  'nav.new':'Nuevo chat','nav.invite':'Invitar','nav.settings':'Ajustes',
+  'nav.search':'Buscar usuarios...',
+  'chat.empty':'Seleccionar conversación',
+  'room.empty.dm':'Sin chats aún','room.empty.grup':'Sin grupos aún.','room.empty.arsiv':'Sin archivos aún.',
+},
+ru:{
+  'auth.tagline1':'Ваши сообщения принадлежат только вам.','auth.tagline2':'Сервер не видит ни одной буквы.',
+  'auth.badge.zero':'Нет записи данных','auth.badge.translate':'Автоперевод',
+  'auth.preview.1':'Привет! Как приложение? 👋','auth.preview.2':'Отлично — полностью зашифровано! 🔐',
+  'auth.preview.3':'Правда никто не читает?','auth.preview.4':'Даже сервер не видит, обещаю ✓',
+  'auth.preview.lock':'🔒 Этот разговор зашифрован',
+  'auth.subtitle.top':'Сквозное шифрование сообщений',
+  'auth.welcome':'Добро пожаловать 👋','auth.subtitle':'Войдите или создайте аккаунт',
+  'auth.tab.login':'Войти','auth.tab.register':'Регистрация',
+  'auth.lbl.user':'Имя пользователя','auth.lbl.pass':'Пароль',
+  'auth.lbl.name':'Отображаемое имя','auth.lbl.invite':'Код приглашения',
+  'auth.ph.user':'имя_пользователя','auth.ph.name':'Ваше полное имя',
+  'auth.ph.invite':'XXXX-XXXX  (необязательно)',
+  'auth.btn.login':'✦ Войти','auth.btn.register':'✦ Регистрация',
+  'nav.chats':'Чаты','nav.groups':'Группы','nav.archives':'Архивы','nav.timeline':'Лента',
+  'nav.feed':'🌐 Лента SohbetHane','nav.mine':'📰 Моя лента','nav.pair':'🔗 Пара',
+  'nav.new':'Новый чат','nav.invite':'Пригласить','nav.settings':'Настройки',
+  'nav.search':'Поиск пользователей...',
+  'chat.empty':'Выберите чат',
+  'room.empty.dm':'Нет чатов','room.empty.grup':'Нет групп.','room.empty.arsiv':'Нет архивов.',
+},
+zh:{
+  'auth.tagline1':'您的消息只属于您。','auth.tagline2':'服务器看不到任何字符。',
+  'auth.badge.zero':'零数据记录','auth.badge.translate':'自动翻译',
+  'auth.preview.1':'嗨！应用怎么样？👋','auth.preview.2':'太棒了 — 完全加密！🔐',
+  'auth.preview.3':'真的没人能读吗？','auth.preview.4':'连服务器也看不到，保证 ✓',
+  'auth.preview.lock':'🔒 此对话端对端加密',
+  'auth.subtitle.top':'端对端加密通讯',
+  'auth.welcome':'欢迎 👋','auth.subtitle':'登录或创建新账户',
+  'auth.tab.login':'登录','auth.tab.register':'注册',
+  'auth.lbl.user':'用户名','auth.lbl.pass':'密码',
+  'auth.lbl.name':'显示名称','auth.lbl.invite':'邀请码',
+  'auth.ph.user':'用户名','auth.ph.name':'您的全名',
+  'auth.ph.invite':'XXXX-XXXX  (可选)',
+  'auth.btn.login':'✦ 登录','auth.btn.register':'✦ 注册',
+  'nav.chats':'聊天','nav.groups':'群组','nav.archives':'归档','nav.timeline':'时间线',
+  'nav.feed':'🌐 SohbetHane 动态','nav.mine':'📰 我的时间线','nav.pair':'🔗 配对',
+  'nav.new':'新聊天','nav.invite':'邀请','nav.settings':'设置',
+  'nav.search':'搜索用户...',
+  'chat.empty':'选择对话',
+  'room.empty.dm':'还没有聊天','room.empty.grup':'还没有群组。','room.empty.arsiv':'还没有归档。',
+},
+ja:{
+  'auth.tagline1':'あなたのメッセージはあなただけのもの。','auth.tagline2':'サーバーは一文字も見ることができません。',
+  'auth.badge.zero':'データ記録ゼロ','auth.badge.translate':'自動翻訳',
+  'auth.preview.1':'こんにちは！アプリはどうですか？👋','auth.preview.2':'すごい — 完全暗号化！🔐',
+  'auth.preview.3':'本当に誰も読めないの？','auth.preview.4':'サーバーも無理、約束 ✓',
+  'auth.preview.lock':'🔒 この会話はエンドツーエンド暗号化',
+  'auth.subtitle.top':'エンドツーエンド暗号化メッセージ',
+  'auth.welcome':'ようこそ 👋','auth.subtitle':'ログインまたは新規アカウント作成',
+  'auth.tab.login':'ログイン','auth.tab.register':'新規登録',
+  'auth.lbl.user':'ユーザー名','auth.lbl.pass':'パスワード',
+  'auth.lbl.name':'表示名','auth.lbl.invite':'招待コード',
+  'auth.ph.user':'ユーザー名','auth.ph.name':'氏名',
+  'auth.ph.invite':'XXXX-XXXX  (任意)',
+  'auth.btn.login':'✦ ログイン','auth.btn.register':'✦ 新規登録',
+  'nav.chats':'チャット','nav.groups':'グループ','nav.archives':'アーカイブ','nav.timeline':'タイムライン',
+  'nav.feed':'🌐 SohbetHaneフィード','nav.mine':'📰 マイライン','nav.pair':'🔗 ペア',
+  'nav.new':'新しいチャット','nav.invite':'招待','nav.settings':'設定',
+  'nav.search':'ユーザーを検索...',
+  'chat.empty':'会話を選択',
+  'room.empty.dm':'チャットなし','room.empty.grup':'グループなし。','room.empty.arsiv':'アーカイブなし。',
+},
+ko:{
+  'auth.tagline1':'메시지는 오직 당신만의 것입니다.','auth.tagline2':'서버는 단 한 글자도 볼 수 없습니다.',
+  'auth.badge.zero':'데이터 기록 없음','auth.badge.translate':'자동 번역',
+  'auth.preview.1':'안녕! 앱 어때요? 👋','auth.preview.2':'대박 — 완전 암호화! 🔐',
+  'auth.preview.3':'정말 아무도 못 읽나요?','auth.preview.4':'서버도 못 봐요, 약속 ✓',
+  'auth.preview.lock':'🔒 이 대화는 종단간 암호화됩니다',
+  'auth.subtitle.top':'종단간 암호화 메시지',
+  'auth.welcome':'환영합니다 👋','auth.subtitle':'로그인하거나 새 계정을 만드세요',
+  'auth.tab.login':'로그인','auth.tab.register':'회원가입',
+  'auth.lbl.user':'사용자 이름','auth.lbl.pass':'비밀번호',
+  'auth.lbl.name':'표시 이름','auth.lbl.invite':'초대 코드',
+  'auth.ph.user':'사용자_이름','auth.ph.name':'성명',
+  'auth.ph.invite':'XXXX-XXXX  (선택사항)',
+  'auth.btn.login':'✦ 로그인','auth.btn.register':'✦ 회원가입',
+  'nav.chats':'채팅','nav.groups':'그룹','nav.archives':'보관','nav.timeline':'타임라인',
+  'nav.feed':'🌐 SohbetHane 피드','nav.mine':'📰 내 타임라인','nav.pair':'🔗 페어',
+  'nav.new':'새 채팅','nav.invite':'초대','nav.settings':'설정',
+  'nav.search':'사용자 검색...',
+  'chat.empty':'대화 선택',
+  'room.empty.dm':'채팅 없음','room.empty.grup':'그룹 없음.','room.empty.arsiv':'보관 없음.',
+},
+pt:{
+  'auth.tagline1':'Suas mensagens pertencem apenas a você.','auth.tagline2':'O servidor não pode ver nenhuma letra.',
+  'auth.badge.zero':'Zero registro','auth.badge.translate':'Tradução automática',
+  'auth.preview.1':'Olá! Como está o app? 👋','auth.preview.2':'Incrível — totalmente criptografado! 🔐',
+  'auth.preview.3':'Ninguém pode ler mesmo?','auth.preview.4':'Nem o servidor, promessa ✓',
+  'auth.preview.lock':'🔒 Esta conversa é criptografada ponta a ponta',
+  'auth.subtitle.top':'Mensagens criptografadas ponta a ponta',
+  'auth.welcome':'Bem-vindo 👋','auth.subtitle':'Entre ou crie uma nova conta',
+  'auth.tab.login':'Entrar','auth.tab.register':'Registrar',
+  'auth.lbl.user':'Nome de usuário','auth.lbl.pass':'Senha',
+  'auth.lbl.name':'Nome de exibição','auth.lbl.invite':'Código de convite',
+  'auth.ph.user':'nome_usuario','auth.ph.name':'Seu nome completo',
+  'auth.ph.invite':'XXXX-XXXX  (opcional)',
+  'auth.btn.login':'✦ Entrar','auth.btn.register':'✦ Registrar',
+  'nav.chats':'Conversas','nav.groups':'Grupos','nav.archives':'Arquivos','nav.timeline':'Linha do tempo',
+  'nav.feed':'🌐 Feed SohbetHane','nav.mine':'📰 Minha linha','nav.pair':'🔗 Par',
+  'nav.new':'Novo chat','nav.invite':'Convidar','nav.settings':'Configurações',
+  'nav.search':'Pesquisar usuários...',
+  'chat.empty':'Selecionar conversa',
+  'room.empty.dm':'Sem conversas','room.empty.grup':'Sem grupos.','room.empty.arsiv':'Sem arquivos.',
+},
+};
+function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]||k;}
+function applyI18n(){
+  // RTL for Arabic
+  if(_UI_LANG==='ar'){document.documentElement.dir='rtl';document.documentElement.lang='ar';}
+  else document.documentElement.lang=_UI_LANG;
+  // Auth screen
+  const q=(s,k)=>{const e=document.querySelector(s);if(e)e.textContent=T(k);};
+  const qp=(s,k)=>{const e=document.querySelector(s);if(e)e.placeholder=T(k);};
+  const qi=(s,h)=>{const e=document.querySelector(s);if(e)e.innerHTML=h;};
+  q('.auth-brand p:first-of-type','auth.tagline1');
+  q('.auth-brand p:last-of-type','auth.tagline2');
+  // Trust badges
+  const badges=document.querySelectorAll('.auth-trust-badge');
+  if(badges[2])badges[2].querySelector('span:last-child').textContent=T('auth.badge.zero');
+  if(badges[3])badges[3].querySelector('span:last-child').textContent=T('auth.badge.translate');
+  // Chat preview
+  const msgs=document.querySelectorAll('.auth-chat-preview .auth-msg');
+  if(msgs[0])msgs[0].textContent=T('auth.preview.1');
+  if(msgs[1])msgs[1].textContent=T('auth.preview.2');
+  if(msgs[2])msgs[2].textContent=T('auth.preview.3');
+  if(msgs[3])msgs[3].textContent=T('auth.preview.4');
+  const lockMsg=document.querySelector('.auth-msg-lock');
+  if(lockMsg)lockMsg.textContent=T('auth.preview.lock');
+  // Auth box
+  q('.auth-logo p','auth.subtitle.top');
+  q('#auth-heading .auth-title','auth.welcome');
+  q('#auth-heading .auth-subtitle','auth.subtitle');
+  q('.auth-tab.active','auth.tab.login');
+  q('.auth-tab:not(.active)','auth.tab.register');
+  // Login form
+  const lf=document.getElementById('login-form');
+  if(lf){
+    const lbls=lf.querySelectorAll('label');
+    if(lbls[0])lbls[0].textContent=T('auth.lbl.user');
+    if(lbls[1])lbls[1].textContent=T('auth.lbl.pass');
+    const lu=document.getElementById('l-user');if(lu)lu.placeholder=T('auth.ph.user');
+    const btn=lf.querySelector('button');if(btn)btn.textContent=T('auth.btn.login');
+  }
+  // Register form
+  const rf=document.getElementById('register-form');
+  if(rf){
+    const lbls=rf.querySelectorAll('label');
+    if(lbls[0])lbls[0].textContent=T('auth.lbl.user');
+    if(lbls[1])lbls[1].textContent=T('auth.lbl.name');
+    if(lbls[2])lbls[2].textContent=T('auth.lbl.pass');
+    if(lbls[3])lbls[3].textContent=T('auth.lbl.invite');
+    const ru=document.getElementById('r-user');if(ru)ru.placeholder=T('auth.ph.user');
+    const rn=document.getElementById('r-name');if(rn)rn.placeholder=T('auth.ph.name');
+    const ri=document.getElementById('r-invite');if(ri)ri.placeholder=T('auth.ph.invite');
+    const btn=rf.querySelector('button');if(btn)btn.textContent=T('auth.btn.register');
+  }
+  // Sidebar tabs
+  const stDm=document.getElementById('stab-dm');if(stDm)stDm.innerHTML='<span class="s-tab-icon">💬</span>'+T('nav.chats');
+  const stGrp=document.getElementById('stab-grup');if(stGrp)stGrp.innerHTML='<span class="s-tab-icon">👥</span>'+T('nav.groups');
+  const stArs=document.getElementById('stab-arsiv');if(stArs)stArs.innerHTML='<span class="s-tab-icon">📁</span>'+T('nav.archives');
+  const stDuv=document.getElementById('stab-duvar');if(stDuv)stDuv.innerHTML='<span class="s-tab-icon">📰</span>'+T('nav.timeline');
+  // Tunel subtabs
+  const ttAkis=document.getElementById('tstab-akis');if(ttAkis)ttAkis.textContent=T('nav.feed');
+  const ttKndi=document.getElementById('tstab-kendi');if(ttKndi)ttKndi.textContent=T('nav.mine');
+  const ttIkl=document.getElementById('tstab-ikili');if(ttIkl)ttIkl.textContent=T('nav.pair');
+  // Search placeholder
+  const srch=document.getElementById('user-search');if(srch)srch.placeholder=T('nav.search');
+  // Chat empty state
+  const msgDiv=document.getElementById('messages');
+  if(msgDiv){const es=msgDiv.querySelector('.empty-state p');if(es)es.textContent=T('chat.empty');}
+}
+document.addEventListener('DOMContentLoaded',applyI18n);
 // ============================================================
 // CONFIG — Supabase projenizin bilgilerini buraya girin
 // ============================================================
@@ -1669,7 +2001,7 @@ async function renderRoomList(rooms){
     return r.tur==='dm';
   });
   const emptyIcons={'dm':'💬','grup':'👥','arsiv':'📁'};
-  const emptyTexts={'dm':'Henüz sohbet yok','grup':'Henüz grup yok. Aşağıdaki buton ile oluşturabilirsin.','arsiv':'Henüz arşiv yok. Aşağıdaki buton ile oluşturabilirsin.'};
+  const emptyTexts={'dm':T('room.empty.dm'),'grup':T('room.empty.grup'),'arsiv':T('room.empty.arsiv')};
   const createBtnHtml = tab==='grup'
     ? `<button class="room-create-btn" onclick="newRoomTab('grup');openModal('new-room-modal')">➕ Yeni Grup Oluştur</button>`
     : tab==='arsiv'
