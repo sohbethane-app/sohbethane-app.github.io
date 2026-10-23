@@ -1498,17 +1498,26 @@ function toast(msg, type='info'){
 }
 function avatarInitials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 function userColor(uid){ const h = uid ? parseInt(uid.slice(0,6),16)%360 : 180; return `hsl(${h},40%,35%)`; }
+function _rrect(cx,x,y,w,h,r){
+  // roundRect polyfill — works in all browsers
+  cx.beginPath();
+  cx.moveTo(x+r,y);cx.lineTo(x+w-r,y);cx.quadraticCurveTo(x+w,y,x+w,y+r);
+  cx.lineTo(x+w,y+h-r);cx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  cx.lineTo(x+r,y+h);cx.quadraticCurveTo(x,y+h,x,y+h-r);
+  cx.lineTo(x,y+r);cx.quadraticCurveTo(x,y,x+r,y);
+  cx.closePath();
+}
 function updateTabBadge(){
   const n=(S.rooms||[]).reduce((s,r)=>s+(r._unread||0),0);
   document.title=n>0?`(${n}) SohbetHane`:'SohbetHane';
   try{
     const sz=32,cv=document.createElement('canvas');cv.width=sz;cv.height=sz;
     const cx=cv.getContext('2d');
-    cx.fillStyle='#667eea';cx.beginPath();cx.roundRect(0,0,sz,sz,7);cx.fill();
+    cx.fillStyle='#667eea';_rrect(cx,0,0,sz,sz,7);cx.fill();
     cx.fillStyle='#fff';cx.font=`bold ${Math.round(sz*.58)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('S',sz/2,sz/2+1);
     if(n>0){
       cx.fillStyle='#e53e3e';cx.beginPath();cx.arc(sz*.76,sz*.26,sz*.28,0,2*Math.PI);cx.fill();
-      cx.fillStyle='#fff';cx.font=`bold ${Math.round(sz*.22)}px sans-serif`;
+      cx.fillStyle='#fff';cx.font=`bold ${Math.round(sz*.22)}px sans-serif`;cx.textAlign='center';cx.textBaseline='middle';
       cx.fillText(n>99?'99+':String(n),sz*.76,sz*.26);
     }
     let lnk=document.querySelector("link[rel~='icon']");
@@ -1748,6 +1757,8 @@ async function startApp(){
   await loadRooms();
   // Realtime
   subscribeRooms();
+  // Set initial favicon & tab title
+  updateTabBadge();
   // Timed message cleanup
   sb.rpc('sureli_mesaj_temizle').catch(()=>{});
   // Check invite hash
