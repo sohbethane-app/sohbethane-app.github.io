@@ -2499,6 +2499,15 @@ function subscribeRooms(){
   const roomIds=S.rooms.map(r=>r.id);
   if(!roomIds.length) return;
 
+  // Dedup helper — prevents double-count when broadcast + postgres_changes both fire for same message
+  // Whichever arrives first stamps a 2-second window; the second one skips the count.
+  function _dedupNotify(r,senderId,doCount){
+    const now=Date.now();
+    if(now-(r._notifyDedup||0)<2000) return false; // already counted recently
+    r._notifyDedup=now;
+    return true;
+  }
+
   // ── Backup: postgres_changes (may be filtered by RLS) ──────────────────
   const pgCh=sb.channel('global_pg_'+S.user.id)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'mesajlar',filter:`oda_id=in.(${roomIds.join(',')})`},async payload=>{
@@ -2507,39 +2516,38 @@ function subscribeRooms(){
       const r=S.rooms.find(r=>r.id===m.oda_id);
       if(!r) return;
       r._lastMsg=m;
+      const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
       if(S.currentRoom?.id===m.oda_id){
-        // Active room but tab hidden — still badge + notify
-        if(document.hidden){
+        if(document.hidden&&_dedupNotify(r)){
           r._unread=(r._unread||0)+1;
           renderRoomList(S.rooms);
-          const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
           if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
           updateTabBadge();
         }
         return;
       }
-      if(!r._bcSeen) r._unread=(r._unread||0)+1; // avoid double-count if broadcast already fired
-      r._bcSeen=false;
-      renderRoomList(S.rooms);
-      const name=S.profiles[m.gonderen_id]?.goruntu_adi||S.profiles[m.gonderen_id]?.kullanici_adi||'Biri';
-      if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
-      else if(Notification.permission==='default') Notification.requestPermission();
-      updateTabBadge();
+      if(_dedupNotify(r)){
+        r._unread=(r._unread||0)+1;
+        renderRoomList(S.rooms);
+        if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
+        else if(Notification.permission==='default') Notification.requestPermission();
+        updateTabBadge();
+      }
     })
     .subscribe();
   S.globalSubs.push(pgCh);
 
   // ── Primary: per-room broadcast channel (bypasses RLS) ─────────────────
-  // Both participants subscribe here; sender broadcasts after insert
   S.rooms.forEach(room=>{
     const bcCh=sb.channel('room_bc_'+room.id)
       .on('broadcast',{event:'msg'},async({payload})=>{
         const{from,oda_id}=payload||{};
-        if(!from||from===S.user.id) return; // ignore own sends
+        if(!from||from===S.user.id) return;
         const r=S.rooms.find(r=>r.id===oda_id);
         if(!r) return;
+        const name=S.profiles[from]?.goruntu_adi||S.profiles[from]?.kullanici_adi||'Biri';
         if(S.currentRoom?.id===oda_id){
-          // Currently in this room — backup-fetch in case postgres_changes missed it
+          // Active room: fetch & display the message if postgres_changes missed it
           const{data:lm}=await sb.from('mesajlar').select('*').eq('oda_id',oda_id).order('olusturma_tarihi',{ascending:false}).limit(1);
           if(lm?.[0]&&!S.messages.find(x=>x.id===lm[0].id)){
             const d=await decryptMessage({...lm[0],_room:S.currentRoom});
@@ -2550,23 +2558,20 @@ function subscribeRooms(){
             if(cont){appendMessageEl(enriched,cont,'',()=>{});cont.scrollTop=cont.scrollHeight;}
             r._lastMsg=lm[0];
           }
-          // If tab is hidden (user on another tab), badge + OS notification still needed
-          if(document.hidden){
+          if(document.hidden&&_dedupNotify(r)){
             r._unread=(r._unread||0)+1;
             renderRoomList(S.rooms);
-            const name=S.profiles[from]?.goruntu_adi||S.profiles[from]?.kullanici_adi||'Biri';
             if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
           }
         } else {
-          // Different room — update preview, unread badge, OS notification
           const{data:lm}=await sb.from('mesajlar').select('*').eq('oda_id',oda_id).order('olusturma_tarihi',{ascending:false}).limit(1);
           if(lm?.[0]) r._lastMsg=lm[0];
-          r._unread=(r._unread||0)+1;
-          r._bcSeen=true; // postgres_changes duplicate guard
-          renderRoomList(S.rooms);
-          const name=S.profiles[from]?.goruntu_adi||S.profiles[from]?.kullanici_adi||'Biri';
-          if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
-          else if(Notification.permission==='default') Notification.requestPermission();
+          if(_dedupNotify(r)){
+            r._unread=(r._unread||0)+1;
+            renderRoomList(S.rooms);
+            if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
+            else if(Notification.permission==='default') Notification.requestPermission();
+          }
         }
         updateTabBadge();
       })
