@@ -567,7 +567,10 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <div class="form-group"><label>Kullanıcı adı</label><input id="r-user" type="text" placeholder="harf_rakam_alt_cizgi" autocomplete="username"></div>
         <div class="form-group"><label>Görünen isim</label><input id="r-name" type="text" placeholder="Adınız Soyadınız"></div>
         <div class="form-group"><label>Şifre</label><input id="r-pass" type="password" placeholder="••••••••" autocomplete="new-password"></div>
-        <div class="form-group" id="invite-field"><label>Davet kodu</label><input id="r-invite" type="text" placeholder="XXXX-XXXX  (zorunlu değil, varsa yazın)"></div>
+        <div style="margin-bottom:.6rem">
+          <span id="invite-toggle" onclick="document.getElementById('invite-field').style.display='block';this.style.display='none'" style="color:var(--acc);cursor:pointer;font-size:.85rem;user-select:none">🔑 Davet kodum var →</span>
+          <div class="form-group" id="invite-field" style="display:none;margin-top:.5rem;margin-bottom:0"><label>Davet Kodu <span style="font-size:.75rem;color:var(--txt2);font-weight:400">(zorunlu değil)</span></label><input id="r-invite" type="text" placeholder="XXXX-XXXX" autocomplete="off"></div>
+        </div>
         <button class="btn btn-primary" style="width:100%;padding:.9rem;font-size:1rem;font-weight:700;border-radius:12px;margin-top:.6rem" onclick="doRegister()">✦ Kayıt Ol</button>
         <p class="auth-err" id="register-err"></p>
       </div>
@@ -1498,16 +1501,17 @@ function toast(msg, type='info'){
 }
 function avatarInitials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 function userColor(uid){ const h = uid ? parseInt(uid.slice(0,6),16)%360 : 180; return `hsl(${h},40%,35%)`; }
-// Detect country via IP (ipapi.co — free, no key needed, 1000/day)
-async function detectCountry(){
+// Detect country + IP via ipapi.co (free, no key, 1000/day)
+async function detectGeoInfo(){
   try{
     const res=await fetch('https://ipapi.co/json/',{signal:AbortSignal.timeout(4000)});
-    if(!res.ok) return null;
+    if(!res.ok) return {};
     const d=await res.json();
-    // Returns e.g. {country_code:"TR",country_name:"Turkey",city:"Istanbul",...}
-    return d?.country_name||null;
-  }catch(_){return null;}
+    return {ulke:d?.country_name||null, ip_adresi:d?.ip||null};
+  }catch(_){return {};}
 }
+// Legacy alias
+async function detectCountry(){ return (await detectGeoInfo()).ulke||null; }
 function _rrect(cx,x,y,w,h,r){
   // roundRect polyfill — works in all browsers
   cx.beginPath();
@@ -1702,8 +1706,13 @@ async function doLogin(){
     const prof = await getProfile(S.user.id);
     if(!prof) throw new Error('Profil bulunamadı.');
     if(prof.banli) throw new Error('Bu hesap askıya alındı.');
-    // Update country on every login (IP may change)
-    detectCountry().then(ulke=>{if(ulke) sb.from('profiller').update({ulke,son_giris:new Date().toISOString()}).eq('id',S.user.id).then(()=>{}).catch(()=>{});});
+    // Update country + IP on every login (may change)
+    detectGeoInfo().then(({ulke,ip_adresi})=>{
+      const upd={son_giris:new Date().toISOString()};
+      if(ulke) upd.ulke=ulke;
+      if(ip_adresi) upd.ip_adresi=ip_adresi;
+      sb.from('profiller').update(upd).eq('id',S.user.id).then(()=>{}).catch(()=>{});
+    });
     S.profile = prof;
     S.privateKey = await unwrapPrivateKey(prof.sarili_ozel_anahtar, prof.sarlama_iv, wrapKey);
     S.publicKey = await importPublicJwk(prof.acik_anahtar);
@@ -1740,11 +1749,14 @@ async function doRegister(){
     S.privateKey = kp.privateKey;
     const pubJwk = await exportPublicJwk(kp.publicKey);
     const {sarili,iv:sarlama_iv} = await wrapPrivateKey(kp.privateKey, wrapKey);
-    const kayitUlke = await detectCountry();
+    const {ulke:kayitUlke,ip_adresi:kayitIp}=await detectGeoInfo();
+    // IP ban check
+    if(kayitIp){const{data:banCheck}=await sb.from('yasakli_ipler').select('id').eq('ip_adresi',kayitIp).limit(1);if(banCheck?.length){err.textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
     const {error:pe} = await sb.from('profiller').insert({
       id:S.user.id, kullanici_adi:username, goruntu_adi:goruntu,
       acik_anahtar:pubJwk, sarili_ozel_anahtar:sarili, sarlama_iv,
       ...(kayitUlke?{ulke:kayitUlke}:{}),
+      ...(kayitIp?{ip_adresi:kayitIp}:{}),
       son_giris:new Date().toISOString()
     });
     if(pe) throw pe;
@@ -1846,6 +1858,8 @@ function checkInviteHash(){
   const h = location.hash;
   if(h.startsWith('#invite=')){
     const code = h.slice(8);
+    document.getElementById('invite-field').style.display='block';
+    const tog=document.getElementById('invite-toggle');if(tog)tog.style.display='none';
     document.getElementById('r-invite').value=code;
     authTab('register');
   }
@@ -4182,9 +4196,17 @@ async function setBan(uid,ban){
   loadAdminUsers();
 }
 async function deleteUser(uid){
-  if(!confirm('Bu kullanıcıyı kalıcı olarak silmek istediğinize emin misiniz?')) return;
+  if(!confirm('Bu kullanıcıyı kalıcı olarak sil ve IP adresini yasakla?')) return;
+  // Fetch IP before deleting
+  const{data:prof}=await sb.from('profiller').select('ip_adresi,kullanici_adi').eq('id',uid).single();
   await sb.from('profiller').delete().eq('id',uid);
-  toast('Kullanıcı silindi','success');
+  // Ban IP so they can't re-register
+  if(prof?.ip_adresi){
+    await sb.from('yasakli_ipler').insert({ip_adresi:prof.ip_adresi,sebep:`Silinen kullanıcı: @${prof?.kullanici_adi||uid}`,tarih:new Date().toISOString()}).catch(()=>{});
+    toast(`Kullanıcı silindi — IP yasaklandı (${prof.ip_adresi})`,'success');
+  } else {
+    toast('Kullanıcı silindi (IP bilinmiyor, ban uygulanamadı)','success');
+  }
   loadAdminUsers();
 }
 
@@ -4490,8 +4512,9 @@ window.doRegister=async function(){
     S.publicKey=kp.publicKey; S.privateKey=kp.privateKey;
     const pubJwk=await exportPublicJwk(kp.publicKey);
     const {sarili,iv:sarlama_iv}=await wrapPrivateKey(kp.privateKey,wrapKey);
-    const kayitUlke2=await detectCountry();
-    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(kayitUlke2?{ulke:kayitUlke2}:{}),son_giris:new Date().toISOString()});
+    const {ulke:kayitUlke2,ip_adresi:kayitIp2}=await detectGeoInfo();
+    if(kayitIp2){const{data:banCheck2}=await sb.from('yasakli_ipler').select('id').eq('ip_adresi',kayitIp2).limit(1);if(banCheck2?.length){document.getElementById('register-err').textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
+    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(kayitUlke2?{ulke:kayitUlke2}:{}),...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()});
     if(pe) throw pe;
     if(hasUser&&inviteCode){
       const {data:inv2}=await sb.from('davetler').select('id,kullanim').eq('kod',inviteCode).single();
