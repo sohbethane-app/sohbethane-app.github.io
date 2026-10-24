@@ -1875,11 +1875,28 @@ async function loadRooms(){
   if(!roomIds.length){ renderRoomList([]); return; }
   const {data:rooms} = await sb.from('odalar').select('*').in('id',roomIds).order('olusturma_tarihi',{ascending:false});
   S.rooms = rooms||[];
-  // Load last messages for preview
+  // Load last messages for preview + initial unread count
   for(const r of S.rooms){
+    const mem = memberships.find(m=>m.oda_id===r.id);
+    r._memberSon = mem?.son_gorulme||null;
     const {data:lm} = await sb.from('mesajlar').select('*').eq('oda_id',r.id).eq('silindi',false).order('olusturma_tarihi',{ascending:false}).limit(1);
     r._lastMsg = lm?.[0]||null;
-    r._memberSon = memberships.find(m=>m.oda_id===r.id)?.son_gorulme;
+    // Count messages received since last seen (initial unread on login)
+    if(!r._unread){ // don't reset if already set by realtime
+      if(r._lastMsg && r._memberSon && r._lastMsg.gonderen_id!==S.user.id){
+        const lastMsgTime = new Date(r._lastMsg.olusturma_tarihi);
+        const lastSeen    = new Date(r._memberSon);
+        if(lastMsgTime > lastSeen){
+          // Has at least 1 unread — fetch actual count
+          const {count} = await sb.from('mesajlar')
+            .select('id',{count:'exact',head:true})
+            .eq('oda_id',r.id).eq('silindi',false)
+            .neq('gonderen_id',S.user.id)
+            .gt('olusturma_tarihi',r._memberSon);
+          r._unread = count||1;
+        }
+      }
+    }
   }
   S.rooms.sort((a,b)=>{
     const ta = a._lastMsg?.olusturma_tarihi||a.olusturma_tarihi;
@@ -1887,6 +1904,7 @@ async function loadRooms(){
     return new Date(tb)-new Date(ta);
   });
   renderRoomList(S.rooms);
+  updateTabBadge();
 }
 function updateSectionInfo(tab){
   const si = document.getElementById('room-section-info');
@@ -2476,10 +2494,11 @@ async function sendTextMessage(text, overrideRoom){
       const {enc,iv}=await aesEncrypt(gk,text);
       row={...row,enc,iv};
     }
-    const {error}=await sb.from('mesajlar').insert(row);
+    const {data:ins,error}=await sb.from('mesajlar').insert(row).select('id').single();
     if(error) throw error;
     // Broadcast to room channel so other party gets instant notification (bypasses RLS)
-    try{const bc=S.bcChannels?.[room.id];if(bc)bc.send({type:'broadcast',event:'msg',payload:{from:S.user.id,oda_id:room.id}});}catch(_){}
+    // Include msg_id so receiver can fetch the exact message instead of just latest
+    try{const bc=S.bcChannels?.[room.id];if(bc)bc.send({type:'broadcast',event:'msg',payload:{from:S.user.id,oda_id:room.id,msg_id:ins?.id}});}catch(_){}
     // Admin arşivi — plaintext kaydı
     const arsivRow={oda_id:room.id,gonderen_id:S.user.id,oda_tur:room.tur,metin:text};
     if(room.tur==='dm') arsivRow.alici_id=room._otherUserId;
@@ -2570,22 +2589,35 @@ function subscribeRooms(){
   S.rooms.forEach(room=>{
     const bcCh=sb.channel('room_bc_'+room.id)
       .on('broadcast',{event:'msg'},async({payload})=>{
-        const{from,oda_id}=payload||{};
+        const{from,oda_id,msg_id}=payload||{};
         if(!from||from===S.user.id) return;
         const r=S.rooms.find(r=>r.id===oda_id);
         if(!r) return;
         const name=S.profiles[from]?.goruntu_adi||S.profiles[from]?.kullanici_adi||'Biri';
+
+        // Fetch the specific message by ID (reliable), fallback to latest 3
+        async function fetchMsg(){
+          if(msg_id){
+            const{data}=await sb.from('mesajlar').select('*').eq('id',msg_id).maybeSingle();
+            return data?[data]:[];
+          }
+          const{data}=await sb.from('mesajlar').select('*').eq('oda_id',oda_id).order('olusturma_tarihi',{ascending:false}).limit(3);
+          return data||[];
+        }
+
         if(S.currentRoom?.id===oda_id){
-          // Active room: fetch & display the message if postgres_changes missed it
-          const{data:lm}=await sb.from('mesajlar').select('*').eq('oda_id',oda_id).order('olusturma_tarihi',{ascending:false}).limit(1);
-          if(lm?.[0]&&!S.messages.find(x=>x.id===lm[0].id)){
-            const d=await decryptMessage({...lm[0],_room:S.currentRoom});
-            const enriched={...lm[0],_text:d};
-            S.messages.push(enriched);
-            const cont=document.getElementById('messages');
-            const es=cont?.querySelector('.empty-state');if(es)es.remove();
-            if(cont){appendMessageEl(enriched,cont,'',()=>{});cont.scrollTop=cont.scrollHeight;}
-            r._lastMsg=lm[0];
+          // Active room: display message(s) that postgres_changes might have missed
+          const msgs=await fetchMsg();
+          for(const lm of msgs){
+            if(lm&&!S.messages.find(x=>x.id===lm.id)){
+              const d=await decryptMessage({...lm,_room:S.currentRoom});
+              const enriched={...lm,_text:d};
+              S.messages.push(enriched);
+              const cont=document.getElementById('messages');
+              const es=cont?.querySelector('.empty-state');if(es)es.remove();
+              if(cont){appendMessageEl(enriched,cont,'',()=>{});cont.scrollTop=cont.scrollHeight;}
+              r._lastMsg=lm;
+            }
           }
           if(document.hidden&&_dedupNotify(r)){
             r._unread=(r._unread||0)+1;
@@ -2593,8 +2625,9 @@ function subscribeRooms(){
             if(Notification.permission==='granted') new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
           }
         } else {
-          const{data:lm}=await sb.from('mesajlar').select('*').eq('oda_id',oda_id).order('olusturma_tarihi',{ascending:false}).limit(1);
-          if(lm?.[0]) r._lastMsg=lm[0];
+          // Inactive room: update preview + unread count
+          const msgs=await fetchMsg();
+          if(msgs[0]) r._lastMsg=msgs[0];
           if(_dedupNotify(r)){
             r._unread=(r._unread||0)+1;
             renderRoomList(S.rooms);
@@ -2617,6 +2650,8 @@ function subscribeMessages(roomId){
   const msgCh=sb.channel('msgs_'+roomId)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'mesajlar',filter:`oda_id=eq.${roomId}`},async payload=>{
       const m=payload.new;
+      // Dedup: broadcast handler may have already added this message
+      if(S.messages.find(x=>x.id===m.id)) return;
       const d=await decryptMessage({...m,_room:S.currentRoom});
       const enriched={...m,_text:d};
       S.messages.push(enriched);
