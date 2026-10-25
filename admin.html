@@ -650,7 +650,7 @@ function renderUsers(list){
         <td style="font-size:.8rem">${cins}${p.yas?' · '+p.yas:''}</td>
         <td style="font-size:.78rem">${esc(p.ulke||'—')}<br><span style="color:var(--txt2)">${esc(p.ip_adresi||'—')}</span></td>
         <td style="font-size:.78rem">${fmtDate(p.kayit_tarihi)}</td>
-        <td style="font-size:.78rem">${fmtAgo(p.son_giris||p.son_aktif)}</td>
+        <td style="font-size:.78rem">${fmtAgo(p.son_giris||p.son_gorulme)}</td>
         <td>
           ${p.banli?'<span class="badge badge-ban">🚫 Banlı</span>':p.yonetici?'<span class="badge badge-admin">👑 Yön.</span>':'<span class="badge badge-online">✓ Aktif</span>'}
         </td>
@@ -673,8 +673,8 @@ async function loadOnline(){
   const el = document.getElementById('online-list');
   el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
   const cutoff = new Date(Date.now()-10*60*1000).toISOString(); // Son 10 dakika
-  const {data,error} = await sb.from('profiller').select('id,kullanici_adi,goruntu_adi,ulke,son_aktif,cinsiyet,ip_adresi')
-    .gte('son_aktif',cutoff).order('son_aktif',{ascending:false});
+  const {data,error} = await sb.from('profiller').select('id,kullanici_adi,goruntu_adi,ulke,son_gorulme,cinsiyet,ip_adresi')
+    .gte('son_gorulme',cutoff).order('son_gorulme',{ascending:false});
   if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
   if(!data?.length){ el.innerHTML='<div class="empty">Şu an aktif kullanıcı yok (son 10 dk).</div>'; return; }
   document.getElementById('stat-online').textContent = data.length;
@@ -691,7 +691,7 @@ async function loadOnline(){
         </div>
       </div></td>
       <td>${esc(p.ulke||'—')}</td>
-      <td style="font-size:.8rem">${fmtAgo(p.son_aktif)}</td>
+      <td style="font-size:.8rem">${fmtAgo(p.son_gorulme)}</td>
       <td style="font-size:.78rem;color:var(--txt2)">${esc(p.ip_adresi||'—')}</td>
       <td><button class="btn btn-secondary btn-sm" onclick="openDrawer('${p.id}')">👤</button></td>
     </tr>`).join('')}</tbody>
@@ -819,11 +819,12 @@ async function openRoomMessages(roomId, roomName){
 // ─── FRIENDS ─────────────────────────────────────────────────
 async function loadFriends(){
   document.getElementById('friends-list').innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
-  const {data,error}=await sb.from('arkadasliklar')
-    .select('id,durum,olusturma_tarihi,gonderen:gonderen_id(id,kullanici_adi,goruntu_adi),alici:alici_id(id,kullanici_adi,goruntu_adi)')
+  const {data,error}=await sb.from('ikili_tuneller')
+    .select('id,olusturma_tarihi,kullanici1:kullanici1_id(id,kullanici_adi,goruntu_adi),kullanici2:kullanici2_id(id,kullanici_adi,goruntu_adi)')
     .order('olusturma_tarihi',{ascending:false}).limit(300);
   if(error){ document.getElementById('friends-list').innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
-  A.allFriends=data||[];
+  // Normalize to {id, olusturma_tarihi, gonderen, alici} shape renderFriends expects
+  A.allFriends=(data||[]).map(t=>({id:t.id,olusturma_tarihi:t.olusturma_tarihi,durum:'kabul',gonderen:t.kullanici1,alici:t.kullanici2}));
   renderFriends(A.allFriends);
 }
 
@@ -927,7 +928,7 @@ async function setBanFromComplaint(uid, name){
 async function loadBanned(){
   const el=document.getElementById('banned-list');
   el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
-  const {data,error}=await sb.from('yasakli_ipler').select('*').order('olusturma_tarihi',{ascending:false});
+  const {data,error}=await sb.from('yasakli_ipler').select('*').order('tarih',{ascending:false});
   if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
   if(!data?.length){ el.innerHTML='<div class="empty">Banlı IP yok.</div>'; return; }
   el.innerHTML=`<div class="table-wrap"><table>
@@ -935,7 +936,7 @@ async function loadBanned(){
     <tbody>${data.map(b=>`<tr>
       <td style="font-family:monospace">${esc(b.ip_adresi)}</td>
       <td style="font-size:.8rem">${esc(b.sebep||'—')}</td>
-      <td style="font-size:.8rem">${fmtDate(b.olusturma_tarihi)}</td>
+      <td style="font-size:.8rem">${fmtDate(b.tarih)}</td>
       <td><button class="btn btn-success btn-sm" onclick="unbanIp('${b.id}',${JSON.stringify(b.ip_adresi)})">🔓 Kaldır</button></td>
     </tr>`).join('')}</tbody>
   </table></div>`;
@@ -1020,7 +1021,7 @@ function renderDrawerProfile(p){
         ${field('Ülke',p.ulke||'—')}
         ${field('IP Adresi',p.ip_adresi||'—')}
         ${field('Kayıt Tarihi',fmtDate(p.kayit_tarihi))}
-        ${field('Son Giriş',fmtAgo(p.son_giris||p.son_aktif))}
+        ${field('Son Giriş',fmtAgo(p.son_giris||p.son_gorulme))}
         ${field('E-posta',p.email||'(gizli)')}
         ${field('Açıklama',p.aciklama||'—')}
       </div>
@@ -1054,13 +1055,12 @@ async function loadDrawerRooms(uid){
 async function loadDrawerFriends(uid){
   const el=document.getElementById('drawer-friends-pane');
   el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
-  const {data}=await sb.from('arkadasliklar')
-    .select('id,durum,gonderen:gonderen_id(id,kullanici_adi,goruntu_adi),alici:alici_id(id,kullanici_adi,goruntu_adi)')
-    .or(`gonderen_id.eq.${uid},alici_id.eq.${uid}`)
-    .eq('durum','kabul');
+  const {data}=await sb.from('ikili_tuneller')
+    .select('id,kullanici1:kullanici1_id(id,kullanici_adi,goruntu_adi),kullanici2:kullanici2_id(id,kullanici_adi,goruntu_adi)')
+    .or(`kullanici1_id.eq.${uid},kullanici2_id.eq.${uid}`);
   if(!data?.length){ el.innerHTML='<div class="empty">Arkadaşı yok.</div>'; return; }
   el.innerHTML=data.map(f=>{
-    const other=f.gonderen?.id===uid?f.alici:f.gonderen;
+    const other=f.kullanici1?.id===uid?f.kullanici2:f.kullanici1;
     return `<div class="user-row" onclick="openDrawer('${other?.id}')">
       ${avatarEl(other?.goruntu_adi||other?.kullanici_adi)}
       <div class="info"><b>${esc(other?.goruntu_adi||other?.kullanici_adi||'?')}</b>
