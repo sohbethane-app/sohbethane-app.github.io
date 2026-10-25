@@ -757,7 +757,7 @@ function renderRooms(list){
       <td><span style="font-size:.75rem;background:var(--bg3);padding:.2rem .5rem;border-radius:8px">${esc(r.tur)}</span></td>
       <td>${r.sifre?'🔒 Şifreli':'🔓 Açık'}</td>
       <td style="font-size:.8rem">${fmtDate(r.olusturma_tarihi)}</td>
-      <td>${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}',${JSON.stringify(r.ad||r.id)})">💬 Mesajlar</button>`:
+      <td>${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}','${(r.ad||r.id).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">💬 Mesajlar</button>`:
         '<span style="font-size:.75rem;color:var(--txt2)">🔐 E2E Şifreli</span>'}</td>
     </tr>`).join('')}</tbody>
   </table></div>`;
