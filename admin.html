@@ -480,8 +480,17 @@ function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
 // ─── AUTH ────────────────────────────────────────────────────
+// ── Crypto helpers (index.html ile aynı mantık) ──────────────
+const _TE = new TextEncoder();
+const _hex = buf => Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+async function _pbkdf2(password, username){
+  const raw = await crypto.subtle.importKey('raw',_TE.encode(password+':'+username),'PBKDF2',false,['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2',salt:_TE.encode('sohbethane'),iterations:600000,hash:'SHA-256'},raw,512);
+  return bits.slice(0,32); // sadece authKey lazım
+}
+
 async function doLogin(){
-  const user = document.getElementById('l-user').value.trim();
+  const user = document.getElementById('l-user').value.trim().toLowerCase();
   const pass = document.getElementById('l-pass').value;
   const err  = document.getElementById('login-err');
   const btn  = document.getElementById('login-btn-text');
@@ -489,9 +498,10 @@ async function doLogin(){
   err.textContent='';
   btn.textContent='Giriş yapılıyor...';
   try {
-    // Supabase email gerekmez — kullanıcı adından email türetilir
-    const email = user + '@sohbethane.local';
-    const {data,error} = await sb.auth.signInWithPassword({email, password:pass});
+    // index.html ile aynı email + pbkdf2 türetme
+    const authKey = await _pbkdf2(pass, user);
+    const email = user + '@sh.local';
+    const {data,error} = await sb.auth.signInWithPassword({email, password:_hex(authKey)});
     if(error || !data.user){ err.textContent='Giriş başarısız: '+( error?.message||'Hata'); btn.textContent='Giriş Yap'; return; }
     // Admin kontrolü
     const {data:prof} = await sb.from('profiller').select('*').eq('id',data.user.id).single();
