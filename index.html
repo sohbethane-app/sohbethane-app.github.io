@@ -66,6 +66,18 @@ a{color:var(--acc2);text-decoration:none}
 @keyframes pulseGreen{0%,100%{opacity:1}50%{opacity:.45}}
 .auth-heart-connector{font-size:1.25rem;flex-shrink:0;animation:heartBeat 1.5s ease-in-out infinite}
 @keyframes heartBeat{0%,100%{transform:scale(1)}15%{transform:scale(1.3)}30%{transform:scale(1)}}
+/* Feature vurgu bloğu */
+.auth-enc-hero{display:flex;align-items:center;gap:.7rem;background:linear-gradient(135deg,rgba(108,99,255,.2),rgba(255,101,132,.12));border:1px solid rgba(108,99,255,.38);border-radius:14px;padding:.65rem .9rem;margin:.2rem 0 .55rem;animation:fadeSlideIn .5s ease both;position:relative;overflow:hidden}
+.auth-enc-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.03));pointer-events:none}
+.auth-enc-hero-icon{font-size:1.75rem;flex-shrink:0;filter:drop-shadow(0 0 8px rgba(108,99,255,.7))}
+.auth-enc-hero-text b{display:block;font-size:.83rem;font-weight:800;color:rgba(220,210,255,.98);margin-bottom:.15rem}
+.auth-enc-hero-text span{font-size:.72rem;color:rgba(185,170,235,.75);line-height:1.45}
+.auth-feats{display:flex;gap:.38rem;flex-wrap:wrap;margin-bottom:.6rem}
+.auth-feat-pill{display:flex;align-items:center;gap:.28rem;padding:.28rem .55rem;border-radius:20px;font-size:.7rem;font-weight:600;border:1px solid;animation:fadeSlideIn .65s ease both;white-space:nowrap}
+.auth-feat-pill.fp1{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.28);color:#86efac}
+.auth-feat-pill.fp2{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.28);color:#fde047}
+.auth-feat-pill.fp3{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.32);color:#a5b4fc}
+.auth-feat-pill.fp4{background:rgba(236,72,153,.1);border-color:rgba(236,72,153,.28);color:#f9a8d4}
 /* Stats */
 .auth-stats{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:.8rem 1rem}
 .auth-stat{text-align:center;flex:1}
@@ -521,6 +533,21 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       <div class="auth-brand-icon">💬</div>
       <h1>SohbetHane</h1>
       <p id="auth-brand-tagline">Dünyanın dört bir yanındaki insanlarla<br>güvenli ve şifreli sohbet et 🌍</p>
+    </div>
+    <!-- Şifreleme vurgusu (öne çıkan özellik) -->
+    <div class="auth-enc-hero" style="animation-delay:.08s">
+      <div class="auth-enc-hero-icon">🔐</div>
+      <div class="auth-enc-hero-text">
+        <b id="feat-enc-title">Uçtan Uca Şifreli Sohbet</b>
+        <span id="feat-enc-desc">Sunucu tek bir harfinizi bile okuyamaz — sadece siz ve karşı taraf görür.</span>
+      </div>
+    </div>
+    <!-- Diğer özellikler — küçük pill'ler -->
+    <div class="auth-feats">
+      <div class="auth-feat-pill fp1" style="animation-delay:.18s">🌐 <span id="feat-translate">Otomatik Çeviri</span></div>
+      <div class="auth-feat-pill fp2" style="animation-delay:.24s">👥 <span id="feat-groups">Gruplar & Özel DM</span></div>
+      <div class="auth-feat-pill fp3" style="animation-delay:.3s">🕵️ <span id="feat-archive">Gizli Arşiv</span></div>
+      <div class="auth-feat-pill fp4" style="animation-delay:.36s">🌍 <span id="feat-global">125 Ülke</span></div>
     </div>
     <!-- Kullanıcı tanışma kartları — ülkeye göre dinamik -->
     <div class="auth-users-showcase" id="auth-showcase">
@@ -1334,6 +1361,21 @@ ja:{'auth.tagline.social':'世界中の人々と安全にチャット 🌍','aut
 ko:{'auth.tagline.social':'전 세계 사람들과 안전하게 채팅하세요 🌍','auth.stat.members':'👥 회원','auth.stat.countries':'🌍 국가','auth.stat.active':'지금 온라인','auth.invite.toggle':'🔑 초대 코드가 있어요 →'},
 pt:{'auth.tagline.social':'Converse com segurança com pessoas do mundo todo 🌍','auth.stat.members':'👥 Membros','auth.stat.countries':'🌍 Países','auth.stat.active':'Online agora','auth.invite.toggle':'🔑 Tenho um código de convite →'},
 };for(const l in _NW){if(I18N[l])Object.assign(I18N[l],_NW[l]);}}
+// Özellik metinleri — 12 dil
+{const _FW={
+tr:{'feat.enc.title':'Uçtan Uca Şifreli Sohbet','feat.enc.desc':'Sunucu tek bir harfinizi bile okuyamaz — sadece siz ve karşı taraf görür.','feat.translate':'🌐 Otomatik Çeviri','feat.groups':'👥 Gruplar & Özel DM','feat.archive':'🕵️ Gizli Arşiv','feat.global':'🌍 125 Ülke'},
+en:{'feat.enc.title':'End-to-End Encrypted Chat','feat.enc.desc':'The server cannot read a single letter — only you and the other person see it.','feat.translate':'🌐 Auto Translate','feat.groups':'👥 Groups & Private DM','feat.archive':'🕵️ Secret Archive','feat.global':'🌍 125 Countries'},
+id:{'feat.enc.title':'Obrolan Terenkripsi Ujung ke Ujung','feat.enc.desc':'Server tidak bisa membaca satu huruf pun — hanya Anda dan lawan bicara.','feat.translate':'🌐 Terjemahan Otomatis','feat.groups':'👥 Grup & DM Pribadi','feat.archive':'🕵️ Arsip Rahasia','feat.global':'🌍 125 Negara'},
+ar:{'feat.enc.title':'محادثة مشفرة من طرف إلى طرف','feat.enc.desc':'الخادم لا يقرأ حرفاً واحداً — فقط أنت والطرف الآخر.','feat.translate':'🌐 ترجمة تلقائية','feat.groups':'👥 مجموعات ورسائل خاصة','feat.archive':'🕵️ أرشيف سري','feat.global':'🌍 125 دولة'},
+de:{'feat.enc.title':'Ende-zu-Ende verschlüsselter Chat','feat.enc.desc':'Der Server kann keinen einzigen Buchstaben lesen — nur Sie und die andere Person.','feat.translate':'🌐 Auto-Übersetzung','feat.groups':'👥 Gruppen & private DMs','feat.archive':'🕵️ Geheimes Archiv','feat.global':'🌍 125 Länder'},
+fr:{'feat.enc.title':'Chat chiffré de bout en bout','feat.enc.desc':'Le serveur ne peut lire aucune lettre — seulement vous et votre interlocuteur.','feat.translate':'🌐 Traduction auto','feat.groups':'👥 Groupes & messages privés','feat.archive':'🕵️ Archive secrète','feat.global':'🌍 125 pays'},
+es:{'feat.enc.title':'Chat cifrado de extremo a extremo','feat.enc.desc':'El servidor no puede leer ni una letra — solo tú y la otra persona lo ven.','feat.translate':'🌐 Traducción automática','feat.groups':'👥 Grupos & DM privados','feat.archive':'🕵️ Archivo secreto','feat.global':'🌍 125 países'},
+ru:{'feat.enc.title':'Чат с сквозным шифрованием','feat.enc.desc':'Сервер не может прочитать ни буквы — только вы и собеседник.','feat.translate':'🌐 Автоперевод','feat.groups':'👥 Группы и личные сообщения','feat.archive':'🕵️ Тайный архив','feat.global':'🌍 125 стран'},
+zh:{'feat.enc.title':'端对端加密聊天','feat.enc.desc':'服务器无法读取任何一个字符 — 只有您和对方才能看到。','feat.translate':'🌐 自动翻译','feat.groups':'👥 群组与私聊','feat.archive':'🕵️ 私密档案','feat.global':'🌍 125 个国家'},
+ja:{'feat.enc.title':'エンドツーエンド暗号化チャット','feat.enc.desc':'サーバーは一文字も読めません — あなたと相手だけが見られます。','feat.translate':'🌐 自動翻訳','feat.groups':'👥 グループ＆プライベートDM','feat.archive':'🕵️ 秘密アーカイブ','feat.global':'🌍 125か国'},
+ko:{'feat.enc.title':'종단 간 암호화 채팅','feat.enc.desc':'서버는 단 한 글자도 읽을 수 없습니다 — 오직 당신과 상대방만 볼 수 있어요.','feat.translate':'🌐 자동 번역','feat.groups':'👥 그룹 & 개인 DM','feat.archive':'🕵️ 비밀 아카이브','feat.global':'🌍 125개국'},
+pt:{'feat.enc.title':'Chat criptografado ponta a ponta','feat.enc.desc':'O servidor não consegue ler uma única letra — só você e o outro veem.','feat.translate':'🌐 Tradução automática','feat.groups':'👥 Grupos & DM privado','feat.archive':'🕵️ Arquivo secreto','feat.global':'🌍 125 países'},
+};for(const l in _FW){if(I18N[l])Object.assign(I18N[l],_FW[l]);}}
 function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]||k;}
 function applyI18n(){
   // RTL for Arabic
@@ -1350,6 +1392,13 @@ function applyI18n(){
   const scEl=document.getElementById('stat-countries');if(scEl)scEl.textContent=T('auth.stat.countries');
   const saEl=document.getElementById('stat-active');if(saEl)saEl.textContent=T('auth.stat.active');
   const itEl=document.getElementById('invite-toggle');if(itEl)itEl.textContent=T('auth.invite.toggle');
+  // Feature vurgusu
+  const fEnT=document.getElementById('feat-enc-title');if(fEnT)fEnT.textContent=T('feat.enc.title');
+  const fEnD=document.getElementById('feat-enc-desc');if(fEnD)fEnD.textContent=T('feat.enc.desc');
+  const fTr=document.getElementById('feat-translate');if(fTr)fTr.textContent=T('feat.translate');
+  const fGr=document.getElementById('feat-groups');if(fGr)fGr.textContent=T('feat.groups');
+  const fAr=document.getElementById('feat-archive');if(fAr)fAr.textContent=T('feat.archive');
+  const fGl=document.getElementById('feat-global');if(fGl)fGl.textContent=T('feat.global');
   // Auth box
   q('.auth-logo p','auth.subtitle.top');
   q('#auth-heading .auth-title','auth.welcome');
