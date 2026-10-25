@@ -152,7 +152,33 @@ a{color:var(--acc2);text-decoration:none}
 .badge-18plus{background:#5a0a0a;color:#ff8a8a;font-size:.58rem;padding:.08rem .32rem;border-radius:4px;font-weight:800;letter-spacing:.03em;flex-shrink:0}
 .room-avatar{width:42px;height:42px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;overflow:hidden;position:relative}
 .room-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.online-dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#3fb950;border:2px solid var(--bg2)}
+.online-dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#3fb950;border:2px solid var(--bg2);box-shadow:0 0 5px rgba(63,185,80,.7)}
+.online-dot.invisible{background:#f59e0b;box-shadow:0 0 5px rgba(245,158,11,.6)}
+/* PRESENCE HEADER */
+.presence-online{color:#4ade80;font-size:.73rem;font-weight:600}
+.presence-lastseen{color:var(--txt2);font-size:.72rem}
+/* GIZLI MOD TOGGLE */
+.toggle-switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--bg3);border:1px solid var(--brd);border-radius:22px;transition:.25s}
+.toggle-slider:before{position:absolute;content:'';height:16px;width:16px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.25s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#c9184a,#ff4d6d);border-color:#c9184a}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(18px)}
+/* ADMIN ONLINE BADGE */
+.badge-online{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3fb950;box-shadow:0 0 4px rgba(63,185,80,.7);margin-right:4px}
+.badge-invisible{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 4px rgba(245,158,11,.6);margin-right:4px}
+.badge-offline{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--txt2);margin-right:4px;opacity:.5}
+/* POKE TOPIC EMOJI SUB-PANEL */
+#poke-emoji-sub{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:.6rem;display:none;flex-direction:column;gap:.5rem}
+#poke-emoji-sub.open{display:flex}
+.poke-sub-emojis{display:flex;flex-wrap:wrap;gap:.18rem;max-height:110px;overflow-y:auto}
+.poke-sub-emoji-btn{background:none;font-size:1.2rem;padding:.15rem;border-radius:6px;cursor:pointer;transition:.1s;line-height:1;border:2px solid transparent}
+.poke-sub-emoji-btn:hover{background:var(--bg2);transform:scale(1.2)}
+.poke-sub-emoji-btn.selected{border-color:var(--acc2);background:rgba(64,145,108,.15)}
+.poke-send-row{display:flex;gap:.5rem;align-items:center;justify-content:flex-end}
+.poke-send-topic-btn{background:linear-gradient(135deg,#c9184a,#ff4d6d);color:#fff;border:none;border-radius:10px;padding:.38rem .8rem;font-size:.8rem;font-weight:700;cursor:pointer;transition:.18s}
+.poke-send-topic-btn:hover{transform:scale(1.04);box-shadow:0 2px 10px rgba(201,24,74,.4)}
+.poke-cancel-sub{background:var(--bg2);color:var(--txt2);border:1px solid var(--brd);border-radius:10px;padding:.35rem .7rem;font-size:.78rem;cursor:pointer}
 .room-info{flex:1;min-width:0}
 .room-name{font-size:.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:.4rem}
 .room-badge{font-size:.65rem;padding:.1rem .4rem;border-radius:4px;font-weight:700}
@@ -731,6 +757,14 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       <div id="poke-panel-title">🫵 Özel Konu Talebi — Dürt</div>
       <div id="poke-panel-subtitle">Bir konu seç, karşı tarafa öneride bulun</div>
       <div class="poke-topics" id="poke-topics-list"></div>
+      <div id="poke-emoji-sub">
+        <div style="font-size:.73rem;color:var(--txt2);font-weight:600" id="poke-sub-label"></div>
+        <div class="poke-sub-emojis" id="poke-sub-emojis"></div>
+        <div class="poke-send-row">
+          <button class="poke-cancel-sub" onclick="closePokeSub()">↩ Geri</button>
+          <button class="poke-send-topic-btn" id="poke-send-final-btn" onclick="sendPokeConfirm()">🫵 Dürt Et</button>
+        </div>
+      </div>
     </div>
     <div id="translate-quick-panel">
       <div class="tqp-title">🌐 Çeviri Ayarları</div>
@@ -954,7 +988,9 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div id="pm-avatar" style="width:72px;height:72px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;overflow:hidden;margin:0 auto .6rem"></div>
     <div id="pm-isim" style="font-size:1.1rem;font-weight:700"></div>
     <div id="pm-kullanici" style="font-size:.85rem;color:var(--txt2);margin-bottom:.5rem"></div>
+    <div id="pm-presence" style="font-size:.8rem;margin-bottom:.4rem;display:flex;align-items:center;gap:.3rem;justify-content:center"></div>
     <div id="pm-hakkimda" style="font-size:.85rem;color:var(--txt);margin-bottom:.7rem;white-space:pre-line;text-align:left;padding:0 .5rem;display:none"></div>
+    <div id="pm-meta" style="display:flex;flex-wrap:wrap;gap:.3rem;justify-content:center;margin-bottom:.6rem"></div>
     <div id="pm-sosyal" style="display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:.8rem"></div>
     <!-- profil linki kopyala -->
     <div style="display:flex;gap:.4rem;align-items:center;margin:.5rem 0;background:var(--bg2);border-radius:8px;padding:.4rem .6rem">
@@ -996,6 +1032,49 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     </div>
     <div class="form-group"><label>Görünen isim</label><input id="settings-goruntu-adi" placeholder="Adınız Soyadınız"></div>
     <div class="form-group"><label>Hakkımda</label><textarea id="settings-hakkimda" placeholder="Kendinizi kısaca tanıtın..." rows="2" style="width:100%;resize:vertical;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.6rem;color:var(--txt);font-size:.88rem;font-family:inherit"></textarea></div>
+    <div style="font-size:.8rem;font-weight:600;color:var(--txt2);margin:.6rem 0 .3rem">👤 Kişisel bilgiler <span style="font-weight:400">(isteğe bağlı)</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.78rem">⚧ Cinsiyet</label>
+        <select id="settings-cinsiyet" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem;color:var(--txt);font-size:.85rem">
+          <option value="">Belirtmek istemiyorum</option>
+          <option value="E">👨 Erkek</option>
+          <option value="K">👩 Kadın</option>
+          <option value="D">🌈 Diğer</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.78rem">🎂 Yaş</label>
+        <input id="settings-yas" type="number" min="18" max="99" placeholder="örn: 28" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem;color:var(--txt);font-size:.85rem">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.78rem">♈ Burç</label>
+        <select id="settings-burc" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem;color:var(--txt);font-size:.85rem">
+          <option value="">Seç</option>
+          <option value="Koç">♈ Koç</option><option value="Boğa">♉ Boğa</option>
+          <option value="İkizler">♊ İkizler</option><option value="Yengeç">♋ Yengeç</option>
+          <option value="Aslan">♌ Aslan</option><option value="Başak">♍ Başak</option>
+          <option value="Terazi">♎ Terazi</option><option value="Akrep">♏ Akrep</option>
+          <option value="Yay">♐ Yay</option><option value="Oğlak">♑ Oğlak</option>
+          <option value="Kova">♒ Kova</option><option value="Balık">♓ Balık</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.78rem">💍 Medeni durum</label>
+        <select id="settings-medeni" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem;color:var(--txt);font-size:.85rem">
+          <option value="">Belirtmek istemiyorum</option>
+          <option value="Bekar">💚 Bekar</option>
+          <option value="Iliskide">💛 İlişkide</option>
+          <option value="Evli">❤️ Evli</option>
+          <option value="Bosanmis">💔 Boşanmış</option>
+          <option value="Dul">🖤 Dul</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label style="font-size:.78rem">🏙️ Şehir / Konum</label>
+      <input id="settings-sehir" placeholder="örn: İstanbul, Ankara..." style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;color:var(--txt);font-size:.85rem;width:100%">
+    </div>
     <div style="font-size:.8rem;font-weight:600;color:var(--txt2);margin:.6rem 0 .3rem">📱 Sosyal medya &amp; iletişim <span style="font-weight:400">(herkese görünür)</span></div>
     <div class="form-group"><label>📸 Instagram</label><input id="settings-instagram" placeholder="@kullanici_adi" autocomplete="off"></div>
     <div class="form-group"><label>🐦 X / Twitter</label><input id="settings-twitter" placeholder="@kullanici_adi" autocomplete="off"></div>
@@ -1004,7 +1083,22 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div class="form-group"><label>📘 Facebook</label><input id="settings-facebook" placeholder="profil adı veya URL" autocomplete="off"></div>
     <div class="form-group"><label>🌐 Web sitesi</label><input id="settings-website" placeholder="https://..." autocomplete="off"></div>
     <button class="btn btn-primary" onclick="saveProfile()">Kaydet</button>
-    <hr style="margin:1rem 0">
+    <hr style="margin:1rem 0;border-color:var(--brd)">
+    <!-- GİZLİ MOD -->
+    <div style="background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:.7rem .85rem;margin-bottom:.8rem">
+      <div style="font-size:.78rem;color:var(--txt2);margin-bottom:.5rem;font-weight:600">🔒 Gizlilik</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:.85rem;font-weight:600">👻 Gizli Mod</div>
+          <div style="font-size:.72rem;color:var(--txt2)">Çevrimiçi durumun ve son görülme bilgin gizlenir</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="gizli-mod-chk" onchange="setGizliMod(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+    <hr style="margin:.4rem 0 1rem;border-color:var(--brd)">
     <button class="btn btn-danger" onclick="doLogout()">Çıkış Yap</button>
   </div>
   <div id="settings-muted" style="display:none">
@@ -1017,7 +1111,10 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div id="admin-panel">
       <div style="display:flex;gap:.4rem;margin-bottom:.8rem;flex-wrap:wrap">
         <button class="btn btn-secondary btn-sm admin-sub-tab active" id="asub-users" onclick="adminSubTab('users')">👥 Kullanıcılar</button>
-        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-arsiv" onclick="adminSubTab('arsiv')">📜 Yazışma Arşivi</button>
+        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-aktif" onclick="adminSubTab('aktif')">🟢 Aktifler</button>
+        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-yeni" onclick="adminSubTab('yeni')">📲 Yeni Üyeler</button>
+        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-ziyaret" onclick="adminSubTab('ziyaret')">🌍 Ziyaretçiler</button>
+        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-arsiv" onclick="adminSubTab('arsiv')">📜 Arşiv</button>
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-sikayet" onclick="adminSubTab('sikayet')">🚩 Şikayetler</button>
       </div>
       <div id="admin-users-panel">
@@ -1025,6 +1122,27 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
           <button class="btn btn-secondary btn-sm" onclick="loadAdminUsers()">Yenile</button>
         </div>
         <div id="admin-users-table"></div>
+      </div>
+      <div id="admin-aktif-panel" style="display:none">
+        <div style="margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:.8rem;color:var(--txt2)" id="admin-aktif-count">Yükleniyor…</span>
+          <button class="btn btn-secondary btn-sm" onclick="loadAdminAktif()">Yenile</button>
+        </div>
+        <div id="admin-aktif-table"></div>
+      </div>
+      <div id="admin-yeni-panel" style="display:none">
+        <div style="margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:.8rem;color:var(--txt2)">Son 30 günde kayıt olan üyeler</span>
+          <button class="btn btn-secondary btn-sm" onclick="loadAdminYeniUyeler()">Yenile</button>
+        </div>
+        <div id="admin-yeni-table"></div>
+      </div>
+      <div id="admin-ziyaret-panel" style="display:none">
+        <div style="margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:.8rem;color:var(--txt2)">Son 7 gündeki site ziyaretleri (giriş yapılmasa bile)</span>
+          <button class="btn btn-secondary btn-sm" onclick="loadAdminZiyaretciler()">Yenile</button>
+        </div>
+        <div id="admin-ziyaret-table"></div>
       </div>
       <div id="admin-arsiv-panel" style="display:none">
         <div style="margin-bottom:.5rem;display:flex;gap:.4rem;align-items:center">
@@ -2359,6 +2477,8 @@ async function startApp(){
   }, 100);
   // Translation system
   initTranslation();
+  // Global presence
+  startGlobalPresence();
 }
 function populateSettingsProfile(){
   const p=S.profile;
@@ -2373,6 +2493,21 @@ function populateSettingsProfile(){
   const link=`${location.origin}${location.pathname}#profil=${p.kullanici_adi}`;
   const inp=document.getElementById('profil-link-input');
   if(inp) inp.value=link;
+  // Gizli mod toggle
+  const gizliChk=document.getElementById('gizli-mod-chk');
+  if(gizliChk) gizliChk.checked=localStorage.getItem('sh_gizli_mod')==='1';
+  // Extended profile fields
+  const ep=p.ekstra_profil||{};
+  const cinsSel=document.getElementById('settings-cinsiyet');
+  if(cinsSel) cinsSel.value=p.cinsiyet||'';
+  const yasInp=document.getElementById('settings-yas');
+  if(yasInp) yasInp.value=p.yas||'';
+  const burcSel=document.getElementById('settings-burc');
+  if(burcSel) burcSel.value=ep.burc||'';
+  const medeniSel=document.getElementById('settings-medeni');
+  if(medeniSel) medeniSel.value=ep.medeni||'';
+  const sehirInp=document.getElementById('settings-sehir');
+  if(sehirInp) sehirInp.value=ep.sehir||'';
 }
 function copyProfilLink(){
   const v=document.getElementById('profil-link-input')?.value;
@@ -2663,6 +2798,7 @@ async function renderRoomList(rooms){
     const el = document.createElement('div');
     el.className='room-item'+(S.currentRoom?.id===r.id?' active':'')+( extraClass?' '+extraClass:'');
     el.dataset.id=r.id;
+    el.dataset.type=r.tur;
     el.onclick=()=>openRoom(r);
     let name=r.isim||'Sohbet', avatarHtml='';
     if(r.tur==='dm'){
@@ -2671,6 +2807,7 @@ async function renderRoomList(rooms){
         const {data:members} = await sb.from('oda_uyeleri').select('kullanici_id').eq('oda_id',r.id);
         r._otherUserId = members?.find(m=>m.kullanici_id!==S.user.id)?.kullanici_id;
       }
+      if(r._otherUserId) el.dataset.otherUser=r._otherUserId;
       const op = r._otherUserId ? await getProfile(r._otherUserId) : null;
       name = op?.goruntu_adi||op?.kullanici_adi||'DM';
       if(op?.avatar_url) avatarHtml=`<img src="${op.avatar_url}" alt="">`;
@@ -2694,6 +2831,7 @@ async function renderRoomList(rooms){
     el.innerHTML=`
       <div class="room-avatar" style="background:${r.tur==='dm'?userColor(r._otherUserId||''):'var(--acc)'}">
         ${avatarHtml}
+        ${r.tur==='dm'?'<span class="online-dot" style="display:none"></span>':''}
       </div>
       <div class="room-info">
         <div class="room-name">${name}${badge}</div>
@@ -2762,6 +2900,7 @@ async function openRoom(room){
   }
   document.getElementById('chat-header-name').textContent=name;
   document.getElementById('chat-header-sub').textContent=sub;
+  if(room.tur==='dm'&&room._otherUserId) updateChatHeaderPresence(room._otherUserId);
   // Chat section banner
   const bannerEl = document.getElementById('chat-section-banner');
   if(bannerEl){
@@ -4701,12 +4840,18 @@ async function loadAdminUsers(){
   const {data}=await sb.from('profiller').select('*').order('kayit_tarihi',{ascending:true});
   const el=document.getElementById('admin-users-table');
   if(!data?.length){el.innerHTML='<p class="text-muted">Kullanıcı yok.</p>';return;}
-  el.innerHTML=`<table class="admin-table"><thead><tr><th>Kullanıcı</th><th>Ülke</th><th>Dil</th><th>Kayıt</th><th>Son Giriş</th><th>İşlem</th></tr></thead><tbody>
-    ${data.map(p=>`<tr>
-      <td><b>${p.goruntu_adi||p.kullanici_adi}</b><br><span style="color:var(--txt2);font-size:.75rem">@${p.kullanici_adi}</span>${p.yonetici?'<span class="badge-admin" style="margin-left:.3rem">Y</span>':''}${p.banli?'<span style="background:var(--danger);color:#fff;padding:.1rem .3rem;border-radius:4px;font-size:.65rem;margin-left:.3rem">BAN</span>':''}</td>
-      <td style="font-size:.82rem">${p.ulke||'—'}</td>
-      <td>${p.dil||'tr'}</td>
-      <td>${p.kayit_tarihi?new Date(p.kayit_tarihi).toLocaleDateString('tr-TR'):'-'}</td>
+  el.innerHTML=`<table class="admin-table"><thead><tr><th>Kullanıcı</th><th>Durum</th><th>Cinsiyet/Yaş</th><th>Ülke</th><th>Son Giriş</th><th>İşlem</th></tr></thead><tbody>
+    ${data.map(p=>{
+      const isOnline=_onlineUsersAll.has(p.id);
+      const isInvisible=isOnline&&!_onlineUsers.has(p.id);
+      const statusBadge=isOnline?(isInvisible?'<span class="badge-invisible"></span>':'<span class="badge-online"></span>'):'<span class="badge-offline"></span>';
+      const cins=p.cinsiyet==='E'?'👨':p.cinsiyet==='K'?'👩':p.cinsiyet==='D'?'🌈':'—';
+      const yasStr=p.yas?` ${p.yas}`:'';
+      return `<tr>
+      <td><b>${escHtml(p.goruntu_adi||p.kullanici_adi)}</b><br><span style="color:var(--txt2);font-size:.75rem">@${escHtml(p.kullanici_adi)}</span>${p.yonetici?'<span class="badge-admin" style="margin-left:.3rem">Y</span>':''}${p.banli?'<span style="background:var(--danger);color:#fff;padding:.1rem .3rem;border-radius:4px;font-size:.65rem;margin-left:.3rem">BAN</span>':''}</td>
+      <td>${statusBadge}${isInvisible?' 👻':''}</td>
+      <td style="font-size:.82rem">${cins}${yasStr}</td>
+      <td style="font-size:.82rem">${escHtml(p.ulke||'—')}</td>
       <td>${p.son_giris?new Date(p.son_giris).toLocaleString('tr-TR'):'-'}</td>
       <td style="white-space:nowrap">
         ${p.id!==S.user.id?`
@@ -4721,11 +4866,15 @@ async function loadAdminUsers(){
   </tbody></table>`;
 }
 function adminSubTab(tab){
-  ['users','arsiv','sikayet'].forEach(t=>{
-    document.getElementById('admin-'+t+'-panel').style.display=t===tab?'block':'none';
+  ['users','aktif','yeni','ziyaret','arsiv','sikayet'].forEach(t=>{
+    const panel=document.getElementById('admin-'+t+'-panel');
+    if(panel) panel.style.display=t===tab?'block':'none';
     const btn=document.getElementById('asub-'+t);
     if(btn) btn.classList.toggle('active',t===tab);
   });
+  if(tab==='aktif') loadAdminAktif();
+  if(tab==='yeni') loadAdminYeniUyeler();
+  if(tab==='ziyaret') loadAdminZiyaretciler();
   if(tab==='arsiv') loadAdminArsiv();
   if(tab==='sikayet') loadAdminSikayetler();
 }
@@ -4768,6 +4917,242 @@ async function loadAdminSikayetler(){
     </tr>`).join('')}
   </tbody></table>`;
 }
+// ============================================================
+// ONLINE PRESENCE — global channel
+// ============================================================
+const _onlineUsers=new Set();     // Visible online users (non-invisible, for regular users)
+const _onlineUsersAll=new Set();  // All online users including invisible (for admin)
+const _lastSeenMap={};            // userId→ISO timestamp for last seen
+let _presenceChannel=null;
+let _sonAktifTimer=null;
+
+function fmtAgo(isoDate){
+  if(!isoDate) return null;
+  const diff=Date.now()-new Date(isoDate).getTime();
+  const s=Math.floor(diff/1000);
+  if(s<60) return 'Az önce';
+  const m=Math.floor(s/60); if(m<60) return `${m} dakika önce`;
+  const h=Math.floor(m/60); if(h<24) return `${h} saat önce`;
+  const d=Math.floor(h/24); if(d<7) return `${d} gün önce`;
+  return new Date(isoDate).toLocaleDateString('tr-TR');
+}
+
+function startGlobalPresence(){
+  if(_presenceChannel) return;
+  const isGizli=localStorage.getItem('sh_gizli_mod')==='1';
+  _presenceChannel=sb.channel('presence:global',{config:{presence:{key:S.user.id}}});
+  _presenceChannel
+    .on('presence',{event:'sync'},()=>{
+      const state=_presenceChannel.presenceState();
+      _onlineUsers.clear(); _onlineUsersAll.clear();
+      Object.entries(state).forEach(([uid,presences])=>{
+        const latest=presences[presences.length-1]||{};
+        _onlineUsersAll.add(uid);
+        if(!latest.gizli) _onlineUsers.add(uid);
+        if(latest.son_aktif) _lastSeenMap[uid]=latest.son_aktif;
+      });
+      renderOnlineDots();
+    })
+    .on('presence',{event:'join'},({key,newPresences})=>{
+      const p=newPresences?.[0]||{};
+      _onlineUsersAll.add(key);
+      if(!p.gizli) _onlineUsers.add(key);
+      if(p.son_aktif) _lastSeenMap[key]=p.son_aktif;
+      renderOnlineDots();
+    })
+    .on('presence',{event:'leave'},({key})=>{
+      _onlineUsers.delete(key); _onlineUsersAll.delete(key);
+      _lastSeenMap[key]=new Date().toISOString();
+      renderOnlineDots();
+    })
+    .subscribe(async(status)=>{
+      if(status==='SUBSCRIBED'){
+        await _presenceChannel.track({gizli:isGizli,son_aktif:new Date().toISOString()});
+      }
+    });
+  // Heartbeat every 60s
+  _sonAktifTimer=setInterval(()=>updateSonAktif(),60000);
+}
+
+async function updateSonAktif(){
+  if(!S.user||!_presenceChannel) return;
+  const isGizli=localStorage.getItem('sh_gizli_mod')==='1';
+  const now=new Date().toISOString();
+  _presenceChannel.track({gizli:isGizli,son_aktif:now}).catch(()=>{});
+  // Also update DB (ignore error if column doesn't exist)
+  sb.from('profiller').update({son_aktif:now}).eq('id',S.user.id).then(()=>{}).catch(()=>{});
+}
+
+function renderOnlineDots(){
+  // Update all DM room items
+  document.querySelectorAll('.room-item[data-type="dm"]').forEach(el=>{
+    const uid=el.dataset.otherUser;
+    if(!uid) return;
+    const dot=el.querySelector('.online-dot');
+    if(!dot) return;
+    const isAdmin=S.profile?.yonetici;
+    const isOnline=isAdmin?_onlineUsersAll.has(uid):_onlineUsers.has(uid);
+    const isInvisible=_onlineUsersAll.has(uid)&&!_onlineUsers.has(uid);
+    dot.style.display=isOnline?'':'none';
+    dot.classList.toggle('invisible',!!(isAdmin&&isInvisible));
+  });
+  // Update current chat header if open
+  if(S.currentRoom?.tur==='dm'&&S.currentRoom?._otherUserId){
+    updateChatHeaderPresence(S.currentRoom._otherUserId);
+  }
+}
+
+function updateChatHeaderPresence(otherUserId){
+  const subEl=document.getElementById('chat-header-sub');
+  if(!subEl) return;
+  const isAdmin=S.profile?.yonetici;
+  const isOnline=isAdmin?_onlineUsersAll.has(otherUserId):_onlineUsers.has(otherUserId);
+  const isInvisible=_onlineUsersAll.has(otherUserId)&&!_onlineUsers.has(otherUserId);
+  if(isOnline&&!(isInvisible&&!isAdmin)){
+    const badge=isAdmin&&isInvisible?'<span class="badge-invisible"></span> 👻':'<span class="badge-online"></span>';
+    subEl.innerHTML=`${badge} <span class="presence-online">Çevrimiçi</span>`;
+  } else {
+    const ls=_lastSeenMap[otherUserId];
+    const ago=ls?fmtAgo(ls):null;
+    if(ago) subEl.innerHTML=`<span class="presence-lastseen">Son görülme: ${ago}</span>`;
+    else subEl.textContent='Birebir sohbet';
+  }
+}
+
+function setGizliMod(val){
+  if(val) localStorage.setItem('sh_gizli_mod','1');
+  else localStorage.removeItem('sh_gizli_mod');
+  if(_presenceChannel) _presenceChannel.track({gizli:val,son_aktif:new Date().toISOString()}).catch(()=>{});
+  toast(val?'Gizli mod açık — diğerleri seni göremez 👻':'Gizli mod kapatıldı — çevrimiçi görünüyorsun','info');
+}
+
+async function loadAdminAktif(){
+  const el=document.getElementById('admin-aktif-table');
+  const cnt=document.getElementById('admin-aktif-count');
+  if(!el) return;
+  const allIds=[..._onlineUsersAll];
+  if(cnt) cnt.textContent=`${allIds.length} aktif kullanıcı`;
+  if(!allIds.length){ el.innerHTML='<p class="text-muted">Şu an kimse çevrimiçi değil.</p>'; return; }
+  const profs=await Promise.all(allIds.map(id=>getProfile(id)));
+  el.innerHTML=`<table class="admin-table"><thead><tr>
+    <th>Kullanıcı</th><th>Durum</th><th>Son Aktif</th>
+  </tr></thead><tbody>
+  ${profs.filter(Boolean).map(p=>{
+    const isInvisible=!_onlineUsers.has(p.id);
+    const badge=isInvisible?'<span class="badge-invisible"></span> Gizli':'<span class="badge-online"></span> Çevrimiçi';
+    const ago=_lastSeenMap[p.id]?fmtAgo(_lastSeenMap[p.id]):'—';
+    return `<tr>
+      <td>${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2);font-size:.78rem">@${p.kullanici_adi}</span></td>
+      <td>${badge}</td>
+      <td style="font-size:.78rem;color:var(--txt2)">${ago}</td>
+    </tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+
+async function loadAdminYeniUyeler(){
+  const el=document.getElementById('admin-yeni-table');
+  if(!el) return;
+  el.innerHTML='<p class="text-muted">Yükleniyor…</p>';
+  const since=new Date(Date.now()-30*24*3600*1000).toISOString();
+  const {data,error}=await sb.from('profiller')
+    .select('id,kullanici_adi,goruntu_adi,ulke,ip_adresi,son_giris,yonetici,banli,cinsiyet,yas')
+    .gte('son_giris',since)
+    .order('son_giris',{ascending:false}).limit(100);
+  if(error){ el.innerHTML='<p class="text-muted">Hata: yönetici erişimi gerekli.</p>'; return; }
+  if(!data?.length){ el.innerHTML='<p class="text-muted">Son 30 günde yeni üye yok.</p>'; return; }
+  el.innerHTML=`<table class="admin-table"><thead><tr>
+    <th>Kullanıcı</th><th>Cinsiyet</th><th>Yaş</th><th>Ülke</th><th>IP</th><th>Kayıt Tarihi</th>
+  </tr></thead><tbody>
+  ${data.map(p=>{
+    const tarih=p.son_giris?new Date(p.son_giris).toLocaleString('tr-TR'):'-';
+    const cins=p.cinsiyet==='E'?'👨 Erkek':p.cinsiyet==='K'?'👩 Kadın':p.cinsiyet==='D'?'🌈 Diğer':'—';
+    return `<tr>
+      <td>${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2);font-size:.78rem">@${p.kullanici_adi}</span>${p.yonetici?' ⭐':''}${p.banli?' 🚫':''}</td>
+      <td>${cins}</td>
+      <td>${p.yas||'—'}</td>
+      <td>${escHtml(p.ulke||'—')}</td>
+      <td style="font-size:.75rem;font-family:monospace">${escHtml(p.ip_adresi||'—')}</td>
+      <td style="font-size:.75rem;white-space:nowrap">${tarih}</td>
+    </tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+
+// Visitor tracking — log anonymous visits
+async function trackPageVisit(){
+  try{
+    // Use cached geo if available, else try to get it (non-blocking)
+    let geo={ulke:null,ip_adresi:null};
+    try{ const g=await Promise.race([detectGeoInfo(),new Promise(r=>setTimeout(()=>r({}),3000))]); geo=g||{}; }catch(e){}
+    const row={
+      sayfa:location.pathname,
+      ip_adresi:geo.ip_adresi||null,
+      ulke:geo.ulke||null,
+      kullanici_id:S.user?.id||null,
+      ziyaret_tarihi:new Date().toISOString(),
+      referrer:(document.referrer||'').slice(0,200)||null,
+      user_agent:navigator.userAgent.slice(0,200)
+    };
+    await sb.from('site_ziyaretler').insert(row);
+  }catch(e){ /* Tablo yoksa sessizce geç */ }
+}
+
+async function loadAdminZiyaretciler(){
+  const el=document.getElementById('admin-ziyaret-table');
+  if(!el) return;
+  el.innerHTML='<p class="text-muted">Yükleniyor…</p>';
+  const since=new Date(Date.now()-7*24*3600*1000).toISOString();
+  const {data,error}=await sb.from('site_ziyaretler')
+    .select('id,sayfa,ip_adresi,ulke,kullanici_id,ziyaret_tarihi,referrer')
+    .gte('ziyaret_tarihi',since)
+    .order('ziyaret_tarihi',{ascending:false}).limit(200);
+  if(error){
+    el.innerHTML='<p class="text-muted" style="font-size:.82rem">Ziyaretçi tablosu henüz kurulmamış. Supabase\'de <code>site_ziyaretler</code> tablosu oluşturun.</p>';
+    return;
+  }
+  if(!data?.length){ el.innerHTML='<p class="text-muted">Son 7 günde kayıtlı ziyaret yok.</p>'; return; }
+  // Stats
+  const total=data.length;
+  const unique=new Set(data.map(r=>r.ip_adresi||r.kullanici_id||'x')).size;
+  const ulkeMap={};
+  data.forEach(r=>{if(r.ulke) ulkeMap[r.ulke]=(ulkeMap[r.ulke]||0)+1;});
+  const topUlkeler=Object.entries(ulkeMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k}:${v}`).join(' · ');
+  el.innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin-bottom:.8rem">
+    <div style="background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.5rem .7rem;text-align:center">
+      <div style="font-size:1.2rem;font-weight:700">${total}</div>
+      <div style="font-size:.72rem;color:var(--txt2)">Toplam Ziyaret</div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.5rem .7rem;text-align:center">
+      <div style="font-size:1.2rem;font-weight:700">${unique}</div>
+      <div style="font-size:.72rem;color:var(--txt2)">Tekil Ziyaretçi</div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.5rem .7rem;text-align:center">
+      <div style="font-size:1rem;font-weight:700">${data.filter(r=>r.kullanici_id).length}</div>
+      <div style="font-size:.72rem;color:var(--txt2)">Üye Ziyaret</div>
+    </div>
+  </div>
+  ${topUlkeler?`<div style="font-size:.78rem;color:var(--txt2);margin-bottom:.5rem">🌍 ${topUlkeler}</div>`:''}
+  <table class="admin-table"><thead><tr>
+    <th>Tarih</th><th>Ülke</th><th>IP</th><th>Kullanıcı</th><th>Referrer</th>
+  </tr></thead><tbody>
+  ${data.slice(0,100).map(r=>{
+    const tarih=r.ziyaret_tarihi?new Date(r.ziyaret_tarihi).toLocaleString('tr-TR'):'-';
+    const uid=r.kullanici_id;
+    const uname=uid?(S.profiles[uid]?.kullanici_adi||uid.slice(0,8)):'—';
+    const ref=r.referrer?new URL(r.referrer).hostname:'—';
+    return `<tr>
+      <td style="font-size:.75rem;white-space:nowrap">${tarih}</td>
+      <td>${escHtml(r.ulke||'—')}</td>
+      <td style="font-size:.75rem;font-family:monospace">${escHtml(r.ip_adresi||'—')}</td>
+      <td style="font-size:.8rem">${uid?'🔵 '+escHtml(uname):'⚪ Ziyaretçi'}</td>
+      <td style="font-size:.75rem;color:var(--txt2)">${escHtml(ref)}</td>
+    </tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+
 async function reportMessage(m){
   const neden=prompt('Şikayet nedeniniz:\n(örn: spam, hakaret, uygunsuz içerik)');
   if(!neden?.trim()) return;
@@ -4825,6 +5210,31 @@ function _showProfilModal(p){
   const hakEl=document.getElementById('pm-hakkimda');
   if(p.hakkimda){hakEl.textContent=p.hakkimda;hakEl.style.display='';}
   else hakEl.style.display='none';
+  // Kişisel bilgiler rozeti
+  const pmMeta=document.getElementById('pm-meta');
+  if(pmMeta){
+    const ep=p.ekstra_profil||{};
+    const chips=[];
+    if(p.cinsiyet==='E') chips.push('👨 Erkek');
+    else if(p.cinsiyet==='K') chips.push('👩 Kadın');
+    else if(p.cinsiyet==='D') chips.push('🌈 Diğer');
+    if(p.yas) chips.push(`🎂 ${p.yas} yaş`);
+    if(ep.burc) chips.push(`♈ ${ep.burc}`);
+    if(ep.medeni) chips.push(`💍 ${ep.medeni}`);
+    if(ep.sehir) chips.push(`🏙️ ${ep.sehir}`);
+    pmMeta.innerHTML=chips.map(c=>`<span style="background:var(--bg3);border:1px solid var(--brd);border-radius:20px;padding:.2rem .6rem;font-size:.78rem">${c}</span>`).join('');
+    pmMeta.style.display=chips.length?'flex':'none';
+  }
+  // Online durum (sadece DM'de)
+  const pmPresence=document.getElementById('pm-presence');
+  if(pmPresence&&p.id&&p.id!==S.user?.id){
+    const isOnline=S.profile?.yonetici?_onlineUsersAll.has(p.id):_onlineUsers.has(p.id);
+    const ls=_lastSeenMap[p.id];
+    if(isOnline) pmPresence.innerHTML='<span class="badge-online"></span> <span class="presence-online">Çevrimiçi</span>';
+    else if(ls) pmPresence.innerHTML=`<span class="presence-lastseen">Son görülme: ${fmtAgo(ls)}</span>`;
+    else pmPresence.textContent='';
+    pmPresence.style.display='';
+  } else if(pmPresence){ pmPresence.style.display='none'; }
   // Sosyal
   const soc=p.sosyal||{};
   const socEl=document.getElementById('pm-sosyal');
@@ -4933,11 +5343,26 @@ async function saveProfile(){
     const v=(document.getElementById('settings-'+k)?.value||'').trim();
     if(v) sosyal[k]=v;
   });
-  const {error}=await sb.from('profiller').update({goruntu_adi:goruntu,hakkimda,sosyal}).eq('id',S.user.id);
+  const cinsiyet=document.getElementById('settings-cinsiyet')?.value||'';
+  const yas=parseInt(document.getElementById('settings-yas')?.value)||null;
+  const ekstraProfil={
+    burc:document.getElementById('settings-burc')?.value||'',
+    medeni:document.getElementById('settings-medeni')?.value||'',
+    sehir:document.getElementById('settings-sehir')?.value.trim()||''
+  };
+  // Remove empty keys
+  Object.keys(ekstraProfil).forEach(k=>{ if(!ekstraProfil[k]) delete ekstraProfil[k]; });
+  const updates={goruntu_adi:goruntu,hakkimda,sosyal,ekstra_profil:ekstraProfil};
+  if(cinsiyet) updates.cinsiyet=cinsiyet; else updates.cinsiyet=null;
+  if(yas&&yas>=18&&yas<120) updates.yas=yas; else updates.yas=null;
+  const {error}=await sb.from('profiller').update(updates).eq('id',S.user.id);
   if(error){toast(error.message,'error');return;}
   S.profile.goruntu_adi=goruntu;
   S.profile.hakkimda=hakkimda;
   S.profile.sosyal=sosyal;
+  S.profile.cinsiyet=cinsiyet||null;
+  S.profile.yas=yas||null;
+  S.profile.ekstra_profil=ekstraProfil;
   S.profiles[S.user.id]=S.profile;
   renderMyAvatar();
   toast('Profil kaydedildi ✅','success');
@@ -5062,6 +5487,29 @@ const POKE_TOPICS=[
   {emoji:'☕',label:'Günlük Hayat'},
   {emoji:'🧩',label:'Kişilik & Test'}
 ];
+const POKE_TOPIC_EMOJIS={
+  'Duygusal':['💔','🥺','😭','😢','🥹','❤️‍🩹','💗','💓','💞','💝','🫀','🌹','🕯️','😔','🤍','😞','💌','🫂','😩','🥀','🌸','😿','🫶','🌈','🦋','✨','🌙','⭐','🤗','🙈','😘','💋','🍷','🌷','💐','🌺','🎭','🎵','🎶','☁️','🌊','🌅'],
+  'Siyaset':['🗳️','🏛️','⚖️','🌐','📜','🏳️','🏴','🗺️','🤝','✊','🎙️','📢','📣','🔊','📰','📋','🧾','🔍','💬','⚡','🌍','🌎','🌏','👁️','🔐','🏛️','🗝️','👑','🎖️','🪙','💰','🤺','⚔️','🛡️','🔴','🔵','⚪','🟢','🟡','🟠','🟣'],
+  'Cinsel':['🔥','💋','😈','👅','🫦','😏','🌶️','🍑','🍆','🥵','💦','🌡️','🧨','⛓️','🪢','🔐','🔑','🛁','🛏️','🌙','🕯️','💃','🕺','👙','🩲','🩱','🫀','💘','❤️‍🔥','🍓','🍒','🫐','🥭','🍌','🍫','🧁','🥂','🍾','🪩','🎭'],
+  'Yediklerim':['🍽️','🍔','🍕','🌮','🍜','🍣','🍱','🥗','🥘','🫕','🍲','🍛','🥩','🍗','🥓','🌭','🥪','🥙','🌯','🫔','🥚','🍳','🧇','🥞','🧆','🍟','🧀','🫒','🥑','🥦','🌽','🥕','🍅','🧅','🧄','🥜','🌰','🍇','🍓','🍎','🍊','🍋','🫐','🍑','🍒','🍰','🎂','🧁','🍩','🍪','🍫','🍬','🍭','☕','🧋','🍵','🥛','🧃','🍺','🥂','🍷','🫖','🫗'],
+  'Tarih':['📜','🏛️','⚔️','🛡️','🗺️','🏺','🔱','👑','🦁','🌍','🎭','📚','🦅','⚓','⚙️','🏰','🗼','🕍','⛩️','🕌','🌋','🗻','🏔️','🌊','🌅','🌄','🪐','⭐','💫','🔭','⚗️','🧪','🧬','📖','🖋️','🔍','🪬','⚜️','🪖','🏹','🗡️','🪃','🥁','🪘','📯','📣','🧭','🪤','🧩'],
+  'Sanat':['🎨','🖌️','🖼️','🖋️','✏️','🎭','🎬','📽️','🎞️','🎪','🎵','🎶','🎷','🎸','🎹','🎺','🎻','🪗','🥁','🎤','🎧','🎼','🎫','🎟️','📸','📷','🎥','💡','🌈','✨','💫','⭐','🌟','🌸','🌺','🌻','🌹','🍀','🦋','🕊️','🦚','🦜','🦩','🪸','🎀','🎁','🎈','🎊','🎉','🎆','🎇'],
+  'Felsefe':['🌌','🔭','💭','🧠','⚖️','🕰️','♾️','🌀','🔮','🪬','☯️','☮️','✡️','☪️','✝️','🌙','☀️','⭐','🌟','💫','✨','🪐','🔵','⬛','🔁','🎭','🌊','🏔️','🌋','🌿','🍀','🕊️','🦋','🌈','🌅','🌄','🌠','🌌','🗝️','🔑','💡','📖','📜','🖋️','🧿','🪄','🎩','🐍','🦁','🐘'],
+  'Para & Kariyer':['💰','💸','💵','💴','💶','💷','🤑','📈','📉','📊','🏦','💳','🪙','💎','🏆','🥇','🎯','📋','🗒️','💼','👔','🤝','🏢','🖥️','💻','📱','📧','📞','☎️','🗂️','📁','📂','🔒','🔓','⚡','🚀','🌐','🏅','🎖️','🎗️','🥂','🍾','✈️','🏠','🏡','🚗','⌚','👑','💡'],
+  'Seyahat':['🌍','✈️','🗺️','🧳','🏖️','🏝️','🏔️','⛰️','🌋','🏕️','🏞️','🌅','🌄','🌇','🌆','🏙️','🌃','🌉','🚂','🚄','🛳️','⛵','🛥️','🚢','🚁','🛩️','🚀','🛸','🎡','🎢','🗼','🗽','⛩️','🕌','🕍','⛪','🏰','🏯','🌁','🎭','🌊','🏄','🤿','🧗','🥾','🎣','🌿','🌴','🌵','🌺'],
+  'Müzik':['🎵','🎶','🎷','🎸','🎹','🎺','🎻','🪗','🥁','🪘','🎤','🎧','🎼','🎙️','📻','🎫','🎟️','🎪','🌟','⭐','🔥','💫','✨','🎊','🎉','🎈','💃','🕺','🪩','🎭','🌈','🎆','🎇','🪅','🎑','🎐','🏆','🥇','🎖️','🎗️','💰','🎁','🎀','🌸','🌹','🌷','🕊️','🦋','🎵','🔊'],
+  'Film & Dizi':['🎬','📽️','🎞️','🎭','📺','🎥','📸','🍿','🎫','🎟️','🌟','⭐','🏆','🥇','🎖️','😱','😂','😢','😍','🤩','💀','👻','🤖','🦸','🧙','🐉','🗡️','⚔️','🛡️','🔮','🌌','🚀','🛸','🌊','🏔️','🌋','🎪','🪄','🎩','🎭','🎵','🎶','🎷','🎸','💋','❤️‍🔥','🔥','💥','⚡','🌈'],
+  'Psikoloji':['🧠','💭','🌀','🪬','😔','😰','😤','😤','🤯','😵','🥴','😳','🫠','🤔','🧐','😶','🌊','🏔️','🌈','🦋','🌱','🌿','☮️','☯️','🕊️','🌟','💡','🔍','📖','✍️','🪞','🎭','🎨','🌙','⭐','💫','🌅','🌄','🌸','🌺','🍀','🌻','🌷','🌹','🦋','🐚','🌊','🏖️','🧩'],
+  'Spiritüel':['🔮','🪬','🌙','⭐','🌟','✨','💫','🌠','🌌','☯️','☮️','✡️','☪️','✝️','🕉️','☸️','🪷','🕯️','📿','🧿','🌈','🦋','🕊️','🌸','🌺','🌻','🌹','🌷','🍀','🌿','🌱','🌾','🍄','🌊','🌋','🏔️','⛰️','🌅','🌄','🌃','🌌','🔭','🪐','🌍','🌎','🌏','🔱','☀️','🌙','🌟'],
+  'Sır & İtiraf':['🤫','🤐','😶','🤭','🙊','😈','😏','🕵️','🔐','🔒','🗝️','🔑','📬','💌','🎭','🌙','🕯️','👁️','🌑','⬛','🌚','🌝','🎩','🧊','🌊','🌫️','👻','🕯️','🔍','🔎','📋','✍️','🖋️','📜','💭','🌀','⚫','🫀','💔','❓','❗','⁉️','🌀','🎲','🪄','🔮','🎭','💀','☠️'],
+  'Spor':['💪','🏋️','🤸','🏃','🚴','⚽','🏀','🎾','🏐','🏈','⚾','🏒','🥊','🤺','🏹','🎯','🥋','🤼','🏊','🤽','🧗','🏇','🤾','⛷️','🏄','🪂','🤿','🎿','⛸️','🛹','🛷','🛼','🏆','🥇','🎖️','🏅','🔥','💥','⚡','🌟','✨','💫','🎵','🎶','🥵','💦','🏋️','🤸','🌅'],
+  'Gece Hayatı':['🌙','🌃','🌆','🌇','🌉','🎉','🎊','🎈','🎆','🎇','🪩','💃','🕺','🍾','🥂','🍸','🍹','🍺','🥃','🎵','🎶','🎷','🎸','🎹','🎤','🎧','🔊','✨','💫','⭐','🌟','🔥','💥','⚡','🌈','🎭','🎪','🃏','🎲','🎰','🎫','🎟️','🏙️','🚀','🛸','🌠','🌌','🌑','🌚','🌝'],
+  'Hayvanlar':['🐾','🐶','🐱','🦊','🐺','🦁','🐯','🐨','🐼','🐻','🦝','🦨','🦡','🦦','🦥','🐭','🐰','🐹','🐿️','🦔','🐸','🦎','🐍','🦕','🦖','🐢','🦜','🦩','🦚','🦅','🦉','🐦','🕊️','🐧','🦆','🦢','🦋','🐝','🐞','🦗','🐛','🐌','🦑','🐙','🦈','🐬','🐳','🦭','🐠','🐡','🌿'],
+  'Oyun & Tech':['👾','🎮','🕹️','💻','📱','🖥️','🖨️','⌨️','🖱️','🤖','🦾','🦿','⚡','🔋','💡','🌐','📡','🛸','🚀','🤯','💥','⭐','🌟','✨','💫','🔥','🎯','🏆','🥇','🎖️','🎊','🎉','🎈','🎮','🕹️','👑','💎','🪙','💰','🔐','🔓','🗝️','🔑','🛡️','⚔️','🗡️','🏹','💀','☠️','🧩'],
+  'Günlük Hayat':['☕','🌅','🌄','🌞','🌤️','☁️','🌦️','🌧️','⛈️','❄️','🌈','🍳','🥞','🧇','🥓','🥚','☕','🍵','🧃','🥛','🚿','🛁','🪥','🧴','🪞','👔','👗','👟','🧢','🎒','🏠','🏡','🌳','🌿','🌻','🌷','🐕','🐈','🚗','🚲','🛵','🏃','🧘','💤','📱','💻','📺','🎵'],
+  'Kişilik & Test':['🧩','🧠','💭','🌀','🎭','🦋','🌈','⭐','🌟','✨','💫','🔮','🪬','🧿','🎲','🃏','🎯','🏆','🥇','🌸','🌺','🌻','🦁','🐯','🦊','🐺','🐻','🦋','🐬','🦅','🌊','🏔️','🌋','🌿','🍀','🌱','🌾','🔵','🟡','🔴','⚪','🟢','🟠','🟣','⬛','🔲','❤️','🧡','💛','💚','💙']
+};
+let _pokeSelectedTopic=null, _pokeSelectedEmoji=null;
 function initPokePanel(){
   const list=document.getElementById('poke-topics-list');
   if(!list||list.childElementCount) return;
@@ -5069,9 +5517,45 @@ function initPokePanel(){
     const btn=document.createElement('button');
     btn.className='poke-topic-btn';
     btn.innerHTML=`${t.emoji} ${t.label}`;
-    btn.onclick=()=>sendPoke(t.emoji,t.label);
+    btn.onclick=()=>openPokeSub(t.emoji,t.label);
     list.appendChild(btn);
   });
+}
+function openPokeSub(topicEmoji,topicLabel){
+  _pokeSelectedTopic={emoji:topicEmoji,label:topicLabel};
+  _pokeSelectedEmoji=null;
+  // Highlight selected topic
+  document.querySelectorAll('.poke-topic-btn').forEach(b=>{
+    b.classList.toggle('selected',b.textContent.trim()===topicEmoji+' '+topicLabel);
+  });
+  // Populate emoji sub-panel
+  const sub=document.getElementById('poke-emoji-sub');
+  const lbl=document.getElementById('poke-sub-label');
+  const grid=document.getElementById('poke-sub-emojis');
+  if(!sub||!lbl||!grid) return;
+  lbl.textContent=`${topicEmoji} ${topicLabel} — konuya özel emojiler`;
+  const emojis=POKE_TOPIC_EMOJIS[topicLabel]||[];
+  grid.innerHTML=emojis.map(e=>`<button class="poke-sub-emoji-btn" onclick="selectPokeEmoji(this,'${e}')">${e}</button>`).join('');
+  sub.classList.add('open');
+  // Scroll sub into view
+  setTimeout(()=>sub.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+}
+function selectPokeEmoji(btn,emoji){
+  _pokeSelectedEmoji=emoji;
+  document.querySelectorAll('.poke-sub-emoji-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+function closePokeSub(){
+  _pokeSelectedTopic=null;
+  _pokeSelectedEmoji=null;
+  document.getElementById('poke-emoji-sub')?.classList.remove('open');
+  document.querySelectorAll('.poke-topic-btn').forEach(b=>b.classList.remove('selected'));
+}
+async function sendPokeConfirm(){
+  if(!_pokeSelectedTopic){ toast('Önce bir konu seç','info'); return; }
+  const emoji=_pokeSelectedEmoji||_pokeSelectedTopic.emoji;
+  await sendPoke(emoji, _pokeSelectedTopic.label);
+  closePokeSub();
 }
 function togglePokePanel(){
   const panel=document.getElementById('poke-panel');
@@ -5231,6 +5715,8 @@ async function init(){
   // Hide splash after a short delay
   const hideSplash=()=>{const s=document.getElementById('splash-screen');if(s){s.classList.add('hidden');setTimeout(()=>s.remove(),700);}};
   setTimeout(hideSplash, 1200);
+  // Track page visit (works even before login)
+  trackPageVisit().catch(()=>{});
   // Check existing session
   const {data:{session}}=await sb.auth.getSession();
   if(session){
