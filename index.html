@@ -5658,22 +5658,41 @@ async function saveProfile(){
   renderMyAvatar();
   toast('Profil kaydedildi ✅','success');
 }
+// Resmi Canvas ile yeniden boyutlandırıp base64 data URL döndürür
+function _resizeImgToDataUrl(file,maxPx,quality){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    const obj=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(obj);
+      let w=img.width,h=img.height;
+      if(w>h){if(w>maxPx){h=Math.round(h*maxPx/w);w=maxPx;}}
+      else{if(h>maxPx){w=Math.round(w*maxPx/h);h=maxPx;}}
+      const c=document.createElement('canvas');
+      c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',quality));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(obj);rej(new Error('Resim açılamadı'));};
+    img.src=obj;
+  });
+}
 async function updateAvatar(input){
   if(!input.files?.length) return;
   const file=input.files[0];
-  if(file.size>2*1024*1024){toast('Fotoğraf 2MB\'dan küçük olmalı','error');return;}
+  if(file.size>8*1024*1024){toast('Fotoğraf 8MB\'dan küçük olmalı','error');return;}
   try{
-    const path=`avatars/${S.user.id}/${randId()}.${file.name.split('.').pop()}`;
-    const {error:ue}=await sb.storage.from('dosyalar').upload(path,file,{contentType:file.type,upsert:true});
-    if(ue) throw ue;
-    const {data:urlData}=sb.storage.from('dosyalar').getPublicUrl(path);
-    const url=urlData?.publicUrl;
-    await sb.from('profiller').update({avatar_url:url}).eq('id',S.user.id);
-    S.profile.avatar_url=url;
+    toast('Fotoğraf hazırlanıyor...','info');
+    // Canvas'ta 256×256'ya küçült, JPEG olarak base64'e dönüştür
+    // Storage bucket erişim sorununu tamamen ortadan kaldırır
+    const dataUrl=await _resizeImgToDataUrl(file,256,0.80);
+    const {error}=await sb.from('profiller').update({avatar_url:dataUrl}).eq('id',S.user.id);
+    if(error) throw error;
+    S.profile.avatar_url=dataUrl;
     S.profiles[S.user.id]=S.profile;
     renderMyAvatar();
-    toast('Fotoğraf güncellendi','success');
-  } catch(e){ toast(e.message,'error'); }
+    toast('Fotoğraf güncellendi ✓','success');
+  } catch(e){ toast('Hata: '+e.message,'error'); }
 }
 
 // ============================================================
