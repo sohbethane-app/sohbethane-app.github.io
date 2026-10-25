@@ -3041,7 +3041,7 @@ async function renderRoomList(rooms){
     if(isRoom18Plus(r.id)) badge+='<span class="badge-18plus">+18</span>';
     let preview='';
     if(r._lastMsg){
-      if(r._lastMsg.mesaj_tipi==='dosya') preview='📎 Dosya';
+      if(r._lastMsg.mesaj_tipi==='dosya'){const _mt=r._lastMsg.dosya_tipi||'';const _fn=r._lastMsg.dosya_adi||'';const _isImg=_mt.startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|svg|heic)$/i.test(_fn);preview=_isImg?'📷 Resim':'📎 Dosya';}
       else if(r._lastMsg.mesaj_tipi==='ses') preview='🎤 Ses mesajı';
       else if(r._lastMsg.mesaj_tipi==='poke') preview='🫵 Konu talebi';
       else if(r._lastMsg.mesaj_tipi==='poke_yanit') preview='✅ Talebi kabul etti';
@@ -3628,6 +3628,7 @@ function subscribeMessages(roomId){
       const es=container.querySelector('.empty-state'); if(es) es.remove();
       let ld=''; appendMessageEl(enriched,container,'',dt=>{ld=dt;});
       container.scrollTop=container.scrollHeight;
+      if(enriched.mesaj_tipi==='dosya') setTimeout(loadImgPreviews,100);
       // Poke accepted — trigger background for the poke sender
       if(enriched.mesaj_tipi==='poke_yanit'&&enriched.gonderen_id!==S.user.id){
         try{
@@ -3663,6 +3664,7 @@ function subscribeMessages(roomId){
         const d=await decryptMessage({...m,_room:S.currentRoom});
         S.messages[idx]={...m,_text:d};
         renderMessages(S.messages);
+        if(m.mesaj_tipi==='dosya') setTimeout(loadImgPreviews,100);
       }
     })
     .subscribe();
@@ -6140,10 +6142,11 @@ function openRoomInfo(){
   openModal('room-info-modal');
 }
 async function searchMessages(q){
-  if(!q.trim()){renderMessages(S.messages);return;}
+  if(!q.trim()){renderMessages(S.messages);setTimeout(loadImgPreviews,100);return;}
   const lower=q.toLowerCase();
   const matched=S.messages.filter(m=>m._text&&m._text.toLowerCase().includes(lower));
   renderMessages(matched);
+  setTimeout(loadImgPreviews,100);
 }
 
 // ============================================================
