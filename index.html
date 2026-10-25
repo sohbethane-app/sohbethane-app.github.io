@@ -683,6 +683,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <div class="form-group"><label>Kullanıcı adı</label><input id="r-user" type="text" placeholder="harf_rakam_alt_cizgi" autocomplete="username"></div>
         <div class="form-group"><label>Görünen isim</label><input id="r-name" type="text" placeholder="Adınız Soyadınız"></div>
         <div class="form-group"><label>Şifre</label><input id="r-pass" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+        <div class="form-group"><label>Cinsiyet <span style="font-size:.75rem;color:var(--txt2);font-weight:400">(zorunlu değil)</span></label><select id="r-cinsiyet" style="width:100%;padding:.7rem .9rem;border-radius:10px;border:1px solid var(--bdr);background:var(--inp);color:var(--txt);font-size:.95rem;outline:none"><option value="">Belirtmek istemiyorum</option><option value="E">👨 Erkek</option><option value="K">👩 Kadın</option><option value="D">🌈 Diğer</option></select></div>
+        <div class="form-group"><label>Yaş <span style="font-size:.75rem;color:var(--txt2);font-weight:400">(zorunlu değil)</span></label><input id="r-yas" type="number" min="13" max="100" placeholder="Yaşınız (örn: 25)"></div>
         <div style="margin-bottom:.6rem">
           <span id="invite-toggle" onclick="document.getElementById('invite-field').style.display='block';this.style.display='none'" style="color:var(--acc);cursor:pointer;font-size:.85rem;user-select:none">🔑 Davet kodum var →</span>
           <div class="form-group" id="invite-field" style="display:none;margin-top:.5rem;margin-bottom:0"><label>Davet Kodu <span style="font-size:.75rem;color:var(--txt2);font-weight:400">(zorunlu değil)</span></label><input id="r-invite" type="text" placeholder="XXXX-XXXX" autocomplete="off"></div>
@@ -1889,6 +1891,7 @@ function applyI18n(){
     const ru=document.getElementById('r-user');if(ru)ru.placeholder=T('auth.ph.user');
     const rn=document.getElementById('r-name');if(rn)rn.placeholder=T('auth.ph.name');
     const ri=document.getElementById('r-invite');if(ri)ri.placeholder=T('auth.ph.invite');
+    const ry=document.getElementById('r-yas');if(ry)ry.placeholder=T('auth.ph.yas')||'Yaşınız (örn: 25)';
     const btn=rf.querySelector('button');if(btn)btn.textContent=T('auth.btn.register');
   }
   // Sidebar tabs
@@ -2474,10 +2477,14 @@ async function doRegister(){
   const goruntu  = document.getElementById('r-name').value.trim();
   const password = document.getElementById('r-pass').value;
   const inviteCode= document.getElementById('r-invite').value.trim().toUpperCase();
+  const cinsiyet  = document.getElementById('r-cinsiyet')?.value || '';
+  const yasStr    = (document.getElementById('r-yas')?.value||'').trim();
+  const yas       = yasStr ? parseInt(yasStr,10) : null;
   const err = document.getElementById('register-err');
   err.textContent='';
   if(!username||!goruntu||!password){err.textContent='Tüm alanları doldurun.';return;}
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
+  if(yasStr&&(isNaN(yas)||yas<13||yas>100)){err.textContent='Geçerli bir yaş girin (13-100).';return;}
   try{
     // Check if first user
     const {data:hasUser} = await sb.rpc('kullanici_var_mi');
@@ -2505,6 +2512,8 @@ async function doRegister(){
     const {error:pe} = await sb.from('profiller').insert({
       id:S.user.id, kullanici_adi:username, goruntu_adi:goruntu,
       acik_anahtar:pubJwk, sarili_ozel_anahtar:sarili, sarlama_iv,
+      ...(cinsiyet?{cinsiyet}:{}),
+      ...(yas?{yas}:{}),
       ...(kayitUlke?{ulke:kayitUlke}:{}),
       ...(kayitIp?{ip_adresi:kayitIp}:{}),
       son_giris:new Date().toISOString()
@@ -6199,9 +6208,13 @@ window.doRegister=async function(){
   const goruntu=document.getElementById('r-name').value.trim();
   const password=document.getElementById('r-pass').value;
   const inviteCode=document.getElementById('r-invite').value.trim().toUpperCase();
+  const cinsiyet2=document.getElementById('r-cinsiyet')?.value||'';
+  const yasStr2=(document.getElementById('r-yas')?.value||'').trim();
+  const yas2=yasStr2?parseInt(yasStr2,10):null;
   const err=document.getElementById('register-err'); err.textContent='';
   if(!username||!goruntu||!password){err.textContent='Tüm alanları doldurun.';return;}
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
+  if(yasStr2&&(isNaN(yas2)||yas2<13||yas2>100)){err.textContent='Geçerli bir yaş girin (13-100).';return;}
   try{
     const {data:hasUser}=await sb.rpc('kullanici_var_mi');
     if(hasUser&&inviteCode){
@@ -6222,7 +6235,7 @@ window.doRegister=async function(){
     const {sarili,iv:sarlama_iv}=await wrapPrivateKey(kp.privateKey,wrapKey);
     const {ulke:kayitUlke2,ip_adresi:kayitIp2}=await detectGeoInfo();
     if(kayitIp2){const{data:banCheck2}=await sb.from('yasakli_ipler').select('id').eq('ip_adresi',kayitIp2).limit(1);if(banCheck2?.length){document.getElementById('register-err').textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
-    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(kayitUlke2?{ulke:kayitUlke2}:{}),...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()});
+    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(cinsiyet2?{cinsiyet:cinsiyet2}:{}),...(yas2?{yas:yas2}:{}),...(kayitUlke2?{ulke:kayitUlke2}:{}),...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()});
     if(pe) throw pe;
     if(hasUser&&inviteCode){
       const {data:inv2}=await sb.from('davetler').select('id,kullanim').eq('kod',inviteCode).single();
