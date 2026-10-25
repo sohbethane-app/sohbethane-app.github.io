@@ -2392,12 +2392,22 @@ async function loadRooms(){
   // Dedup: same oda_id may appear twice due to DB duplicates
   const seen=new Set();
   const dedupedMem=memberships.filter(m=>{ if(seen.has(m.oda_id)) return false; seen.add(m.oda_id); return true; });
-  const roomIds = dedupedMem.map(m=>m.oda_id);
+  // Kullanıcı tarafından silinmiş odaları filtrele
+  const deletedRooms=_getDeletedRooms();
+  const activeMem=dedupedMem.filter(m=>!deletedRooms.has(m.oda_id));
+  const roomIds = activeMem.map(m=>m.oda_id);
   if(!roomIds.length){ renderRoomList([]); return; }
   const {data:rooms} = await sb.from('odalar').select('*').in('id',roomIds).order('olusturma_tarihi',{ascending:false});
   // Also dedup rooms array itself (Supabase IN can occasionally return dupes)
   const roomsSeen=new Set();
   const dedupedRooms=(rooms||[]).filter(r=>{ if(roomsSeen.has(r.id)) return false; roomsSeen.add(r.id); return true; });
+  // Kullanıcıya özel arşiv durumunu uygula (localStorage)
+  const archivedRooms=_getArchivedRooms();
+  dedupedRooms.forEach(r=>{
+    if(!r._originalTur) r._originalTur=r.tur; // orijinal türü sakla
+    if(archivedRooms.has(r.id)) r.tur='arsiv';
+    else if(r.tur==='arsiv' && r._originalTur && r._originalTur!=='arsiv') r.tur=r._originalTur;
+  });
   S.rooms = dedupedRooms;
   // Load last messages for preview + initial unread count
   for(const r of S.rooms){
@@ -3563,6 +3573,7 @@ function showRoomMenu(e,roomId,fromKasa=false){
   if(!fromKasa){
     if(room.tur!=='dm') items.push({label:'✏️ Yeniden Adlandır',fn:()=>renameRoom(roomId)});
     if(room.tur!=='arsiv') items.push({label:'📁 Arşive Taşı',fn:()=>moveRoomToArchive(roomId)});
+    else items.push({label:'↩️ Arşivden Çıkar',fn:()=>moveRoomFromArchive(roomId)});
     // Kasa
     items.push({label:'🔐 Şifrele ve Gizle',fn:()=>hideRoomToKasa(roomId)});
     // +18
@@ -3589,13 +3600,30 @@ async function renameRoom(roomId){
   renderRoomList(S.rooms);
   toast('İsim güncellendi ✓','success');
 }
+// --- Per-kullanıcı arşiv/silindi takibi (localStorage) ---
+function _userKey(suffix){ return `sh_${S.user?.id||'x'}_${suffix}`; }
+function _getArchivedRooms(){ try{ return new Set(JSON.parse(localStorage.getItem(_userKey('arsiv'))||'[]')); }catch(e){ return new Set(); } }
+function _setArchivedRooms(set){ try{ localStorage.setItem(_userKey('arsiv'),JSON.stringify([...set])); }catch(e){} }
+function _getDeletedRooms(){ try{ return new Set(JSON.parse(localStorage.getItem(_userKey('silindi'))||'[]')); }catch(e){ return new Set(); } }
+function _addDeletedRoom(id){ try{ const s=_getDeletedRooms(); s.add(id); localStorage.setItem(_userKey('silindi'),JSON.stringify([...s])); }catch(e){} }
+
 async function deleteRoom(roomId){
   const room=S.rooms.find(r=>r.id===roomId);
   if(!room) return;
   const label=room.isim||(room.tur==='dm'?'DM Sohbeti':'Sohbet');
   if(!confirm(`"${label}" silinsin mi?\nBu işlem geri alınamaz.`)) return;
-  const {error}=await sb.from('odalar').delete().eq('id',roomId);
-  if(error){ toast('Silinemedi: '+error.message,'error'); return; }
+
+  // 1) Kullanıcının kendi üyelik kaydını sil — RLS her zaman izin verir
+  await sb.from('oda_uyeleri').delete().eq('oda_id',roomId).eq('kullanici_id',S.user.id);
+  // 2) Aynı zamanda localStorage'da da işaretle — `loadRooms` yeniden çekmez
+  _addDeletedRoom(roomId);
+  // 3) Oda sahibiyse odayı ve mesajları da temizlemeyi dene (hata önemsiz)
+  if(room.olusturan_id===S.user.id){
+    sb.from('mesajlar').delete().eq('oda_id',roomId).then(()=>{});
+    sb.from('oda_uyeleri').delete().eq('oda_id',roomId).then(()=>{});
+    sb.from('odalar').delete().eq('id',roomId).then(()=>{});
+  }
+  // 4) Lokal state güncelle
   S.rooms=S.rooms.filter(r=>r.id!==roomId);
   if(S.currentRoom?.id===roomId){
     S.currentRoom=null;
@@ -3603,21 +3631,38 @@ async function deleteRoom(roomId){
     const hdr=document.getElementById('chat-header-name');
     if(hdr) hdr.textContent='SohbetHane';
   }
+  // Arşiv listesinden de çıkar
+  const arc=_getArchivedRooms(); arc.delete(roomId); _setArchivedRooms(arc);
   renderRoomList(S.rooms);
   toast('Silindi ✓');
 }
+
 async function moveRoomToArchive(roomId){
   const room=S.rooms.find(r=>r.id===roomId);
   if(!room) return;
-  const {error}=await sb.from('odalar').update({tur:'arsiv'}).eq('id',roomId);
-  if(error){ toast('Taşınamadı: '+error.message,'error'); return; }
+  // localStorage'da kullanıcıya özel arşiv — odaları table tur değiştirilmez
+  const arc=_getArchivedRooms(); arc.add(roomId); _setArchivedRooms(arc);
+  // room objesini güncelle ki render doğru yapsın
   room.tur='arsiv';
   if(S.currentRoom?.id===roomId) S.currentRoom.tur='arsiv';
-  // Arşivler sekmesine geç ve listele
   const arsivTabEl=document.getElementById('stab-arsiv');
   if(arsivTabEl) switchSideTab(arsivTabEl,'arsiv');
   else renderRoomList(S.rooms);
   toast('Arşive taşındı ✓','success');
+}
+
+async function moveRoomFromArchive(roomId){
+  const room=S.rooms.find(r=>r.id===roomId);
+  if(!room) return;
+  const arc=_getArchivedRooms(); arc.delete(roomId); _setArchivedRooms(arc);
+  // Orijinal türe geri çek — DM mi grup mu?
+  const originalTur = room._originalTur||'dm';
+  room.tur=originalTur;
+  if(S.currentRoom?.id===roomId) S.currentRoom.tur=originalTur;
+  const dmTabEl=document.getElementById('stab-dm');
+  if(dmTabEl) switchSideTab(dmTabEl,'dm');
+  else renderRoomList(S.rooms);
+  toast('Arşivden çıkarıldı ✓','success');
 }
 // ============================================================
 // KASA (Şifreli Gizli Oda)
