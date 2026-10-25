@@ -69,8 +69,10 @@ a{color:var(--acc2);text-decoration:none}
 /* Stats */
 .auth-stats{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:.8rem 1rem}
 .auth-stat{text-align:center;flex:1}
-.auth-stat-num{display:block;font-size:1.05rem;font-weight:800;background:linear-gradient(135deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.auth-stat-label{font-size:.68rem;color:rgba(180,165,215,.65)}
+.auth-stat-num{display:block;font-size:1.75rem;font-weight:900;background:linear-gradient(135deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.5px;line-height:1.1;transition:transform .2s}
+.auth-stat-num.stat-bump{animation:statBump .4s ease}
+@keyframes statBump{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+.auth-stat-label{font-size:.7rem;color:rgba(180,165,215,.72);margin-top:.15rem}
 .auth-stat-sep{width:1px;height:32px;background:rgba(255,255,255,.1);flex-shrink:0}
 /* Right panel */
 .auth-right{width:400px;padding:3rem 2.5rem;display:flex;flex-direction:column;justify-content:center;position:relative}
@@ -518,70 +520,19 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div class="auth-brand">
       <div class="auth-brand-icon">💬</div>
       <h1>SohbetHane</h1>
-      <p>Dünyanın dört bir yanındaki insanlarla<br>güvenli ve şifreli sohbet et 🌍</p>
+      <p id="auth-brand-tagline">Dünyanın dört bir yanındaki insanlarla<br>güvenli ve şifreli sohbet et 🌍</p>
     </div>
-    <!-- Kullanıcı tanışma kartları -->
-    <div class="auth-users-showcase">
-      <div class="auth-user-row" style="animation-delay:.1s">
-        <div class="auth-ucard">
-          <div class="auth-uavatar">👩🏻‍🦰</div>
-          <div class="auth-uinfo"><b>Elif K.</b><span>🇹🇷 Türkiye</span></div>
-          <div class="auth-uonline"></div>
-        </div>
-        <div class="auth-heart-connector">💝</div>
-        <div class="auth-ucard">
-          <div class="auth-uavatar">👨🏽</div>
-          <div class="auth-uinfo"><b>Arjun M.</b><span>🇮🇳 Hindistan</span></div>
-          <div class="auth-uonline"></div>
-        </div>
-      </div>
-      <div class="auth-user-row" style="animation-delay:.28s;margin-left:1.4rem">
-        <div class="auth-ucard">
-          <div class="auth-uavatar">👩🏾</div>
-          <div class="auth-uinfo"><b>Maria L.</b><span>🇧🇷 Brezilya</span></div>
-          <div class="auth-uonline"></div>
-        </div>
-        <div class="auth-heart-connector">💕</div>
-        <div class="auth-ucard">
-          <div class="auth-uavatar">👨🏻‍💼</div>
-          <div class="auth-uinfo"><b>Kai S.</b><span>🇩🇪 Almanya</span></div>
-          <div class="auth-uonline"></div>
-        </div>
-      </div>
-      <div class="auth-user-row" style="animation-delay:.46s;margin-left:.5rem">
-        <div class="auth-ucard">
-          <div class="auth-uavatar">👩🏼‍🎤</div>
-          <div class="auth-uinfo"><b>Hana Y.</b><span>🇯🇵 Japonya</span></div>
-          <div class="auth-uonline"></div>
-        </div>
-        <div class="auth-heart-connector">❤️</div>
-        <div class="auth-ucard">
-          <div class="auth-uavatar">👦🏻</div>
-          <div class="auth-uinfo"><b>Budi S.</b><span>🇮🇩 Endonezya</span></div>
-          <div class="auth-uonline"></div>
-        </div>
-      </div>
-      <div class="auth-user-row" style="animation-delay:.62s;margin-left:2rem">
-        <div class="auth-ucard">
-          <div class="auth-uavatar">👱🏻‍♀️</div>
-          <div class="auth-uinfo"><b>Lena M.</b><span>🇺🇸 ABD</span></div>
-          <div class="auth-uonline"></div>
-        </div>
-        <div class="auth-heart-connector">🧡</div>
-        <div class="auth-ucard">
-          <div class="auth-uavatar">👨🏿</div>
-          <div class="auth-uinfo"><b>Kwame A.</b><span>🇬🇭 Gana</span></div>
-          <div class="auth-uonline"></div>
-        </div>
-      </div>
+    <!-- Kullanıcı tanışma kartları — ülkeye göre dinamik -->
+    <div class="auth-users-showcase" id="auth-showcase">
+      <!-- JS tarafından doldurulur: renderShowcase() -->
     </div>
     <!-- İstatistikler -->
     <div class="auth-stats">
-      <div class="auth-stat"><span class="auth-stat-num">47K+</span><span class="auth-stat-label">👥 Üye</span></div>
+      <div class="auth-stat"><span class="auth-stat-num" id="stat-num-members">34.1K+</span><span class="auth-stat-label" id="stat-members">👥 Üye</span></div>
       <div class="auth-stat-sep"></div>
-      <div class="auth-stat"><span class="auth-stat-num">125</span><span class="auth-stat-label">🌍 Ülke</span></div>
+      <div class="auth-stat"><span class="auth-stat-num">125</span><span class="auth-stat-label" id="stat-countries">🌍 Ülke</span></div>
       <div class="auth-stat-sep"></div>
-      <div class="auth-stat"><span class="auth-stat-num">🟢 1.2K</span><span class="auth-stat-label">Şu an aktif</span></div>
+      <div class="auth-stat"><span class="auth-stat-num" id="stat-num-active">🟢 1.2K</span><span class="auth-stat-label" id="stat-active">Şu an aktif</span></div>
     </div>
   </div>
   <!-- Sağ panel -->
@@ -1107,7 +1058,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 // ============================================================
 // I18N — Dil paketi ve çeviri sistemi
 // ============================================================
-const _UI_LANG=(()=>{const l=(navigator.language||'en').toLowerCase().split('-')[0];return['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'].includes(l)?l:'en';})();
+let _UI_LANG=(()=>{const l=(navigator.language||'en').toLowerCase().split('-')[0];return['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'].includes(l)?l:'en';})();
 const I18N={
 tr:{
   'auth.tagline1':'Mesajlarınız yalnızca size aittir.',
@@ -1368,6 +1319,21 @@ pt:{
   'room.empty.dm':'Sem conversas','room.empty.grup':'Sem grupos.','room.empty.arsiv':'Sem arquivos.',
 },
 };
+// Yeni auth-left + showcase anahtarları — tüm diller
+{const _NW={
+tr:{'auth.tagline.social':'Dünyanın dört bir yanındaki insanlarla güvenli sohbet et 🌍','auth.stat.members':'👥 Üye','auth.stat.countries':'🌍 Ülke','auth.stat.active':'Şu an aktif','auth.invite.toggle':'🔑 Davet kodum var →'},
+en:{'auth.tagline.social':'Chat safely with people from around the world 🌍','auth.stat.members':'👥 Members','auth.stat.countries':'🌍 Countries','auth.stat.active':'Online now','auth.invite.toggle':'🔑 I have an invite code →'},
+id:{'auth.tagline.social':'Ngobrol aman dengan orang-orang di seluruh dunia 🌍','auth.stat.members':'👥 Anggota','auth.stat.countries':'🌍 Negara','auth.stat.active':'Online sekarang','auth.invite.toggle':'🔑 Saya punya kode undangan →'},
+ar:{'auth.tagline.social':'تواصل بأمان مع أشخاص من حول العالم 🌍','auth.stat.members':'👥 أعضاء','auth.stat.countries':'🌍 دولة','auth.stat.active':'متصل الآن','auth.invite.toggle':'🔑 لدي رمز دعوة →'},
+de:{'auth.tagline.social':'Chatte sicher mit Menschen aus aller Welt 🌍','auth.stat.members':'👥 Mitglieder','auth.stat.countries':'🌍 Länder','auth.stat.active':'Jetzt online','auth.invite.toggle':'🔑 Ich habe einen Einladungscode →'},
+fr:{'auth.tagline.social':'Discutez en sécurité avec des personnes du monde entier 🌍','auth.stat.members':'👥 Membres','auth.stat.countries':'🌍 Pays','auth.stat.active':'En ligne maintenant','auth.invite.toggle':'🔑 J\'ai un code d\'invitation →'},
+es:{'auth.tagline.social':'Chatea de forma segura con personas de todo el mundo 🌍','auth.stat.members':'👥 Miembros','auth.stat.countries':'🌍 Países','auth.stat.active':'En línea ahora','auth.invite.toggle':'🔑 Tengo un código de invitación →'},
+ru:{'auth.tagline.social':'Общайтесь безопасно с людьми со всего мира 🌍','auth.stat.members':'👥 Участников','auth.stat.countries':'🌍 Стран','auth.stat.active':'Онлайн сейчас','auth.invite.toggle':'🔑 У меня есть код приглашения →'},
+zh:{'auth.tagline.social':'与全世界的人安全聊天 🌍','auth.stat.members':'👥 成员','auth.stat.countries':'🌍 国家','auth.stat.active':'当前在线','auth.invite.toggle':'🔑 我有邀请码 →'},
+ja:{'auth.tagline.social':'世界中の人々と安全にチャット 🌍','auth.stat.members':'👥 メンバー','auth.stat.countries':'🌍 カ国','auth.stat.active':'今オンライン','auth.invite.toggle':'🔑 招待コードを持っています →'},
+ko:{'auth.tagline.social':'전 세계 사람들과 안전하게 채팅하세요 🌍','auth.stat.members':'👥 회원','auth.stat.countries':'🌍 국가','auth.stat.active':'지금 온라인','auth.invite.toggle':'🔑 초대 코드가 있어요 →'},
+pt:{'auth.tagline.social':'Converse com segurança com pessoas do mundo todo 🌍','auth.stat.members':'👥 Membros','auth.stat.countries':'🌍 Países','auth.stat.active':'Online agora','auth.invite.toggle':'🔑 Tenho um código de convite →'},
+};for(const l in _NW){if(I18N[l])Object.assign(I18N[l],_NW[l]);}}
 function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]||k;}
 function applyI18n(){
   // RTL for Arabic
@@ -1377,20 +1343,13 @@ function applyI18n(){
   const q=(s,k)=>{const e=document.querySelector(s);if(e)e.textContent=T(k);};
   const qp=(s,k)=>{const e=document.querySelector(s);if(e)e.placeholder=T(k);};
   const qi=(s,h)=>{const e=document.querySelector(s);if(e)e.innerHTML=h;};
-  q('.auth-brand p:first-of-type','auth.tagline1');
-  q('.auth-brand p:last-of-type','auth.tagline2');
-  // Trust badges
-  const badges=document.querySelectorAll('.auth-trust-badge');
-  if(badges[2])badges[2].querySelector('span:last-child').textContent=T('auth.badge.zero');
-  if(badges[3])badges[3].querySelector('span:last-child').textContent=T('auth.badge.translate');
-  // Chat preview
-  const msgs=document.querySelectorAll('.auth-chat-preview .auth-msg');
-  if(msgs[0])msgs[0].textContent=T('auth.preview.1');
-  if(msgs[1])msgs[1].textContent=T('auth.preview.2');
-  if(msgs[2])msgs[2].textContent=T('auth.preview.3');
-  if(msgs[3])msgs[3].textContent=T('auth.preview.4');
-  const lockMsg=document.querySelector('.auth-msg-lock');
-  if(lockMsg)lockMsg.textContent=T('auth.preview.lock');
+  // Auth left panel
+  const tagEl=document.getElementById('auth-brand-tagline');
+  if(tagEl){tagEl.innerHTML=T('auth.tagline.social').replace('\n','<br>');}
+  const smEl=document.getElementById('stat-members');if(smEl)smEl.textContent=T('auth.stat.members');
+  const scEl=document.getElementById('stat-countries');if(scEl)scEl.textContent=T('auth.stat.countries');
+  const saEl=document.getElementById('stat-active');if(saEl)saEl.textContent=T('auth.stat.active');
+  const itEl=document.getElementById('invite-toggle');if(itEl)itEl.textContent=T('auth.invite.toggle');
   // Auth box
   q('.auth-logo p','auth.subtitle.top');
   q('#auth-heading .auth-title','auth.welcome');
@@ -1434,7 +1393,181 @@ function applyI18n(){
   const msgDiv=document.getElementById('messages');
   if(msgDiv){const es=msgDiv.querySelector('.empty-state p');if(es)es.textContent=T('chat.empty');}
 }
-document.addEventListener('DOMContentLoaded',applyI18n);
+// ============================================================
+// GEO — Ülke bazlı showcase + dil güncelleme
+// ============================================================
+// Ülke kodu → bayrak emoji dönüştürücü
+function _ccFlag(cc){return cc.toUpperCase().split('').map(c=>String.fromCodePoint(c.codePointAt(0)+127397)).join('');}
+// Ülke kodu → yerelleştirilmiş ülke adı (Intl API)
+function _ccName(cc){try{return new Intl.DisplayNames([_UI_LANG,'en'],{type:'region'}).of(cc)||cc;}catch(e){return cc;}}
+// Ülke kodu → arayüz dili
+const _CC_LANG={TR:'tr',AZ:'tr',KZ:'tr',TM:'tr',KG:'tr',UZ:'tr',ID:'id',MY:'id',PH:'id',SA:'ar',AE:'ar',EG:'ar',IQ:'ar',SY:'ar',LB:'ar',JO:'ar',KW:'ar',QA:'ar',BH:'ar',OM:'ar',YE:'ar',LY:'ar',TN:'ar',DZ:'ar',MA:'ar',SD:'ar',DE:'de',AT:'de',LI:'de',FR:'fr',BE:'fr',LU:'fr',MC:'fr',ES:'es',MX:'es',CO:'es',AR:'es',PE:'es',VE:'es',CL:'es',EC:'es',DO:'es',CU:'es',RU:'ru',BY:'ru',UA:'ru',CN:'zh',TW:'zh',HK:'zh',MO:'zh',SG:'zh',JP:'ja',KR:'ko',BR:'pt',PT:'pt',AO:'pt',MZ:'pt'};
+// Ülke kodu → bölge anahtarı (showcase için)
+const _CC_REGION={TR:'TR',AZ:'TR',KZ:'TR',UZ:'TR',KG:'TR',TM:'TR',ID:'ID',MY:'ID',PH:'ID',JP:'JP',KR:'KR',SA:'SA',AE:'SA',EG:'SA',IQ:'SA',SY:'SA',LB:'SA',JO:'SA',KW:'SA',QA:'SA',BH:'SA',OM:'SA',YE:'SA',LY:'SA',TN:'SA',DZ:'SA',MA:'SA',SD:'SA',DE:'DE',AT:'DE',LI:'DE',FR:'FR',BE:'FR',LU:'FR',MC:'FR',ES:'ES',MX:'ES',CO:'ES',AR:'ES',PE:'ES',VE:'ES',CL:'ES',EC:'ES',DO:'ES',CU:'ES',RU:'RU',BY:'RU',UA:'RU',BR:'BR',PT:'BR',AO:'BR',MZ:'BR',CN:'CN',TW:'CN',HK:'CN',MO:'CN',IN:'IN',PK:'IN',BD:'IN',LK:'IN',US:'US',CA:'US',AU:'US',GB:'US',NZ:'US',IE:'US',ZA:'US',NG:'NG',GH:'NG',KE:'NG',ET:'NG'};
+// Bölge → 4 çift tanım  [a:{e,n,cc}, b:{e,n,cc}, kalp]
+const _SHOWCASE={
+default:[
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💝'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💕'],
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👦🏻',n:'Budi S.',cc:'ID'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+TR:[
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💝'],
+  [{e:'👧🏻',n:'Zeynep A.',cc:'TR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💕'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👦🏻',n:'Budi S.',cc:'ID'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+ID:[
+  [{e:'👩🏽',n:'Siti A.',cc:'ID'},{e:'👦🏻',n:'Budi S.',cc:'ID'},'💝'],
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💕'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏻',n:'Ryan P.',cc:'AU'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+JP:[
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👨🏻',n:'Chen W.',cc:'CN'},'💝'],
+  [{e:'👩🏼',n:'Yuki T.',cc:'JP'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💕'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+KR:[
+  [{e:'👩🏼',n:'Jisoo K.',cc:'KR'},{e:'👨🏻',n:'Chen W.',cc:'CN'},'💝'],
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💕'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+SA:[
+  [{e:'👩🏽',n:'Amira H.',cc:'EG'},{e:'👨🏽',n:'Ali R.',cc:'SA'},'💝'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💕'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+DE:[
+  [{e:'👱🏻‍♀️',n:'Lena K.',cc:'DE'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💝'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💕'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👦🏻',n:'Budi S.',cc:'ID'},'❤️'],
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+FR:[
+  [{e:'👩🏻',n:'Sophie D.',cc:'FR'},{e:'👨🏻',n:'Marco F.',cc:'IT'},'💝'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💕'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+ES:[
+  [{e:'👩🏻',n:'Sofia R.',cc:'ES'},{e:'👨🏻',n:'Juan C.',cc:'MX'},'💝'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💕'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+RU:[
+  [{e:'👩🏼‍🦱',n:'Anya P.',cc:'RU'},{e:'👨🏾',n:'Dev S.',cc:'IN'},'💝'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💕'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+BR:[
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💝'],
+  [{e:'👩🏻',n:'Sofia R.',cc:'ES'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💕'],
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👦🏻',n:'Budi S.',cc:'ID'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+CN:[
+  [{e:'👩🏼',n:'Mei L.',cc:'CN'},{e:'👨🏻',n:'Alex M.',cc:'CA'},'💝'],
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💕'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏾',n:'Dev S.',cc:'IN'},'🧡'],
+],
+IN:[
+  [{e:'👩🏾',n:'Priya S.',cc:'IN'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'💝'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💕'],
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👦🏻',n:'Budi S.',cc:'ID'},'❤️'],
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'🧡'],
+],
+US:[
+  [{e:'👱🏻‍♀️',n:'Lena M.',cc:'US'},{e:'👨🏿',n:'Kwame A.',cc:'GH'},'💝'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'💕'],
+  [{e:'👩🏼‍🎤',n:'Hana Y.',cc:'JP'},{e:'👦🏻',n:'Budi S.',cc:'ID'},'❤️'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'🧡'],
+],
+NG:[
+  [{e:'👨🏿',n:'Kwame A.',cc:'GH'},{e:'👩🏻',n:'Sophie D.',cc:'FR'},'💝'],
+  [{e:'👩🏾',n:'Nadia K.',cc:'NG'},{e:'👨🏻',n:'Tom J.',cc:'US'},'💕'],
+  [{e:'👩🏻‍🦰',n:'Elif K.',cc:'TR'},{e:'👨🏽',n:'Arjun M.',cc:'IN'},'❤️'],
+  [{e:'👩🏾',n:'Maria L.',cc:'BR'},{e:'👨🏻‍💼',n:'Kai S.',cc:'DE'},'🧡'],
+],
+};
+// Showcase HTML oluştur
+function renderShowcase(cc){
+  const el=document.getElementById('auth-showcase');if(!el)return;
+  const rk=_CC_REGION[cc]||'default';
+  const pairs=_SHOWCASE[rk]||_SHOWCASE.default;
+  const delays=[.1,.28,.46,.62];const margins=['0','1.4rem','.5rem','2rem'];
+  let html='';
+  pairs.forEach((pair,i)=>{
+    const[a,b,h]=pair;
+    html+=`<div class="auth-user-row" style="animation-delay:${delays[i]}s;margin-left:${margins[i]}">
+      <div class="auth-ucard"><div class="auth-uavatar">${a.e}</div>
+        <div class="auth-uinfo"><b>${a.n}</b><span>${_ccFlag(a.cc)} ${_ccName(a.cc)}</span></div>
+        <div class="auth-uonline"></div></div>
+      <div class="auth-heart-connector">${h}</div>
+      <div class="auth-ucard"><div class="auth-uavatar">${b.e}</div>
+        <div class="auth-uinfo"><b>${b.n}</b><span>${_ccFlag(b.cc)} ${_ccName(b.cc)}</span></div>
+        <div class="auth-uonline"></div></div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+// Canlı sayaç animasyonu (30K+ üzeri, sürekli değişiyor)
+function initLiveStats(){
+  const mEl=document.getElementById('stat-num-members');
+  const aEl=document.getElementById('stat-num-active');
+  if(!mEl&&!aEl)return;
+  let members=34127,active=1247;
+  function fmtK(n){return n>=1000?(Math.round(n/100)/10).toFixed(1)+'K':String(n);}
+  function bump(el){el.classList.remove('stat-bump');void el.offsetWidth;el.classList.add('stat-bump');}
+  function tick(){
+    // Üye: yavaş artış
+    const dm=Math.floor(Math.random()*3);members+=dm;
+    // Aktif: dalgalanma
+    const da=Math.floor(Math.random()*18)*(Math.random()>.45?1:-1);
+    active=Math.max(1050,Math.min(1650,active+da));
+    if(mEl){const t=fmtK(members)+'+';if(mEl.textContent!==t){mEl.textContent=t;bump(mEl);}}
+    if(aEl){const t='🟢 '+fmtK(active);if(aEl.textContent!==t){aEl.textContent=t;bump(aEl);}}
+  }
+  tick();setInterval(tick,3500);
+}
+// Geo bazlı dil + showcase güncelleme (sayfa yüklenince)
+async function initGeoShowcase(){
+  // Showcase'i hemen varsayılanla doldur
+  renderShowcase(null);
+  initLiveStats();
+  try{
+    const{ulke,ip_adresi,country_code}=await (async()=>{
+      const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),5000);
+      try{
+        const r=await fetch('https://ipapi.co/json/',{signal:ctrl.signal});
+        clearTimeout(tid);
+        if(!r.ok)return{};
+        const d=await r.json();
+        if(d?.error)return{};
+        return{ulke:d.country_name||null,ip_adresi:d.ip||null,country_code:d.country_code||null};
+      }catch(e){clearTimeout(tid);return{};}
+    })();
+    if(country_code){
+      // Ülkeye göre showcase güncelle
+      renderShowcase(country_code);
+      // Eğer tarayıcı dili desteklenen listede değilse (en gibi) ve ülke dili bilinyorsa geçiş yap
+      const detectedLang=_CC_LANG[country_code];
+      const browserRaw=(navigator.language||'').toLowerCase().split('-')[0];
+      const supported=['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'];
+      if(detectedLang&&!supported.includes(browserRaw)&&_UI_LANG==='en'){
+        _UI_LANG=detectedLang;applyI18n();renderShowcase(country_code);
+      }
+    }
+  }catch(_){}
+}
+document.addEventListener('DOMContentLoaded',()=>{applyI18n();initGeoShowcase();});
 // ============================================================
 // CONFIG — Supabase projenizin bilgilerini buraya girin
 // ============================================================
