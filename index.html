@@ -287,6 +287,27 @@ a{color:var(--acc2);text-decoration:none}
 .emoji-grid::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
 .emoji-btn-item{background:none;font-size:1.3rem;padding:.2rem;border-radius:6px;cursor:pointer;line-height:1;transition:.1s}
 .emoji-btn-item:hover{background:var(--bg3);transform:scale(1.25)}
+/* POKE / DÜRT */
+#poke-btn{background:linear-gradient(135deg,rgba(255,77,109,.18),rgba(201,24,74,.12));border:1px solid rgba(255,77,109,.4);border-radius:20px;padding:.25rem .65rem;font-size:.78rem;color:#ff4d6d;cursor:pointer;font-weight:700;letter-spacing:.02em;transition:.2s;white-space:nowrap;display:flex;align-items:center;gap:.25rem}
+#poke-btn:hover{background:linear-gradient(135deg,rgba(255,77,109,.3),rgba(201,24,74,.22));transform:scale(1.05);box-shadow:0 2px 12px rgba(255,77,109,.3)}
+#poke-panel{position:fixed;z-index:9999;background:var(--bg2);border:1.5px solid rgba(255,77,109,.35);border-radius:18px;padding:1rem;width:320px;box-shadow:0 8px 40px rgba(0,0,0,.35),0 2px 8px rgba(255,77,109,.15);display:none;flex-direction:column;gap:.7rem}
+#poke-panel.open{display:flex}
+#poke-panel-title{font-size:.85rem;font-weight:700;color:#ff4d6d;text-align:center;letter-spacing:.04em}
+#poke-panel-subtitle{font-size:.72rem;color:var(--txt2);text-align:center;margin-top:-.3rem}
+.poke-topics{display:flex;flex-wrap:wrap;gap:.45rem}
+.poke-topic-btn{background:var(--bg3);border:1px solid var(--brd);border-radius:20px;padding:.3rem .7rem;font-size:.78rem;cursor:pointer;transition:.18s;color:var(--txt);display:flex;align-items:center;gap:.25rem}
+.poke-topic-btn:hover{background:linear-gradient(135deg,rgba(255,77,109,.22),rgba(201,24,74,.15));border-color:rgba(255,77,109,.5);color:#ff4d6d;transform:scale(1.05)}
+/* Poke message card */
+.poke-card{background:linear-gradient(135deg,rgba(255,77,109,.12),rgba(201,24,74,.08));border:1.5px solid rgba(255,77,109,.35);border-radius:14px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.5rem;min-width:180px;max-width:260px}
+.poke-card-header{display:flex;align-items:center;gap:.4rem;font-size:.75rem;font-weight:700;color:#ff4d6d;text-transform:uppercase;letter-spacing:.06em}
+.poke-card-topic{font-size:1.05rem;font-weight:700;color:var(--txt);line-height:1.3}
+.poke-card-sub{font-size:.72rem;color:var(--txt2)}
+.poke-accept-btn{background:linear-gradient(135deg,#c9184a,#ff4d6d);color:#fff;border:none;border-radius:10px;padding:.4rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;align-self:flex-start;transition:.18s;box-shadow:0 2px 8px rgba(201,24,74,.3)}
+.poke-accept-btn:hover{transform:scale(1.06);box-shadow:0 3px 14px rgba(201,24,74,.45)}
+.poke-accept-btn:disabled{opacity:.55;cursor:default;transform:none}
+.poke-reply-card{background:linear-gradient(135deg,rgba(64,145,108,.12),rgba(0,200,180,.08));border:1.5px solid rgba(64,145,108,.35);border-radius:14px;padding:.75rem 1rem;display:flex;flex-direction:column;gap:.35rem;min-width:180px;max-width:260px}
+.poke-reply-header{font-size:.73rem;font-weight:700;color:var(--acc2);display:flex;align-items:center;gap:.35rem;text-transform:uppercase;letter-spacing:.05em}
+.poke-reply-topic{font-size:.95rem;font-weight:700;color:var(--txt)}
 #enter-send-row{display:flex;align-items:center;gap:.4rem;padding:.2rem 0 0;font-size:.75rem;color:var(--txt2);user-select:none}
 #enter-send-row label{display:flex;align-items:center;gap:.3rem;cursor:pointer}
 #enter-send-chk{width:13px;height:13px;accent-color:var(--acc);cursor:pointer}
@@ -686,6 +707,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <button id="translate-input-btn" onclick="toggleTranslatePanel()" title="Çeviri Ayarları">🌐<span class="tib-badge">OTO</span></button>
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
         <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
+        <button id="poke-btn" onclick="togglePokePanel()" title="Özel konu için dürt">🫵 Dürt</button>
         <button id="send-btn" onclick="sendMessage()">Gönder ✦</button>
       </div>
       <div id="enter-send-row">
@@ -704,6 +726,11 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     </div>
     <div id="emoji-panel">
       <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+    <div id="poke-panel">
+      <div id="poke-panel-title">🫵 Özel Konu Talebi — Dürt</div>
+      <div id="poke-panel-subtitle">Bir konu seç, karşı tarafa öneride bulun</div>
+      <div class="poke-topics" id="poke-topics-list"></div>
     </div>
     <div id="translate-quick-panel">
       <div class="tqp-title">🌐 Çeviri Ayarları</div>
@@ -2659,6 +2686,8 @@ async function renderRoomList(rooms){
     if(r._lastMsg){
       if(r._lastMsg.mesaj_tipi==='dosya') preview='📎 Dosya';
       else if(r._lastMsg.mesaj_tipi==='ses') preview='🎤 Ses mesajı';
+      else if(r._lastMsg.mesaj_tipi==='poke') preview='🫵 Konu talebi';
+      else if(r._lastMsg.mesaj_tipi==='poke_yanit') preview='✅ Talebi kabul etti';
       else if(r._lastMsg.silindi) preview='Bu mesaj silindi.';
       else preview='🔒 Şifreli mesaj';
     }
@@ -2750,6 +2779,10 @@ async function openRoom(room){
   const isDM = room.tur==='dm';
   document.getElementById('qa-tunel-btn').style.display = isDM ? '' : 'none';
   document.getElementById('qa-ikili-btn').style.display = isDM ? '' : 'none';
+  const pokeBtn=document.getElementById('poke-btn');
+  if(pokeBtn) pokeBtn.style.display = isDM ? '' : 'none';
+  const pokePnl=document.getElementById('poke-panel');
+  if(pokePnl) pokePnl.classList.remove('open');
   document.getElementById('qa-lock-btn').style.display = '';
   document.getElementById('pm-lock-btn') && (document.getElementById('pm-lock-btn').classList.remove('hidden'));
   // Update lock icon badge
@@ -2847,7 +2880,9 @@ function appendMessageEl(m, container, lastDate, setDate){
   if(m.silindi){ content='<span class="msg-deleted">Bu mesaj silindi.</span>'; }
   else if(m.tek_gorun&&!m.tek_gorun_acildi&&m.gonderen_id!==S.user.id){
     content=`<div class="msg-tekgorun" onclick="openTekGorun('${m.id}')">👁️ Tek görüntülemelik — açmak için dokun</div>`;
-  } else if(m.mesaj_tipi==='dosya'){ content=renderFileContent(m); }
+  } else if(m.mesaj_tipi==='poke'){ content=renderPokeCard(m); }
+  else if(m.mesaj_tipi==='poke_yanit'){ content=renderPokeReplyCard(m); }
+  else if(m.mesaj_tipi==='dosya'){ content=renderFileContent(m); }
   else if(m.mesaj_tipi==='ses'){ content=renderVoiceContent(m); }
   else {
     const txt = (m._text||'🔒').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>').replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
@@ -2903,6 +2938,34 @@ function mimeFromFilename(name=''){
   const ext=(name.split('.').pop()||'').toLowerCase();
   const map={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',bmp:'image/bmp',svg:'image/svg+xml',heic:'image/heic',mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime',avi:'video/x-msvideo',mkv:'video/x-matroska',mp3:'audio/mpeg',ogg:'audio/ogg',wav:'audio/wav'};
   return map[ext]||'';
+}
+function renderPokeCard(m){
+  const own=m.gonderen_id===S.user.id;
+  let emoji='🫵', label='Konu Talebi';
+  try{
+    const d=JSON.parse(m._text||'{}');
+    if(d.emoji) emoji=d.emoji;
+    if(d.label) label=d.label;
+  }catch(e){}
+  const acceptBtn=(!own)?`<button class="poke-accept-btn" data-id="${m.id}" onclick="acceptPoke('${m.id}')">Kabul Et ✓</button>`:'<span style="font-size:.72rem;color:var(--txt2)">Yanıt bekleniyor…</span>';
+  return `<div class="poke-card">
+    <div class="poke-card-header">🫵 DÜRT — Konu Talebi</div>
+    <div class="poke-card-topic">${emoji} ${label}</div>
+    <div class="poke-card-sub">${own?'Bu konuda sohbet açmak istiyorsun':'Bu konuda seninle sohbet etmek istiyor'}</div>
+    ${acceptBtn}
+  </div>`;
+}
+function renderPokeReplyCard(m){
+  let topic='Konu Talebi';
+  try{
+    const d=JSON.parse(m._text||'{}');
+    if(d.topic) topic=d.topic;
+  }catch(e){}
+  return `<div class="poke-reply-card">
+    <div class="poke-reply-header">✅ Kabul Edildi</div>
+    <div class="poke-reply-topic">${topic}</div>
+    <div style="font-size:.7rem;color:var(--txt2)">Haydi konuşalım! 🎉</div>
+  </div>`;
 }
 function renderFileContent(m){
   const name = m.dosya_adi||'Dosya';
@@ -4976,6 +5039,142 @@ function toggleEmoji(){
   }
   p.classList.add('open');
 }
+/* ===== DÜRT / POKE ===== */
+const POKE_TOPICS=[
+  {emoji:'💔',label:'Duygusal'},
+  {emoji:'🗳️',label:'Siyaset'},
+  {emoji:'🔥',label:'Cinsel'},
+  {emoji:'🍽️',label:'Yediklerim'},
+  {emoji:'📜',label:'Tarih'},
+  {emoji:'🎭',label:'Sanat'},
+  {emoji:'🌌',label:'Felsefe'},
+  {emoji:'💰',label:'Para & Kariyer'},
+  {emoji:'🌍',label:'Seyahat'},
+  {emoji:'🎵',label:'Müzik'},
+  {emoji:'🎬',label:'Film & Dizi'},
+  {emoji:'🧠',label:'Psikoloji'},
+  {emoji:'🔮',label:'Spiritüel'},
+  {emoji:'🤫',label:'Sır & İtiraf'},
+  {emoji:'💪',label:'Spor'},
+  {emoji:'🌙',label:'Gece Hayatı'},
+  {emoji:'🐾',label:'Hayvanlar'},
+  {emoji:'👾',label:'Oyun & Tech'},
+  {emoji:'☕',label:'Günlük Hayat'},
+  {emoji:'🧩',label:'Kişilik & Test'}
+];
+function initPokePanel(){
+  const list=document.getElementById('poke-topics-list');
+  if(!list||list.childElementCount) return;
+  POKE_TOPICS.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='poke-topic-btn';
+    btn.innerHTML=`${t.emoji} ${t.label}`;
+    btn.onclick=()=>sendPoke(t.emoji,t.label);
+    list.appendChild(btn);
+  });
+}
+function togglePokePanel(){
+  const panel=document.getElementById('poke-panel');
+  if(!panel) return;
+  // Only show in DM rooms
+  if(!S.currentRoom||S.currentRoom.tur!=='dm'){
+    toast('Dürt sadece birebir sohbetlerde kullanılabilir 💬','info');
+    return;
+  }
+  if(panel.classList.contains('open')){ panel.classList.remove('open'); return; }
+  initPokePanel();
+  const triggerBtn=document.getElementById('poke-btn');
+  if(triggerBtn){
+    const rect=triggerBtn.getBoundingClientRect();
+    const panelW=320; const panelH=260;
+    let left=rect.right-panelW;
+    if(left<8) left=8;
+    if(left+panelW>window.innerWidth-8) left=window.innerWidth-panelW-8;
+    const top=rect.top-panelH-10;
+    panel.style.left=left+'px';
+    panel.style.top=(top<8?rect.bottom+8:top)+'px';
+    panel.style.bottom='auto';
+    panel.style.right='auto';
+  }
+  // Close emoji if open
+  const ep=document.getElementById('emoji-panel');
+  if(ep) ep.classList.remove('open');
+  panel.classList.add('open');
+}
+async function sendPoke(emoji,label){
+  const panel=document.getElementById('poke-panel');
+  if(panel) panel.classList.remove('open');
+  if(!S.currentRoom||!S.user) return;
+  const room=S.currentRoom;
+  if(room.tur!=='dm'){ toast('Dürt sadece DM\'de çalışır','error'); return; }
+  const plaintext=JSON.stringify({emoji,label});
+  try{
+    const op=await getProfile(room._otherUserId);
+    if(!op?.acik_anahtar) throw new Error('Karşı taraf şifreleme anahtarını oluşturmamış.');
+    const ephPair=await generateKeyPair();
+    const ephPubJwk=await exportPublicJwk(ephPair.publicKey);
+    const recipPub=await importPublicJwk(op.acik_anahtar);
+    const sendPub=await importPublicJwk(S.profile.acik_anahtar);
+    const recipKey=await deriveSharedKey(ephPair.privateKey,recipPub);
+    const sendKey=await deriveSharedKey(ephPair.privateKey,sendPub);
+    const {enc:ea,iv:ia}=await aesEncrypt(recipKey,plaintext);
+    const {enc:es,iv:is}=await aesEncrypt(sendKey,plaintext);
+    const {error}=await sb.from('mesajlar').insert({
+      oda_id:room.id,
+      gonderen_id:S.user.id,
+      mesaj_tipi:'poke',
+      enc_alici:ea,iv_alici:ia,enc_gonderen:es,iv_gonderen:is,eph_anahtar:ephPubJwk
+    });
+    if(error) throw error;
+    toast('Dürt gönderildi 🫵','success');
+  }catch(e){
+    toast((e?.message||'Dürt gönderilemedi'),'error');
+  }
+}
+async function acceptPoke(msgId){
+  const btn=document.querySelector(`.poke-accept-btn[data-id="${msgId}"]`);
+  if(btn){ btn.disabled=true; btn.textContent='✅ Kabul Edildi'; }
+  if(!S.currentRoom||!S.user) return;
+  const room=S.currentRoom;
+  // Find original poke to echo topic
+  const origMsg=(S.messages||[]).find(m=>m.id===msgId);
+  let topic='';
+  if(origMsg){
+    try{
+      const d=JSON.parse(origMsg._text||'{}');
+      if(d.label) topic=`${d.emoji||''} ${d.label}`;
+    }catch(e){ topic=origMsg._text||''; }
+  }
+  const plaintext=JSON.stringify({accepted:true,msgId,topic});
+  try{
+    const op=await getProfile(room._otherUserId);
+    if(!op?.acik_anahtar) throw new Error('Karşı tarafın anahtarı bulunamadı.');
+    const ephPair=await generateKeyPair();
+    const ephPubJwk=await exportPublicJwk(ephPair.publicKey);
+    const recipPub=await importPublicJwk(op.acik_anahtar);
+    const sendPub=await importPublicJwk(S.profile.acik_anahtar);
+    const recipKey=await deriveSharedKey(ephPair.privateKey,recipPub);
+    const sendKey=await deriveSharedKey(ephPair.privateKey,sendPub);
+    const {enc:ea,iv:ia}=await aesEncrypt(recipKey,plaintext);
+    const {enc:es,iv:is}=await aesEncrypt(sendKey,plaintext);
+    const {error}=await sb.from('mesajlar').insert({
+      oda_id:room.id,
+      gonderen_id:S.user.id,
+      mesaj_tipi:'poke_yanit',
+      enc_alici:ea,iv_alici:ia,enc_gonderen:es,iv_gonderen:is,eph_anahtar:ephPubJwk
+    });
+    if(error) throw error;
+  }catch(e){
+    toast((e?.message||'Yanıt gönderilemedi'),'error');
+    if(btn){ btn.disabled=false; btn.textContent='Kabul Et ✓'; }
+  }
+}
+document.addEventListener('click',e=>{
+  const panel=document.getElementById('poke-panel');
+  if(!panel||!panel.classList.contains('open')) return;
+  if(!panel.contains(e.target)&&e.target.id!=='poke-btn'&&!e.target.closest('#poke-btn')) panel.classList.remove('open');
+});
+/* ===== END DÜRT ===== */
 function insertEmoji(e){
   const inp=document.getElementById('chat-input');
   if(!inp) return;
