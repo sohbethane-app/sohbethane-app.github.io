@@ -794,10 +794,18 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
           <button class="timer-opt" onclick="setTimer(2419200)">4h</button>
         </div>
       </div>
+      <div id="paste-preview" style="display:none;padding:.35rem .7rem;background:var(--bg3);border-top:1px solid var(--bdr);align-items:center;gap:.6rem">
+        <img id="paste-preview-img" style="max-height:56px;max-width:72px;border-radius:6px;object-fit:cover;border:1px solid var(--bdr)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.75rem;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="paste-preview-name"></div>
+          <div style="font-size:.7rem;color:var(--acc)">Gönder'e basarak yapıştırılan resmi gönder</div>
+        </div>
+        <button onclick="cancelPaste()" title="İptal" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--txt2);padding:.2rem .4rem;border-radius:6px;line-height:1">✕</button>
+      </div>
       <div id="chat-input-wrap">
         <button class="input-btn" onclick="document.getElementById('file-input').click()">📎</button>
         <input type="file" id="file-input" style="display:none" onchange="handleFileSelect(this)">
-        <textarea id="chat-input" placeholder="Mesaj yaz..." rows="1" onkeydown="inputKeyDown(event)" oninput="autoResize(this);sendTyping()"></textarea>
+        <textarea id="chat-input" placeholder="Mesaj yaz..." rows="1" onkeydown="inputKeyDown(event)" oninput="autoResize(this);sendTyping()" onpaste="handleChatPaste(event)"></textarea>
         <button id="translate-input-btn" onclick="toggleTranslatePanel()" title="Çeviri Ayarları">🌐<span class="tib-badge">OTO</span></button>
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
         <button id="poke-quick-btn" onclick="togglePokeQuickPanel()" title="Konu ikonları">🎯</button>
@@ -3394,6 +3402,13 @@ function scrollToMsg(id){
 // SEND MESSAGE
 // ============================================================
 async function sendMessage(){
+  // Pending pasted image → send it first
+  if(_pendingPasteFile){
+    const file=_pendingPasteFile;
+    cancelPaste();
+    await sendFileDirectly(file);
+    return;
+  }
   const inp=document.getElementById('chat-input');
   const text=inp.value.trim();
   if(!text) return;
@@ -3845,10 +3860,48 @@ async function rejectMessage(m){
 // ============================================================
 // FILE UPLOAD / DOWNLOAD
 // ============================================================
+// ─── PASTE IMAGE ──────────────────────────────────────────────
+let _pendingPasteFile=null;
+
+function handleChatPaste(e){
+  if(!S.currentRoom) return;
+  const items=e.clipboardData?.items;
+  if(!items) return;
+  for(const item of items){
+    if(item.type.startsWith('image/')){
+      e.preventDefault();
+      const blob=item.getAsFile();
+      if(!blob) return;
+      const ext=(item.type.split('/')[1]||'png').replace('jpeg','jpg');
+      _pendingPasteFile=new File([blob],`resim_${Date.now()}.${ext}`,{type:item.type});
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        document.getElementById('paste-preview-img').src=ev.target.result;
+        document.getElementById('paste-preview-name').textContent=_pendingPasteFile.name+' · '+Math.round(_pendingPasteFile.size/1024)+' KB';
+        document.getElementById('paste-preview').style.display='flex';
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
+  }
+}
+
+function cancelPaste(){
+  _pendingPasteFile=null;
+  document.getElementById('paste-preview').style.display='none';
+  document.getElementById('paste-preview-img').src='';
+  document.getElementById('paste-preview-name').textContent='';
+}
+
 async function handleFileSelect(input){
   if(!input.files?.length||!S.currentRoom) return;
   const file=input.files[0];
   input.value='';
+  await sendFileDirectly(file);
+}
+
+async function sendFileDirectly(file){
+  if(!file||!S.currentRoom) return;
   toast('Dosya şifreleniyor...','info');
   try{
     // Generate file encryption key
@@ -3886,7 +3939,7 @@ async function handleFileSelect(input){
     }
     const {error}=await sb.from('mesajlar').insert(row);
     if(error) throw error;
-    toast('Dosya gönderildi','success');
+    toast('Dosya gönderildi ✓','success');
     await loadMessages(room.id);
   } catch(e){ toast('Dosya gönderilemedi: '+e.message,'error'); }
 }
