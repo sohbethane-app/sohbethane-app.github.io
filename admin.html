@@ -6,7 +6,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://jjkvjrvaozubvdnjdpbs.supabase.co https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src https://jjkvjrvaozubvdnjdpbs.supabase.co wss://jjkvjrvaozubvdnjdpbs.supabase.co; font-src 'self' data:">
 <meta name="referrer" content="no-referrer">
 <title>SohbetHane — Yönetici Paneli</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<script>if(!window.supabase||!window.supabase.createClient){document.write('<scr'+'ipt src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js" crossorigin="anonymous"><\/scr'+'ipt>');}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -438,6 +439,10 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
 const SUPABASE_URL = 'https://jjkvjrvaozubvdnjdpbs.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impqa3ZqcnZhb3p1YnZkbmpkcGJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4ODM2NDEsImV4cCI6MjEwNzQ1OTY0MX0.ozfpJFkCuU200AQOT_hpc4QcE3jlskGi69ulXqoUa_Q';
 
+if(!window.supabase){
+  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#e6edf3;background:#0d1117;flex-direction:column;gap:1rem"><div style="font-size:2rem">⚠️</div><div>Supabase kütüphanesi yüklenemedi.</div><div style="font-size:.85rem;color:#8b949e">Sayfayı yenile (Ctrl+Shift+R) veya internet bağlantını kontrol et.</div></div>';
+  throw new Error('Supabase yüklenemedi');
+}
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
 });
