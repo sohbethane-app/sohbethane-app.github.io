@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>SohbetHane</title>
 <style>
-:root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--acc:#2d6a4f;--acc2:#40916c;--txt:#e6edf3;--txt2:#8b949e;--brd:#30363d;--dm:#1a3a2a;--own:#1a3a2a;--danger:#f85149;--warn:#d29922;--info:#388bfd;--radius:12px;--shadow:0 4px 24px rgba(0,0,0,.4)}
+:root{--bg:#0d0a12;--bg2:#130d1c;--bg3:#1e1428;--acc:#9d174d;--acc2:#db2777;--txt:#f0e8f8;--txt2:#9d8ab5;--brd:#2d1f3d;--dm:#220d1c;--own:#1e0a18;--danger:#f85149;--warn:#d29922;--info:#818cf8;--radius:12px;--shadow:0 4px 24px rgba(0,0,0,.55);--rose:#ff4d6d;--gold:#ffd166;--glow-rose:rgba(219,39,119,.35)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);height:100vh;display:flex;flex-direction:column;overflow:hidden}
 button{cursor:pointer;border:none;outline:none;font-family:inherit}
@@ -17,16 +17,16 @@ a{color:var(--acc2);text-decoration:none}
 #splash-screen{position:fixed;inset:0;z-index:9999;background:#0a0f0a;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease,visibility .6s ease}
 #splash-screen.hidden{opacity:0;visibility:hidden}
 .splash-logo{position:relative;margin-bottom:2rem}
-.splash-icon{width:90px;height:90px;background:linear-gradient(135deg,#1b4332,#40916c);border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:2.4rem;box-shadow:0 0 60px rgba(64,145,108,.4);animation:splashPop .6s cubic-bezier(.175,.885,.32,1.275) both}
+.splash-icon{width:90px;height:90px;background:linear-gradient(135deg,#7b0d3e,#c9184a,#ff4d6d);border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:2.4rem;box-shadow:0 0 60px rgba(201,24,74,.5);animation:splashPop .6s cubic-bezier(.175,.885,.32,1.275) both}
 @keyframes splashPop{0%{transform:scale(.4) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
-.splash-ring{position:absolute;inset:-12px;border-radius:38px;border:2px solid rgba(64,145,108,.3);animation:splashRing 2s ease-in-out infinite}
-.splash-ring2{position:absolute;inset:-24px;border-radius:50px;border:1px solid rgba(64,145,108,.15);animation:splashRing 2s ease-in-out infinite .4s}
+.splash-ring{position:absolute;inset:-12px;border-radius:38px;border:2px solid rgba(201,24,74,.4);animation:splashRing 2s ease-in-out infinite}
+.splash-ring2{position:absolute;inset:-24px;border-radius:50px;border:1px solid rgba(255,77,109,.2);animation:splashRing 2s ease-in-out infinite .4s}
 @keyframes splashRing{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.04);opacity:1}}
-.splash-title{font-size:2rem;font-weight:800;background:linear-gradient(135deg,#52b788,#95d5b2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;margin-bottom:.4rem;animation:fadeUp .5s .3s both}
+.splash-title{font-size:2rem;font-weight:800;background:linear-gradient(135deg,#ff9a8b,#ff4d6d,#c9184a,#ffd166);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;margin-bottom:.4rem;animation:fadeUp .5s .3s both,gradShift 4s ease infinite}
 .splash-sub{color:rgba(139,148,158,.7);font-size:.85rem;margin-bottom:2.5rem;animation:fadeUp .5s .4s both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .splash-dots{display:flex;gap:.5rem;animation:fadeUp .5s .5s both}
-.splash-dot{width:8px;height:8px;border-radius:50%;background:var(--acc2);opacity:.3;animation:dotPulse 1.2s ease-in-out infinite}
+.splash-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#ff4d6d,#ffd166);opacity:.35;animation:dotPulse 1.2s ease-in-out infinite}
 .splash-dot:nth-child(2){animation-delay:.2s}
 .splash-dot:nth-child(3){animation-delay:.4s}
 @keyframes dotPulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
@@ -99,17 +99,17 @@ a{color:var(--acc2);text-decoration:none}
 .auth-subtitle{font-size:.85rem;color:rgba(185,170,220,.78);margin-bottom:1.8rem}
 .auth-tabs{display:flex;background:rgba(255,255,255,.04);border-radius:12px;padding:5px;margin-bottom:1.8rem;gap:5px;border:1px solid rgba(255,255,255,.06)}
 .auth-tab{flex:1;padding:.65rem;background:none;color:var(--txt2);font-size:.9rem;font-weight:500;transition:.25s;border-radius:9px}
-.auth-tab.active{background:linear-gradient(135deg,rgba(108,99,255,.72),rgba(255,101,132,.48));color:#fff;font-weight:700;box-shadow:0 2px 14px rgba(108,99,255,.38)}
+.auth-tab.active{background:linear-gradient(135deg,rgba(201,24,74,.75),rgba(255,77,109,.55));color:#fff;font-weight:700;box-shadow:0 2px 16px rgba(201,24,74,.4)}
 .auth-tab:hover:not(.active){color:var(--txt);background:rgba(255,255,255,.06)}
 .form-group{margin-bottom:1rem}
 .form-group label{display:block;font-size:.82rem;color:rgba(200,185,255,.82);margin-bottom:.4rem;font-weight:500}
 .form-group input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(108,99,255,.24);border-radius:10px;padding:.75rem 1rem;color:var(--txt);font-size:.95rem;transition:.25s}
-.form-group input:focus{border-color:rgba(255,101,132,.65);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(108,99,255,.2)}
+.form-group input:focus{border-color:rgba(255,77,109,.7);background:rgba(255,77,109,.06);box-shadow:0 0 0 3px rgba(201,24,74,.18),0 0 20px rgba(255,77,109,.12)}
 .form-group input::placeholder{color:rgba(140,125,185,.45)}
 .btn{width:100%;padding:.8rem;border-radius:8px;font-size:.95rem;font-weight:600;transition:.25s}
-.btn-primary{background:linear-gradient(135deg,#6C63FF,#9c60f0,#FF6584);background-size:200%;color:#fff;box-shadow:0 4px 22px rgba(108,99,255,.48)}
-.btn-primary:hover{background-position:100%;box-shadow:0 6px 32px rgba(255,101,132,.55);transform:translateY(-1px)}
-.btn-primary:active{transform:translateY(0);box-shadow:0 2px 14px rgba(108,99,255,.35)}
+.btn-primary{background:linear-gradient(135deg,#7b0d3e,#c9184a,#ff4d6d,#ff6b8a);background-size:250%;color:#fff;box-shadow:0 6px 28px rgba(201,24,74,.5),0 0 0 1px rgba(255,77,109,.2);letter-spacing:.03em;font-size:1rem;border-radius:14px!important;padding:.9rem!important}
+.btn-primary:hover{background-position:100%;box-shadow:0 8px 38px rgba(255,77,109,.65),0 0 0 2px rgba(255,77,109,.3);transform:translateY(-2px)}
+.btn-primary:active{transform:translateY(0);box-shadow:0 3px 16px rgba(201,24,74,.4)}
 .btn-secondary{background:var(--bg3);color:var(--txt);border:1px solid var(--brd)}
 .btn-secondary:hover{border-color:var(--acc2)}
 .btn-danger{background:var(--danger);color:#fff}
@@ -125,19 +125,19 @@ a{color:var(--acc2);text-decoration:none}
 #sidebar-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--brd);background:var(--bg2)}
 .s-tab{flex:1 1 90px;padding:.6rem .4rem;background:none;color:var(--txt2);font-size:.72rem;font-weight:600;text-align:center;transition:.2s;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:.15rem;min-height:50px;white-space:nowrap}
 .s-tab:hover{color:var(--txt);background:rgba(255,255,255,.04)}
-.s-tab.active{color:var(--acc2);border-bottom-color:var(--acc2);background:rgba(64,145,108,.06)}
+.s-tab.active{color:#ff4d6d;border-bottom-color:#ff4d6d;background:rgba(255,77,109,.08)}
 .s-tab-icon{font-size:1rem;line-height:1}
 /* Grup/Arşiv liste içi "yeni oluştur" butonu */
-.room-create-btn{display:block;width:calc(100% - 1rem);margin:.5rem auto .3rem;padding:.55rem 1rem;background:rgba(64,145,108,.1);border:1.5px dashed rgba(64,145,108,.4);border-radius:10px;color:var(--acc2);font-size:.82rem;font-weight:600;text-align:center;transition:.2s;letter-spacing:.01em}
-.room-create-btn:hover{background:rgba(64,145,108,.2);border-color:var(--acc2);color:#74c69d}
+.room-create-btn{display:block;width:calc(100% - 1rem);margin:.5rem auto .3rem;padding:.55rem 1rem;background:rgba(201,24,74,.08);border:1.5px dashed rgba(255,77,109,.35);border-radius:10px;color:#ff6b8a;font-size:.82rem;font-weight:600;text-align:center;transition:.2s;letter-spacing:.01em}
+.room-create-btn:hover{background:rgba(201,24,74,.18);border-color:#ff4d6d;color:#ff9ab0}
 .icon-btn{background:none;color:var(--txt2);padding:.4rem;border-radius:6px;font-size:1.1rem;transition:.2s}
 .icon-btn:hover{background:var(--bg3);color:var(--txt)}
 #user-search-wrap{padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
 #user-search{width:100%;background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.5rem .8rem;color:var(--txt);font-size:.85rem}
 #room-list{flex:1;overflow-y:auto;padding:.5rem 0}
 .room-item{display:flex;align-items:center;padding:.7rem 1rem;cursor:pointer;transition:.1s;gap:.7rem;position:relative}
-.room-item:hover{background:var(--bg3)}
-.room-item.active{background:var(--dm)}
+.room-item:hover{background:rgba(255,77,109,.07)}
+.room-item.active{background:linear-gradient(90deg,rgba(201,24,74,.2),rgba(255,77,109,.07));border-right:3px solid #ff4d6d}
 .room-ctx-btn{display:none;background:none;color:var(--txt2);padding:.2rem .45rem;border-radius:6px;font-size:1.1rem;line-height:1;transition:.15s;flex-shrink:0;margin-left:.1rem}
 .room-item:hover .room-ctx-btn,.room-item.active .room-ctx-btn{display:block}
 .room-ctx-btn:hover{background:rgba(255,255,255,.1);color:var(--txt)}
@@ -163,7 +163,7 @@ a{color:var(--acc2);text-decoration:none}
 .room-meta{display:flex;flex-direction:column;align-items:flex-end;gap:.3rem}
 .room-time{font-size:.72rem;color:var(--txt2)}
 .unread-badge{background:var(--acc);color:#fff;border-radius:999px;font-size:.7rem;font-weight:700;min-width:18px;height:18px;padding:0 5px;display:flex;align-items:center;justify-content:center;animation:badgePop .2s ease}
-.unread-badge{background:var(--acc2);color:#fff;border-radius:50%;width:18px;height:18px;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-weight:700}
+.unread-badge{background:linear-gradient(135deg,#c9184a,#ff4d6d);color:#fff;border-radius:999px;min-width:18px;height:18px;padding:0 4px;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 8px rgba(201,24,74,.45)}
 .pending-badge{background:var(--warn);color:#000;border-radius:50%;width:18px;height:18px;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-weight:700}
 /* CHAT */
 #chat-area{flex:1;display:flex;flex-direction:column;min-width:0}
@@ -222,13 +222,13 @@ a{color:var(--acc2);text-decoration:none}
 .msg-bubble{background:var(--bg3);border-radius:12px;padding:.5rem .8rem;position:relative;max-width:100%}
 .msg-wrap.own .msg-bubble{background:var(--own);border-bottom-right-radius:3px}
 .msg-wrap.other .msg-bubble{border-bottom-left-radius:3px}
-.msg-sender{font-size:.72rem;color:var(--acc2);font-weight:600;margin-bottom:.2rem}
+.msg-sender{font-size:.72rem;color:#ff6b8a;font-weight:600;margin-bottom:.2rem}
 .msg-text{font-size:.9rem;line-height:1.4;word-break:break-word;white-space:pre-wrap}
 .msg-text a{color:var(--acc2)}
 .msg-meta{display:flex;align-items:center;gap:.3rem;margin-top:.2rem;justify-content:flex-end}
 .msg-time{font-size:.68rem;color:var(--txt2)}
 .msg-ticks{font-size:.72rem;color:var(--txt2)}
-.msg-ticks.seen{color:var(--acc2)}
+.msg-ticks.seen{color:#ff6b8a}
 .msg-edited{font-size:.68rem;color:var(--txt2);font-style:italic}
 .msg-deleted{color:var(--txt2);font-style:italic;font-size:.85rem}
 .msg-reply{background:rgba(255,255,255,.05);border-left:3px solid var(--acc2);padding:.3rem .5rem;border-radius:4px;margin-bottom:.3rem;font-size:.8rem;color:var(--txt2);cursor:pointer}
@@ -239,7 +239,7 @@ a{color:var(--acc2);text-decoration:none}
 .msg-file-size{font-size:.72rem;color:var(--txt2)}
 .msg-reactions{display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.3rem}
 .reaction-btn{background:rgba(255,255,255,.08);border:1px solid var(--brd);border-radius:12px;padding:.1rem .4rem;font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:.2rem;color:var(--txt)}
-.reaction-btn:hover,.reaction-btn.mine{background:var(--acc);border-color:var(--acc2)}
+.reaction-btn:hover,.reaction-btn.mine{background:rgba(201,24,74,.25);border-color:#ff4d6d}
 .reaction-count{font-size:.72rem}
 .msg-countdown{font-size:.72rem;color:var(--warn);text-align:right;margin-top:.1rem}
 .msg-pending{opacity:.6}
@@ -251,14 +251,16 @@ a{color:var(--acc2);text-decoration:none}
 #reply-bar-close{background:none;color:var(--txt2);font-size:1rem;padding:.2rem}
 /* INPUT */
 #chat-input-area{padding:.7rem 1rem;border-top:1px solid var(--brd);background:var(--bg2)}
-#chat-input-wrap{display:flex;align-items:flex-end;gap:.5rem;background:var(--bg3);border:1px solid var(--brd);border-radius:12px;padding:.4rem .6rem}
+#chat-input-wrap{display:flex;align-items:flex-end;gap:.5rem;background:rgba(30,15,30,.8);border:1px solid rgba(201,24,74,.22);border-radius:16px;padding:.4rem .6rem;transition:.3s}
+#chat-input-wrap:focus-within{border-color:rgba(255,77,109,.5);box-shadow:0 0 0 3px rgba(201,24,74,.12),0 4px 20px rgba(201,24,74,.1)}
 #chat-input{flex:1;background:none;color:var(--txt);resize:none;max-height:120px;font-size:.9rem;padding:.3rem;line-height:1.4}
 #chat-input::placeholder{color:var(--txt2)}
 .input-btn{background:none;color:var(--txt2);padding:.3rem;font-size:1.1rem;border-radius:6px;transition:.2s}
 .input-btn:hover{color:var(--txt);background:rgba(255,255,255,.08)}
 .input-btn.active{color:var(--acc2)}
-#send-btn{background:var(--acc);color:#fff;padding:.4rem .8rem;border-radius:8px;font-size:.85rem;font-weight:600}
-#send-btn:hover{background:var(--acc2)}
+#send-btn{background:linear-gradient(135deg,#9d174d,#c9184a,#ff4d6d);color:#fff;padding:.5rem 1.1rem;border-radius:14px;font-size:.88rem;font-weight:700;box-shadow:0 4px 20px rgba(201,24,74,.5),0 0 0 1px rgba(255,77,109,.2);transition:.25s;letter-spacing:.03em;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+#send-btn:hover{background:linear-gradient(135deg,#c9184a,#ff4d6d,#ff758c);box-shadow:0 6px 28px rgba(255,77,109,.65),0 0 0 1px rgba(255,77,109,.35);transform:translateY(-1px) scale(1.03)}
+#send-btn:active{transform:translateY(0) scale(.98);box-shadow:0 2px 12px rgba(201,24,74,.4)}
 .input-extras{display:flex;align-items:center;gap:.3rem;margin-bottom:.3rem}
 /* MODALS */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
@@ -278,7 +280,7 @@ a{color:var(--acc2);text-decoration:none}
 .emoji-cat-tabs{display:flex;gap:.2rem;margin-bottom:.5rem;overflow-x:auto;scrollbar-width:none;padding-bottom:.1rem}
 .emoji-cat-tabs::-webkit-scrollbar{display:none}
 .emoji-cat-btn{background:none;border:none;padding:.3rem .45rem;border-radius:8px;font-size:1.05rem;cursor:pointer;white-space:nowrap;color:var(--txt2);flex-shrink:0;transition:.15s}
-.emoji-cat-btn.active{background:var(--acc);color:#fff}
+.emoji-cat-btn.active{background:linear-gradient(135deg,#c9184a,#ff4d6d);color:#fff;box-shadow:0 2px 10px rgba(201,24,74,.4)}
 .emoji-cat-btn:hover:not(.active){background:var(--bg3)}
 .emoji-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:.2rem;max-height:240px;overflow-y:auto;scrollbar-width:thin}
 .emoji-grid::-webkit-scrollbar{width:4px}
@@ -684,7 +686,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <button id="translate-input-btn" onclick="toggleTranslatePanel()" title="Çeviri Ayarları">🌐<span class="tib-badge">OTO</span></button>
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
         <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
-        <button id="send-btn" onclick="sendMessage()">Gönder</button>
+        <button id="send-btn" onclick="sendMessage()">Gönder ✦</button>
       </div>
       <div id="enter-send-row">
         <label><input type="checkbox" id="enter-send-chk" onchange="setEnterToSend(this.checked)"> Enter'a basınca gönder</label>
@@ -2103,13 +2105,19 @@ function checkInviteHash(){
 async function loadRooms(){
   const {data:memberships} = await sb.from('oda_uyeleri').select('oda_id,son_gorulme').eq('kullanici_id',S.user.id);
   if(!memberships) return;
-  const roomIds = memberships.map(m=>m.oda_id);
+  // Dedup: same oda_id may appear twice due to DB duplicates
+  const seen=new Set();
+  const dedupedMem=memberships.filter(m=>{ if(seen.has(m.oda_id)) return false; seen.add(m.oda_id); return true; });
+  const roomIds = dedupedMem.map(m=>m.oda_id);
   if(!roomIds.length){ renderRoomList([]); return; }
   const {data:rooms} = await sb.from('odalar').select('*').in('id',roomIds).order('olusturma_tarihi',{ascending:false});
-  S.rooms = rooms||[];
+  // Also dedup rooms array itself (Supabase IN can occasionally return dupes)
+  const roomsSeen=new Set();
+  const dedupedRooms=(rooms||[]).filter(r=>{ if(roomsSeen.has(r.id)) return false; roomsSeen.add(r.id); return true; });
+  S.rooms = dedupedRooms;
   // Load last messages for preview + initial unread count
   for(const r of S.rooms){
-    const mem = memberships.find(m=>m.oda_id===r.id);
+    const mem = dedupedMem.find(m=>m.oda_id===r.id);
     r._memberSon = mem?.son_gorulme||null;
     const {data:lm} = await sb.from('mesajlar').select('*').eq('oda_id',r.id).eq('silindi',false).order('olusturma_tarihi',{ascending:false}).limit(1);
     r._lastMsg = lm?.[0]||null;
@@ -3047,7 +3055,7 @@ function showContextMenu(x,y,items){
   setTimeout(()=>document.addEventListener('click',()=>menu.remove(),{once:true}),0);
 }
 function showReactionPicker(e,m){
-  const emojis=['❤️','😂','😮','😢','👍','👎','🔥','🎉'];
+  const emojis=['❤️','💋','😍','🥰','🔥','😂','😮','😢','💯','👍','👎','🎉','✨','💫','😏','🫦'];
   const picker=document.getElementById('reaction-picker');
   document.getElementById('reaction-emojis').innerHTML=emojis.map(em=>`<button onclick="toggleReaction('${m.id}','${em}')" style="background:none;font-size:1.4rem;padding:.2rem;cursor:pointer;border-radius:4px">${em}</button>`).join('');
   picker.style.display='block';
@@ -4591,17 +4599,17 @@ function applyWallpaper(id){
 // EMOJI PANEL
 // ============================================================
 const EMOJI_CATS = {
-  '🔥':['🔥','💯','✨','💫','⚡','💥','🌈','🎯','👑','💎','🏆','🥇','🌟','⭐','🌙','☀️','🎵','🎶','🚀','🛸','💰','💸','🤑','📱','💻','🎮','🕹️','🎲','🎁','🎀','🎊','🎉','🎈','🔔','💡','🔮','🪄','🧿','🌠','🌌','🪐','💠','🫧','🪩','🎭','🎪','🎨','🏅','🎖️','🌐','🔑','🗝️','📸','🎬','🔵','🟢','🟡','🟠','🔴','⬛','🌀','♾️','🆕','🆙','🆒','🆓'],
+  '🫦':['💋','😘','😍','🥰','😏','😈','🤭','🥵','🔥','❤️‍🔥','🫦','👄','💄','👅','💅','💃','🕺','🌹','🥀','🌷','🌸','🌺','🌼','💐','🍓','🍒','🍑','🍌','🍆','🌶️','🥒','🍫','🧁','🍷','🥂','🍾','🫀','💘','💝','💖','💗','💓','💞','💕','❣️','💔','👫','💏','💑','🫶','🤗','🧡','💛','💜','🩷','🏩','🛁','🛏️','🕯️','🌙','✨','💫','🌠','🌌','🌃','🎭','🪞','🩱','👙','🩲','🌊','💦','🫧','🪢','⛓️','🔐','🔑','🗝️','🎩','👑','💎','🥃','🍸','🍹','🎶','🎵','🎷','😻','💌','🦋','🌈','🦩','🦚','🌟','⭐','🪩','🌴','🏝️','🌅','🌄'],
   '😊':['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😶‍🌫️','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','😵‍💫','🤯','🤠','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👾','🤖','🎃','🗿','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🫠','🫤','🫡','🫢','🫣','🫥','🥸'],
-  '❤️':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','💘','💝','💖','💗','💓','💞','💕','💟','❣️','🫀','😘','😍','🥰','🤩','💋','👄','🫦','😻','💑','👫','👬','👭','💏','🫶','🤗','🌹','🌺','🌸','💐','🌷','🏩','💒','💍','🎀','💄','👙','🩱','🩲','🩳','👗','👘','👚','🩴','👠','👡','💅','🛁','🛏️','🕯️','🌙','✨','💫','🌃','🥂','🍾','🍷','🍓','🍒','🍑','🫐','🥭','🍌','🍫','🍬','🧁','🎂','🌻','🌼','🌺','🏵️','🎁','💝','🎀','🔞','🌶️','🥵','💦','🫧','🌊','🔥','⛓️','🪢','🫁','🦋','🕊️'],
-  '🫦':['😏','😈','👿','🤭','🥵','🔥','💋','🫦','👄','💄','👅','🍑','🍒','🍓','🌶️','🥕','🍌','🥒','🍆','🌽','🧠','💦','🫧','🌊','💎','👑','🩲','👙','🩱','🪢','⛓️','🔐','🔒','🗝️','🕯️','🌙','✨','🍾','🥂','🍷','🍸','🍹','🎰','🎲','🃏','🎭','💃','🕺','🎶','🎵','🥀','🌹','🌷','🏩','🛁','🛏️','🪞','🌃','🌌','🌠','😼','🐱','🦁','🐆','🦊','🐍','🕷️','🦂','🫀','💔','❤️‍🔥','😳','🤫','🤤','🤑','🪄','🎩','🪐','🌈'],
+  '❤️':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','💘','💝','💖','💗','💓','💞','💕','💟','❣️','🫀','😘','😍','🥰','🤩','💋','👄','🫦','😻','💑','👫','👬','👭','💏','🫶','🤗','🌹','🌺','🌸','💐','🌷','🏩','💒','💍','🎀','💄','👙','🩱','🩲','🩳','👗','👘','👚','🩴','👠','👡','💅','🛁','🛏️','🕯️','🌙','✨','💫','🌃','🥂','🍾','🍷','🍓','🍒','🍑','🫐','🥭','🍌','🍫','🍬','🧁','🎂','🌻','🌼','🌺','🏵️','🎁','💝','🎀','🌶️','🥵','💦','🫧','🌊','🔥','⛓️','🪢','🦋','🕊️'],
+  '🔥':['🔥','💯','✨','💫','⚡','💥','🌈','🎯','👑','💎','🏆','🥇','🌟','⭐','🌙','☀️','🎵','🎶','🚀','🛸','💰','💸','🤑','📱','💻','🎮','🕹️','🎲','🎁','🎀','🎊','🎉','🎈','🔔','💡','🔮','🪄','🧿','🌠','🌌','🪐','💠','🫧','🪩','🎭','🎪','🎨','🏅','🎖️','🌐','🔑','🗝️','📸','🎬','🔵','🟢','🟡','🟠','🔴','⬛','🌀','♾️'],
   '👋':['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦵','🦶','🦷','👁️','👅','👂','🦻','🧠','🫀','🫁','🦴','🦿','🫂','👤','👥','🧍','🧎','🚶','🏃','💃','🕺','🧖','🧗','🏋️','🤸','🤼','🤺','🥊','🤾','🏇','🧘','🧜','🧚','🧛','🧟','🧞','🧝'],
   '🌿':['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🦋','🐌','🐞','🐜','🦟','🦗','🪲','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🦈','🐳','🐬','🦭','🐟','🐠','🐡','🐊','🦧','🌸','🌺','🌻','🌹','🥀','🪷','🌷','🍀','🌴','🌲','🌳','🌵','🪴','🌱','🌿','☘️','🍁','🍂','🍃','🍄','🌾','🪸','🪨','🪵','🌍','🌎','🌏','🌞','🌝','🌛','🌚','🌕','🌙','⭐','🌟','💫','✨','🌠','☄️','⛅','🌦️','⛈️','🌈','❄️','💧','🌊','🌋','🗻','🏔️','🏕️','🏝️','🌅'],
   '🍔':['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥦','🥕','🧄','🌽','🌶️','🥒','🥬','🥗','🧆','🥚','🍳','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫔','🥪','🥙','🌮','🌯','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍥','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🫘','🧂','🍯','🧃','🥤','🧋','☕','🍵','🫖','🧉','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🍾','🧊','🫗','🫙'],
   '🎉':['🎉','🎊','🎈','🎁','🎀','🎗️','🎟️','🎫','🏆','🥇','🥈','🥉','🏅','🎖️','🎪','🤹','🎭','🎨','🖼️','🎰','🎲','🧩','🃏','🀄','🎯','🎳','🎮','🕹️','🎸','🎺','🎻','🥁','🪘','🎤','🎧','🎼','🎵','🎶','🎷','🪗','🪕','🎹','🎬','📽️','🎞️','📺','📻','📸','🎠','🎡','🎢','🏋️','🤸','🏊','🚴','⛷️','🏄','🧗','🏇','🥋','🤺','🏹','🛹','🛷','🛼','🎿','⛸️','🪂','🤿','🏕️','🎣','🤽','🏌️','🏓','🏸','🥌'],
   '✈️':['🌍','🗺️','🧭','🏔️','⛰️','🌋','🏕️','🏖️','🏜️','🏝️','🏞️','🌅','🌄','🌇','🌆','🏙️','🌃','🌉','🚂','🚄','🚅','🚇','🚌','🚗','🚙','🛻','🚕','🚁','✈️','🛩️','🛫','🛬','🚀','🛸','🚢','⛵','🛥️','⛴️','🛳️','🚲','🛵','🏍️','🛺','🚡','🚠','🚟','⛽','🚧','🛤️','🗼','🗽','⛩️','🕌','🕍','⛪','🏰','🏯','🧳','🎡','🎢','🎠','🌐','🗺️','🏟️','🏛️','🏗️','🌁','🌉','🌃','🌆','🌇','🌌']
 };
-let _emojiCat = '🔥';
+let _emojiCat = '🫦';
 function initEmojiPanel(){
   const panel=document.getElementById('emoji-panel');
   if(!panel) return;
