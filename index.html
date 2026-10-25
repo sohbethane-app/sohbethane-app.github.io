@@ -34,72 +34,68 @@ a{color:var(--acc2);text-decoration:none}
 .msg-translate-btn{background:none;border:none;color:var(--txt2);font-size:.7rem;cursor:pointer;padding:.1rem .3rem;border-radius:4px;opacity:.5;transition:.2s;margin-left:.3rem}
 .msg-translate-btn:hover{opacity:1;color:var(--acc2)}
 .msg-translation{margin-top:.4rem;padding:.3rem .5rem;background:rgba(64,145,108,.08);border-left:2px solid var(--acc2);border-radius:0 6px 6px 0;font-size:.82rem;color:var(--txt2);line-height:1.4;font-style:italic}
-/* AUTH — Cıvıl Cıvıl Redesign */
-#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#040c07;position:relative;overflow:hidden}
-/* Animated colour blobs */
+/* AUTH — Vibrant Social Redesign */
+#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d0a24 0%,#160825 50%,#0a1628 100%);position:relative;overflow:hidden}
 .auth-blob{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none;animation:blobDrift ease-in-out infinite alternate}
 @keyframes blobDrift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-25px) scale(1.08)}100%{transform:translate(-20px,20px) scale(.95)}}
-/* Colorful particles */
 .auth-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .auth-particles span{position:absolute;border-radius:50%;animation:floatUp linear infinite}
 @keyframes floatUp{0%{transform:translateY(100vh) translateX(0);opacity:0}10%{opacity:1}90%{opacity:.7}100%{transform:translateY(-10vh) translateX(var(--dx));opacity:0}}
-/* Card */
-.auth-wrap{display:flex;width:min(980px,96vw);background:rgba(6,14,10,.88);backdrop-filter:blur(32px) saturate(160%);border:1px solid rgba(80,200,140,.18);border-top:2px solid rgba(80,200,140,.45);border-radius:28px;overflow:hidden;box-shadow:0 50px 120px rgba(0,0,0,.85),0 0 80px rgba(40,180,110,.06),0 0 0 1px rgba(255,255,255,.04);position:relative;z-index:1}
-/* Left panel */
-.auth-left{flex:1;padding:3rem 2.5rem;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(160deg,rgba(20,80,50,.32) 0%,rgba(6,14,10,0) 65%);border-right:1px solid rgba(80,200,140,.1);position:relative;overflow:hidden}
-.auth-left::before{content:'';position:absolute;top:-100px;right:-100px;width:320px;height:320px;background:radial-gradient(circle,rgba(64,145,108,.18),transparent 70%);pointer-events:none}
-.auth-left::after{content:'';position:absolute;bottom:-80px;left:-60px;width:260px;height:260px;background:radial-gradient(circle,rgba(0,200,220,.08),transparent 70%);pointer-events:none}
+.auth-wrap{display:flex;width:min(980px,96vw);background:rgba(15,10,35,.88);backdrop-filter:blur(32px) saturate(160%);border:1px solid rgba(108,99,255,.25);border-top:2px solid rgba(255,101,132,.55);border-radius:28px;overflow:hidden;box-shadow:0 50px 120px rgba(0,0,0,.85),0 0 80px rgba(108,99,255,.1),0 0 0 1px rgba(255,255,255,.04);position:relative;z-index:1}
+.auth-left{flex:1;padding:2.5rem 2.2rem;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(160deg,rgba(108,99,255,.18) 0%,rgba(255,101,132,.08) 60%,rgba(15,10,35,0) 100%);border-right:1px solid rgba(108,99,255,.15);position:relative;overflow:hidden}
+.auth-left::before{content:'';position:absolute;top:-80px;right:-80px;width:280px;height:280px;background:radial-gradient(circle,rgba(108,99,255,.22),transparent 70%);pointer-events:none}
+.auth-left::after{content:'';position:absolute;bottom:-60px;left:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,101,132,.14),transparent 70%);pointer-events:none}
 @media(max-width:640px){.auth-left{display:none}}
-/* Brand */
-.auth-brand{margin-bottom:2rem}
-.auth-brand-icon{width:74px;height:74px;background:linear-gradient(135deg,#1b4332,#40916c,#74c69d);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:2.1rem;margin-bottom:1.3rem;box-shadow:0 8px 40px rgba(64,145,108,.55),0 0 0 10px rgba(64,145,108,.07),inset 0 1px 0 rgba(255,255,255,.2);animation:iconPulse 3s ease-in-out infinite}
-@keyframes iconPulse{0%,100%{box-shadow:0 8px 40px rgba(64,145,108,.55),0 0 0 10px rgba(64,145,108,.07),inset 0 1px 0 rgba(255,255,255,.2)}50%{box-shadow:0 8px 65px rgba(64,145,108,.85),0 0 0 18px rgba(64,145,108,.04),inset 0 1px 0 rgba(255,255,255,.2)}}
-.auth-brand h1{font-size:2.35rem;font-weight:900;background:linear-gradient(135deg,#52b788,#00e5c8,#b7e4c7,#52b788);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gradShift 5s ease infinite;letter-spacing:.5px;margin-bottom:.5rem}
+.auth-brand{margin-bottom:1.5rem}
+.auth-brand-icon{width:70px;height:70px;background:linear-gradient(135deg,#6C63FF,#FF6584,#FFD200);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2rem;margin-bottom:1.2rem;box-shadow:0 8px 40px rgba(108,99,255,.55),0 0 0 10px rgba(108,99,255,.07),inset 0 1px 0 rgba(255,255,255,.2);animation:iconPulse 3s ease-in-out infinite}
+@keyframes iconPulse{0%,100%{box-shadow:0 8px 40px rgba(108,99,255,.55),0 0 0 10px rgba(108,99,255,.07),inset 0 1px 0 rgba(255,255,255,.2)}50%{box-shadow:0 8px 65px rgba(255,101,132,.7),0 0 0 18px rgba(108,99,255,.04),inset 0 1px 0 rgba(255,255,255,.2)}}
+.auth-brand h1{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,#a78bfa,#f472b6,#fbbf24,#a78bfa);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gradShift 5s ease infinite;letter-spacing:.5px;margin-bottom:.5rem}
 @keyframes gradShift{0%,100%{background-position:0%}50%{background-position:100%}}
-.auth-brand p{color:rgba(180,225,205,.75);font-size:.92rem;line-height:1.65}
-/* Chat preview */
-.auth-chat-preview{display:flex;flex-direction:column;gap:.65rem;margin-bottom:2rem}
-.auth-msg{max-width:84%;padding:.6rem .9rem;border-radius:16px;font-size:.82rem;line-height:1.5;animation:msgFloat .6s ease both}
-@keyframes msgFloat{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.auth-msg.other{background:rgba(255,255,255,.07);color:rgba(230,237,243,.9);border-bottom-left-radius:4px;align-self:flex-start;border:1px solid rgba(255,255,255,.07)}
-.auth-msg.own{background:linear-gradient(135deg,rgba(27,67,50,.92),rgba(64,145,108,.42));color:rgba(200,245,220,.95);border-bottom-right-radius:4px;align-self:flex-end;border:1px solid rgba(64,145,108,.28)}
-.auth-msg-lock{text-align:center;font-size:.72rem;color:rgba(0,225,200,.85);background:rgba(0,200,180,.09);border:1px solid rgba(0,200,180,.22);border-radius:20px;padding:.25rem .9rem;margin:.3rem auto;width:fit-content;animation:lockGlow 2.5s ease-in-out infinite}
-@keyframes lockGlow{0%,100%{box-shadow:none}50%{box-shadow:0 0 14px rgba(0,200,180,.35)}}
-/* Trust badges — each a different colour */
-.auth-trust{display:flex;gap:.5rem;flex-wrap:wrap}
-.auth-trust-badge{display:flex;align-items:center;gap:.4rem;border-radius:10px;padding:.42rem .78rem;font-size:.73rem;font-weight:500;transition:.2s}
-.auth-trust-badge:nth-child(1){background:rgba(64,145,108,.16);border:1px solid rgba(64,145,108,.32);color:#74c69d}
-.auth-trust-badge:nth-child(2){background:rgba(0,180,230,.12);border:1px solid rgba(0,180,230,.28);color:#50d8f5}
-.auth-trust-badge:nth-child(3){background:rgba(190,100,255,.12);border:1px solid rgba(190,100,255,.28);color:#c77dff}
-.auth-trust-badge:nth-child(4){background:rgba(255,190,50,.1);border:1px solid rgba(255,190,50,.22);color:#ffbe32}
-.auth-trust-badge span:first-child{font-size:.9rem}
+.auth-brand p{color:rgba(200,180,255,.78);font-size:.88rem;line-height:1.65}
+/* User showcase cards */
+.auth-users-showcase{display:flex;flex-direction:column;gap:.75rem;margin:.2rem 0 1.2rem}
+.auth-user-row{display:flex;align-items:center;gap:.6rem;animation:fadeSlideIn .7s ease both}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+.auth-ucard{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:.5rem .7rem;flex:1;transition:.3s;backdrop-filter:blur(8px)}
+.auth-ucard:hover{background:rgba(108,99,255,.2);border-color:rgba(108,99,255,.45);transform:translateY(-2px)}
+.auth-uavatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,rgba(108,99,255,.5),rgba(255,101,132,.45));display:flex;align-items:center;justify-content:center;font-size:1.45rem;flex-shrink:0;border:2px solid rgba(255,255,255,.12)}
+.auth-uinfo{flex:1;min-width:0}
+.auth-uinfo b{display:block;font-size:.78rem;font-weight:700;color:rgba(230,220,255,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auth-uinfo span{font-size:.7rem;color:rgba(180,160,255,.72)}
+.auth-uonline{width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;box-shadow:0 0 6px rgba(74,222,128,.85);animation:pulseGreen 2s ease-in-out infinite}
+@keyframes pulseGreen{0%,100%{opacity:1}50%{opacity:.45}}
+.auth-heart-connector{font-size:1.25rem;flex-shrink:0;animation:heartBeat 1.5s ease-in-out infinite}
+@keyframes heartBeat{0%,100%{transform:scale(1)}15%{transform:scale(1.3)}30%{transform:scale(1)}}
+/* Stats */
+.auth-stats{display:flex;align-items:center;gap:.5rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:.8rem 1rem}
+.auth-stat{text-align:center;flex:1}
+.auth-stat-num{display:block;font-size:1.05rem;font-weight:800;background:linear-gradient(135deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.auth-stat-label{font-size:.68rem;color:rgba(180,165,215,.65)}
+.auth-stat-sep{width:1px;height:32px;background:rgba(255,255,255,.1);flex-shrink:0}
 /* Right panel */
 .auth-right{width:400px;padding:3rem 2.5rem;display:flex;flex-direction:column;justify-content:center;position:relative}
-.auth-right::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(64,145,108,.07) 0%,transparent 65%);pointer-events:none}
+.auth-right::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(108,99,255,.08) 0%,transparent 65%);pointer-events:none}
 @media(max-width:600px){.auth-right{width:100%;padding:2rem 1.5rem}}
 .auth-box{background:transparent;border:none;padding:0;width:100%}
 .auth-logo{text-align:center;margin-bottom:1.8rem;display:none}
 @media(max-width:600px){.auth-logo{display:block}}
-.auth-logo h1{font-size:1.9rem;font-weight:800;background:linear-gradient(135deg,#52b788,#00e5c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.auth-logo h1{font-size:1.9rem;font-weight:800;background:linear-gradient(135deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .auth-logo p{color:var(--txt2);font-size:.8rem;margin-top:.3rem}
 .auth-title{font-size:1.45rem;font-weight:800;color:var(--txt);margin-bottom:.4rem}
-.auth-subtitle{font-size:.85rem;color:rgba(139,148,158,.8);margin-bottom:1.8rem}
-/* Tabs */
+.auth-subtitle{font-size:.85rem;color:rgba(185,170,220,.78);margin-bottom:1.8rem}
 .auth-tabs{display:flex;background:rgba(255,255,255,.04);border-radius:12px;padding:5px;margin-bottom:1.8rem;gap:5px;border:1px solid rgba(255,255,255,.06)}
 .auth-tab{flex:1;padding:.65rem;background:none;color:var(--txt2);font-size:.9rem;font-weight:500;transition:.25s;border-radius:9px}
-.auth-tab.active{background:linear-gradient(135deg,rgba(45,106,79,.8),rgba(64,145,108,.55));color:#b7e4c7;font-weight:700;box-shadow:0 2px 14px rgba(64,145,108,.28)}
+.auth-tab.active{background:linear-gradient(135deg,rgba(108,99,255,.72),rgba(255,101,132,.48));color:#fff;font-weight:700;box-shadow:0 2px 14px rgba(108,99,255,.38)}
 .auth-tab:hover:not(.active){color:var(--txt);background:rgba(255,255,255,.06)}
-/* Form */
 .form-group{margin-bottom:1rem}
-.form-group label{display:block;font-size:.82rem;color:rgba(180,210,195,.8);margin-bottom:.4rem;font-weight:500}
-.form-group input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(80,200,140,.16);border-radius:10px;padding:.75rem 1rem;color:var(--txt);font-size:.95rem;transition:.25s}
-.form-group input:focus{border-color:rgba(80,200,140,.52);background:rgba(255,255,255,.07);box-shadow:0 0 0 3px rgba(64,145,108,.13)}
-.form-group input::placeholder{color:rgba(139,148,158,.45)}
-/* Buttons */
+.form-group label{display:block;font-size:.82rem;color:rgba(200,185,255,.82);margin-bottom:.4rem;font-weight:500}
+.form-group input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(108,99,255,.24);border-radius:10px;padding:.75rem 1rem;color:var(--txt);font-size:.95rem;transition:.25s}
+.form-group input:focus{border-color:rgba(255,101,132,.65);background:rgba(255,255,255,.08);box-shadow:0 0 0 3px rgba(108,99,255,.2)}
+.form-group input::placeholder{color:rgba(140,125,185,.45)}
 .btn{width:100%;padding:.8rem;border-radius:8px;font-size:.95rem;font-weight:600;transition:.25s}
-.btn-primary{background:linear-gradient(135deg,#1b5e3b,#40916c,#74c69d);background-size:200%;color:#fff;box-shadow:0 4px 22px rgba(64,145,108,.38)}
-.btn-primary:hover{background-position:100%;box-shadow:0 6px 32px rgba(64,145,108,.6);transform:translateY(-1px)}
-.btn-primary:active{transform:translateY(0);box-shadow:0 2px 14px rgba(64,145,108,.32)}
+.btn-primary{background:linear-gradient(135deg,#6C63FF,#9c60f0,#FF6584);background-size:200%;color:#fff;box-shadow:0 4px 22px rgba(108,99,255,.48)}
+.btn-primary:hover{background-position:100%;box-shadow:0 6px 32px rgba(255,101,132,.55);transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0);box-shadow:0 2px 14px rgba(108,99,255,.35)}
 .btn-secondary{background:var(--bg3);color:var(--txt);border:1px solid var(--brd)}
 .btn-secondary:hover{border-color:var(--acc2)}
 .btn-danger{background:var(--danger);color:#fff}
@@ -509,35 +505,83 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 </div>
 <!-- AUTH -->
 <div id="auth-screen">
-<!-- Animated background blobs -->
-<div class="auth-blob" style="width:560px;height:560px;left:-160px;top:-120px;background:radial-gradient(circle,rgba(40,160,100,.55),rgba(0,200,160,.18),transparent 68%);animation-duration:13s"></div>
-<div class="auth-blob" style="width:440px;height:440px;right:-120px;bottom:-80px;background:radial-gradient(circle,rgba(0,150,220,.48),rgba(80,40,255,.18),transparent 68%);animation-duration:16s;animation-delay:-6s"></div>
-<div class="auth-blob" style="width:320px;height:320px;right:28%;top:15%;background:radial-gradient(circle,rgba(180,70,255,.32),transparent 68%);animation-duration:11s;animation-delay:-3s"></div>
-<div class="auth-blob" style="width:280px;height:280px;left:22%;bottom:8%;background:radial-gradient(circle,rgba(255,170,40,.2),transparent 68%);animation-duration:9s;animation-delay:-8s"></div>
-<div class="auth-blob" style="width:200px;height:200px;left:48%;top:5%;background:radial-gradient(circle,rgba(0,230,200,.18),transparent 68%);animation-duration:14s;animation-delay:-4s"></div>
+<!-- Animated background blobs — vibrant purple/pink/cyan -->
+<div class="auth-blob" style="width:580px;height:580px;left:-170px;top:-130px;background:radial-gradient(circle,rgba(108,99,255,.65),rgba(139,92,246,.22),transparent 68%);animation-duration:13s"></div>
+<div class="auth-blob" style="width:460px;height:460px;right:-130px;bottom:-90px;background:radial-gradient(circle,rgba(255,101,132,.58),rgba(244,63,94,.2),transparent 68%);animation-duration:16s;animation-delay:-6s"></div>
+<div class="auth-blob" style="width:330px;height:330px;right:28%;top:14%;background:radial-gradient(circle,rgba(0,210,255,.38),transparent 68%);animation-duration:11s;animation-delay:-3s"></div>
+<div class="auth-blob" style="width:280px;height:280px;left:22%;bottom:8%;background:radial-gradient(circle,rgba(255,190,50,.3),transparent 68%);animation-duration:9s;animation-delay:-8s"></div>
+<div class="auth-blob" style="width:210px;height:210px;left:48%;top:4%;background:radial-gradient(circle,rgba(236,72,153,.28),transparent 68%);animation-duration:14s;animation-delay:-4s"></div>
 <div class="auth-particles" id="auth-particles"></div>
 <div class="auth-wrap">
-  <!-- Sol panel -->
+  <!-- Sol panel — sosyal tanışma vitrin -->
   <div class="auth-left">
     <div class="auth-brand">
       <div class="auth-brand-icon">💬</div>
       <h1>SohbetHane</h1>
-      <p>Mesajlarınız yalnızca size aittir.<br>Sunucu tek bir harf bile göremez.</p>
+      <p>Dünyanın dört bir yanındaki insanlarla<br>güvenli ve şifreli sohbet et 🌍</p>
     </div>
-    <!-- Canlı sohbet önizleme -->
-    <div class="auth-chat-preview">
-      <div class="auth-msg other" style="animation-delay:.1s">Merhaba! Uygulama nasıl? 👋</div>
-      <div class="auth-msg own" style="animation-delay:.35s">Harika — tamamen şifreli! 🔐</div>
-      <div class="auth-msg other" style="animation-delay:.6s">Kimse okuyamıyor mu gerçekten?</div>
-      <div class="auth-msg own" style="animation-delay:.85s">Sunucu bile göremez, söz ✓</div>
-      <div class="auth-msg-lock" style="animation-delay:1.1s">🔒 Bu konuşma uçtan uca şifreli</div>
+    <!-- Kullanıcı tanışma kartları -->
+    <div class="auth-users-showcase">
+      <div class="auth-user-row" style="animation-delay:.1s">
+        <div class="auth-ucard">
+          <div class="auth-uavatar">👩🏻‍🦰</div>
+          <div class="auth-uinfo"><b>Elif K.</b><span>🇹🇷 Türkiye</span></div>
+          <div class="auth-uonline"></div>
+        </div>
+        <div class="auth-heart-connector">💝</div>
+        <div class="auth-ucard">
+          <div class="auth-uavatar">👨🏽</div>
+          <div class="auth-uinfo"><b>Arjun M.</b><span>🇮🇳 Hindistan</span></div>
+          <div class="auth-uonline"></div>
+        </div>
+      </div>
+      <div class="auth-user-row" style="animation-delay:.28s;margin-left:1.4rem">
+        <div class="auth-ucard">
+          <div class="auth-uavatar">👩🏾</div>
+          <div class="auth-uinfo"><b>Maria L.</b><span>🇧🇷 Brezilya</span></div>
+          <div class="auth-uonline"></div>
+        </div>
+        <div class="auth-heart-connector">💕</div>
+        <div class="auth-ucard">
+          <div class="auth-uavatar">👨🏻‍💼</div>
+          <div class="auth-uinfo"><b>Kai S.</b><span>🇩🇪 Almanya</span></div>
+          <div class="auth-uonline"></div>
+        </div>
+      </div>
+      <div class="auth-user-row" style="animation-delay:.46s;margin-left:.5rem">
+        <div class="auth-ucard">
+          <div class="auth-uavatar">👩🏼‍🎤</div>
+          <div class="auth-uinfo"><b>Hana Y.</b><span>🇯🇵 Japonya</span></div>
+          <div class="auth-uonline"></div>
+        </div>
+        <div class="auth-heart-connector">❤️</div>
+        <div class="auth-ucard">
+          <div class="auth-uavatar">👦🏻</div>
+          <div class="auth-uinfo"><b>Budi S.</b><span>🇮🇩 Endonezya</span></div>
+          <div class="auth-uonline"></div>
+        </div>
+      </div>
+      <div class="auth-user-row" style="animation-delay:.62s;margin-left:2rem">
+        <div class="auth-ucard">
+          <div class="auth-uavatar">👱🏻‍♀️</div>
+          <div class="auth-uinfo"><b>Lena M.</b><span>🇺🇸 ABD</span></div>
+          <div class="auth-uonline"></div>
+        </div>
+        <div class="auth-heart-connector">🧡</div>
+        <div class="auth-ucard">
+          <div class="auth-uavatar">👨🏿</div>
+          <div class="auth-uinfo"><b>Kwame A.</b><span>🇬🇭 Gana</span></div>
+          <div class="auth-uonline"></div>
+        </div>
+      </div>
     </div>
-    <!-- Güven rozetleri -->
-    <div class="auth-trust">
-      <div class="auth-trust-badge"><span>🔒</span><span>AES-256-GCM</span></div>
-      <div class="auth-trust-badge"><span>🛡️</span><span>ECDH-P256</span></div>
-      <div class="auth-trust-badge"><span>👁️‍🗨️</span><span>Sıfır veri kaydı</span></div>
-      <div class="auth-trust-badge"><span>🌐</span><span>Otomatik çeviri</span></div>
+    <!-- İstatistikler -->
+    <div class="auth-stats">
+      <div class="auth-stat"><span class="auth-stat-num">47K+</span><span class="auth-stat-label">👥 Üye</span></div>
+      <div class="auth-stat-sep"></div>
+      <div class="auth-stat"><span class="auth-stat-num">125</span><span class="auth-stat-label">🌍 Ülke</span></div>
+      <div class="auth-stat-sep"></div>
+      <div class="auth-stat"><span class="auth-stat-num">🟢 1.2K</span><span class="auth-stat-label">Şu an aktif</span></div>
     </div>
   </div>
   <!-- Sağ panel -->
@@ -1502,12 +1546,18 @@ function toast(msg, type='info'){
 function avatarInitials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 function userColor(uid){ const h = uid ? parseInt(uid.slice(0,6),16)%360 : 180; return `hsl(${h},40%,35%)`; }
 // Detect country + IP via ipapi.co (free, no key, 1000/day)
+// AbortSignal.timeout() Chrome<103/Safari<16 desteklemez — AbortController kullanıyoruz
 async function detectGeoInfo(){
   try{
-    const res=await fetch('https://ipapi.co/json/',{signal:AbortSignal.timeout(4000)});
-    if(!res.ok) return {};
+    const ctrl=new AbortController();
+    const tid=setTimeout(()=>ctrl.abort(),5000);
+    let res;
+    try{ res=await fetch('https://ipapi.co/json/',{signal:ctrl.signal}); }
+    finally{ clearTimeout(tid); }
+    if(!res||!res.ok) return {};
     const d=await res.json();
-    return {ulke:d?.country_name||null, ip_adresi:d?.ip||null};
+    if(d?.error||!d?.country_name) return {};
+    return {ulke:d.country_name||null, ip_adresi:d.ip||null};
   }catch(_){return {};}
 }
 // Legacy alias
@@ -4225,9 +4275,21 @@ async function toggleAdmin(uid,makeAdmin){
   loadAdminUsers();
 }
 async function setBan(uid,ban){
-  if(ban&&!confirm('Bu kullanıcıyı askıya almak istediğinize emin misiniz?')) return;
-  await sb.from('profiller').update({banli:ban}).eq('id',uid);
-  toast(ban?'Kullanıcı askıya alındı':'Askı kaldırıldı','success');
+  if(ban&&!confirm('Bu kullanıcıyı askıya almak istediğinize emin misiniz?\n\nIP adresi de yasaklanacak ve tekrar kayıt olamayacak.')) return;
+  // Banlıysa IP adresini önce al
+  if(ban){
+    const{data:prof}=await sb.from('profiller').select('ip_adresi,kullanici_adi').eq('id',uid).single();
+    await sb.from('profiller').update({banli:true}).eq('id',uid);
+    if(prof?.ip_adresi){
+      await sb.from('yasakli_ipler').insert({ip_adresi:prof.ip_adresi,sebep:`Askıya alınan kullanıcı: @${prof?.kullanici_adi||uid}`,tarih:new Date().toISOString()}).catch(()=>{});
+      toast(`Kullanıcı askıya alındı — IP yasaklandı (${prof.ip_adresi})`,'success');
+    } else {
+      toast('Kullanıcı askıya alındı (IP bilinmiyor, IP banı uygulanamadı)','success');
+    }
+  } else {
+    await sb.from('profiller').update({banli:false}).eq('id',uid);
+    toast('Askı kaldırıldı','success');
+  }
   loadAdminUsers();
 }
 async function deleteUser(uid){
