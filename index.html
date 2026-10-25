@@ -316,7 +316,7 @@ a{color:var(--acc2);text-decoration:none}
 /* POKE / DÜRT */
 #poke-btn{background:linear-gradient(135deg,rgba(255,77,109,.18),rgba(201,24,74,.12));border:1px solid rgba(255,77,109,.4);border-radius:20px;padding:.25rem .65rem;font-size:.78rem;color:#ff4d6d;cursor:pointer;font-weight:700;letter-spacing:.02em;transition:.2s;white-space:nowrap;display:flex;align-items:center;gap:.25rem}
 #poke-btn:hover{background:linear-gradient(135deg,rgba(255,77,109,.3),rgba(201,24,74,.22));transform:scale(1.05);box-shadow:0 2px 12px rgba(255,77,109,.3)}
-#poke-panel{position:fixed;z-index:9999;background:var(--bg2);border:1.5px solid rgba(255,77,109,.35);border-radius:18px;padding:1rem;width:320px;box-shadow:0 8px 40px rgba(0,0,0,.35),0 2px 8px rgba(255,77,109,.15);display:none;flex-direction:column;gap:.7rem}
+#poke-panel{position:fixed;z-index:9999;background:var(--bg2);border:1.5px solid rgba(255,77,109,.35);border-radius:18px;padding:1rem;width:min(340px,calc(100vw - 16px));max-height:min(560px,calc(100vh - 80px));overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.35),0 2px 8px rgba(255,77,109,.15);display:none;flex-direction:column;gap:.7rem}
 #poke-panel.open{display:flex}
 #poke-panel-title{font-size:.85rem;font-weight:700;color:#ff4d6d;text-align:center;letter-spacing:.04em}
 #poke-panel-subtitle{font-size:.72rem;color:var(--txt2);text-align:center;margin-top:-.3rem}
@@ -5486,7 +5486,8 @@ const POKE_TOPICS=[
   {emoji:'🐾',label:'Hayvanlar'},
   {emoji:'👾',label:'Oyun & Tech'},
   {emoji:'☕',label:'Günlük Hayat'},
-  {emoji:'🧩',label:'Kişilik & Test'}
+  {emoji:'🧩',label:'Kişilik & Test'},
+  {emoji:'🕌',label:'Dini İnanç'}
 ];
 const POKE_TOPIC_EMOJIS={
   'Duygusal':['💔','🥺','😭','😢','🥹','❤️‍🩹','💗','💓','💞','💝','🫀','🌹','🕯️','😔','🤍','😞','💌','🫂','😩','🥀','🌸','😿','🫶','🌈','🦋','✨','🌙','⭐','🤗','🙈','😘','💋','🍷','🌷','💐','🌺','🎭','🎵','🎶','☁️','🌊','🌅'],
@@ -5508,7 +5509,8 @@ const POKE_TOPIC_EMOJIS={
   'Hayvanlar':['🐾','🐶','🐱','🦊','🐺','🦁','🐯','🐨','🐼','🐻','🦝','🦨','🦡','🦦','🦥','🐭','🐰','🐹','🐿️','🦔','🐸','🦎','🐍','🦕','🦖','🐢','🦜','🦩','🦚','🦅','🦉','🐦','🕊️','🐧','🦆','🦢','🦋','🐝','🐞','🦗','🐛','🐌','🦑','🐙','🦈','🐬','🐳','🦭','🐠','🐡','🌿'],
   'Oyun & Tech':['👾','🎮','🕹️','💻','📱','🖥️','🖨️','⌨️','🖱️','🤖','🦾','🦿','⚡','🔋','💡','🌐','📡','🛸','🚀','🤯','💥','⭐','🌟','✨','💫','🔥','🎯','🏆','🥇','🎖️','🎊','🎉','🎈','🎮','🕹️','👑','💎','🪙','💰','🔐','🔓','🗝️','🔑','🛡️','⚔️','🗡️','🏹','💀','☠️','🧩'],
   'Günlük Hayat':['☕','🌅','🌄','🌞','🌤️','☁️','🌦️','🌧️','⛈️','❄️','🌈','🍳','🥞','🧇','🥓','🥚','☕','🍵','🧃','🥛','🚿','🛁','🪥','🧴','🪞','👔','👗','👟','🧢','🎒','🏠','🏡','🌳','🌿','🌻','🌷','🐕','🐈','🚗','🚲','🛵','🏃','🧘','💤','📱','💻','📺','🎵'],
-  'Kişilik & Test':['🧩','🧠','💭','🌀','🎭','🦋','🌈','⭐','🌟','✨','💫','🔮','🪬','🧿','🎲','🃏','🎯','🏆','🥇','🌸','🌺','🌻','🦁','🐯','🦊','🐺','🐻','🦋','🐬','🦅','🌊','🏔️','🌋','🌿','🍀','🌱','🌾','🔵','🟡','🔴','⚪','🟢','🟠','🟣','⬛','🔲','❤️','🧡','💛','💚','💙']
+  'Kişilik & Test':['🧩','🧠','💭','🌀','🎭','🦋','🌈','⭐','🌟','✨','💫','🔮','🪬','🧿','🎲','🃏','🎯','🏆','🥇','🌸','🌺','🌻','🦁','🐯','🦊','🐺','🐻','🦋','🐬','🦅','🌊','🏔️','🌋','🌿','🍀','🌱','🌾','🔵','🟡','🔴','⚪','🟢','🟠','🟣','⬛','🔲','❤️','🧡','💛','💚','💙'],
+  'Dini İnanç':['🕌','🕍','⛪','🛕','🕋','📿','🤲','🙏','☪️','✡️','☦️','🕎','☯️','🔯','✝️','🕉️','☮️','🛐','🌙','⭐','🌟','📖','📗','🕊️','🌹','🌺','🌸','💎','🪬','🧿','🌿','🍃','💫','✨','🌅','🌄','🌌','🌊','🏔️','🌋','🕯️','🪔','💡','🔔','🎶','🎵','📜','🪧','🗝️','🔮','🌈','❤️','🤍','🖤','💜','💚','💙','🧡','💛']
 };
 let _pokeSelectedTopic=null, _pokeSelectedEmoji=null;
 function initPokePanel(){
@@ -5525,21 +5527,22 @@ function initPokePanel(){
 function openPokeSub(topicEmoji,topicLabel){
   _pokeSelectedTopic={emoji:topicEmoji,label:topicLabel};
   _pokeSelectedEmoji=null;
-  // Highlight selected topic
-  document.querySelectorAll('.poke-topic-btn').forEach(b=>{
-    b.classList.toggle('selected',b.textContent.trim()===topicEmoji+' '+topicLabel);
-  });
   // Populate emoji sub-panel
   const sub=document.getElementById('poke-emoji-sub');
   const lbl=document.getElementById('poke-sub-label');
   const grid=document.getElementById('poke-sub-emojis');
+  const topicList=document.getElementById('poke-topics-list');
   if(!sub||!lbl||!grid) return;
   lbl.textContent=`${topicEmoji} ${topicLabel} — konuya özel emojiler`;
   const emojis=POKE_TOPIC_EMOJIS[topicLabel]||[];
   grid.innerHTML=emojis.map(e=>`<button class="poke-sub-emoji-btn" onclick="selectPokeEmoji(this,'${e}')">${e}</button>`).join('');
+  // Hide topic list, show emoji sub (step 2)
+  if(topicList) topicList.style.display='none';
+  document.getElementById('poke-panel-subtitle').style.display='none';
   sub.classList.add('open');
-  // Scroll sub into view
-  setTimeout(()=>sub.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+  // Scroll panel back to top
+  const panel=document.getElementById('poke-panel');
+  if(panel) panel.scrollTop=0;
 }
 function selectPokeEmoji(btn,emoji){
   _pokeSelectedEmoji=emoji;
@@ -5550,7 +5553,10 @@ function closePokeSub(){
   _pokeSelectedTopic=null;
   _pokeSelectedEmoji=null;
   document.getElementById('poke-emoji-sub')?.classList.remove('open');
-  document.querySelectorAll('.poke-topic-btn').forEach(b=>b.classList.remove('selected'));
+  const topicList=document.getElementById('poke-topics-list');
+  if(topicList) topicList.style.display='';
+  const sub2=document.getElementById('poke-panel-subtitle');
+  if(sub2) sub2.style.display='';
 }
 async function sendPokeConfirm(){
   if(!_pokeSelectedTopic){ toast('Önce bir konu seç','info'); return; }
@@ -5571,14 +5577,27 @@ function togglePokePanel(){
   const triggerBtn=document.getElementById('poke-btn');
   if(triggerBtn){
     const rect=triggerBtn.getBoundingClientRect();
-    const panelW=320; const panelH=260;
+    const panelW=Math.min(340,window.innerWidth-16);
+    const maxH=Math.min(560,window.innerHeight-80);
     let left=rect.right-panelW;
     if(left<8) left=8;
     if(left+panelW>window.innerWidth-8) left=window.innerWidth-panelW-8;
-    const top=rect.top-panelH-10;
+    // Place above button; if not enough space above, place below; if still no room clamp to bottom
+    const spaceAbove=rect.top-8;
+    const spaceBelow=window.innerHeight-rect.bottom-8;
+    if(spaceAbove>=spaceBelow){
+      // above: anchor bottom edge just above button
+      const panelBottom=window.innerHeight-rect.top+10;
+      panel.style.bottom=panelBottom+'px';
+      panel.style.top='auto';
+      panel.style.maxHeight=Math.min(maxH,spaceAbove)+'px';
+    } else {
+      // below: anchor top edge just below button
+      panel.style.top=(rect.bottom+8)+'px';
+      panel.style.bottom='auto';
+      panel.style.maxHeight=Math.min(maxH,spaceBelow)+'px';
+    }
     panel.style.left=left+'px';
-    panel.style.top=(top<8?rect.bottom+8:top)+'px';
-    panel.style.bottom='auto';
     panel.style.right='auto';
   }
   // Close emoji if open
