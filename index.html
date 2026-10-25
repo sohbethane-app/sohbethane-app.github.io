@@ -116,6 +116,20 @@ a{color:var(--acc2);text-decoration:none}
 .btn-sm{padding:.4rem .8rem;font-size:.8rem;border-radius:6px;width:auto}
 .auth-err{color:var(--danger);font-size:.85rem;margin-top:.5rem;text-align:center;min-height:1.2em}
 /* APP */
+/* THEME PICKER */
+#theme-first-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9990;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);animation:fadeIn .3s ease}
+#theme-first-box{background:var(--bg2);border:1px solid var(--brd);border-radius:20px;padding:1.6rem 1.4rem;max-width:420px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+#theme-first-box h3{font-size:1.1rem;font-weight:800;margin-bottom:.3rem;color:var(--txt)}
+#theme-first-box p{font-size:.82rem;color:var(--txt2);margin-bottom:1rem}
+.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;margin-bottom:1.2rem}
+.theme-card{border-radius:12px;aspect-ratio:1;cursor:pointer;border:2px solid transparent;transition:transform .15s,box-shadow .15s,border-color .15s;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:.4rem .2rem}
+.theme-card:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.theme-card.active{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.25),0 6px 20px rgba(0,0,0,.5)}
+.theme-card-label{font-size:.62rem;font-weight:700;color:rgba(255,255,255,.9);text-shadow:0 1px 4px rgba(0,0,0,.8);white-space:nowrap}
+.theme-card-dot{width:22px;height:22px;border-radius:50%;margin-bottom:.25rem;border:2px solid rgba(255,255,255,.4)}
+/* Settings tema tab */
+#settings-tema{display:none}
+#settings-tema h4{font-size:.85rem;font-weight:700;color:var(--txt2);margin-bottom:.8rem}
 #app-screen{display:none;height:100vh;flex-direction:row}
 /* SIDEBAR */
 #sidebar{width:300px;background:var(--bg2);border-right:1px solid var(--brd);display:flex;flex-direction:column;flex-shrink:0;position:relative}
@@ -125,6 +139,8 @@ a{color:var(--acc2);text-decoration:none}
 #invite-link-popup{position:absolute;top:54px;left:8px;right:8px;background:var(--bg3);border:1px solid var(--brd);border-radius:14px;padding:.9rem 1rem;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.45);display:none;flex-direction:column;gap:.55rem}
 #invite-link-popup.open{display:flex;animation:fadeInDown .22s ease}
 @keyframes fadeInDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 #invite-link-popup h4{margin:0;font-size:.82rem;font-weight:700;color:var(--acc2)}
 #invite-link-popup p{margin:0;font-size:.74rem;color:var(--txt2);line-height:1.4}
 .invite-link-row{display:flex;gap:.4rem;align-items:center}
@@ -332,6 +348,15 @@ a{color:var(--acc2);text-decoration:none}
 .emoji-btn-item:hover{background:var(--bg3);transform:scale(1.25)}
 /* POKE / DÜRT */
 #poke-btn{background:linear-gradient(135deg,rgba(255,77,109,.18),rgba(201,24,74,.12));border:1px solid rgba(255,77,109,.4);border-radius:20px;padding:.25rem .65rem;font-size:.78rem;color:#ff4d6d;cursor:pointer;font-weight:700;letter-spacing:.02em;transition:.2s;white-space:nowrap;display:flex;align-items:center;gap:.25rem}
+/* Poke quick icon button */
+#poke-quick-btn{background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(59,130,246,.15));border:1px solid rgba(139,92,246,.45);border-radius:20px;padding:.25rem .6rem;font-size:.78rem;color:var(--acc2);cursor:pointer;font-weight:700;transition:.2s;white-space:nowrap;display:none;align-items:center;gap:.2rem;animation:fadeIn .2s ease}
+#poke-quick-btn:hover{background:linear-gradient(135deg,rgba(139,92,246,.38),rgba(59,130,246,.28))}
+#poke-quick-panel{display:none;flex-direction:column;gap:.4rem;padding:.6rem .7rem;border-top:1px solid var(--brd);background:var(--bg2)}
+#poke-quick-panel.open{display:flex}
+#poke-quick-panel-header{display:flex;align-items:center;justify-content:space-between;font-size:.75rem;font-weight:700;color:var(--acc2)}
+.poke-quick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;max-height:160px;overflow-y:auto}
+.poke-quick-icon{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;cursor:pointer;border:none;transition:transform .12s,box-shadow .12s;box-shadow:0 1px 6px rgba(0,0,0,.3)}
+.poke-quick-icon:hover{transform:scale(1.18);box-shadow:0 4px 14px rgba(0,0,0,.45)}
 #poke-btn:hover{background:linear-gradient(135deg,rgba(255,77,109,.3),rgba(201,24,74,.22));transform:scale(1.05);box-shadow:0 2px 12px rgba(255,77,109,.3)}
 #poke-panel{position:fixed;z-index:9999;background:var(--bg2);border:1.5px solid rgba(255,77,109,.35);border-radius:18px;padding:1rem;width:min(340px,calc(100vw - 16px));max-height:min(560px,calc(100vh - 80px));overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.35),0 2px 8px rgba(255,77,109,.15);display:none;flex-direction:column;gap:.7rem}
 #poke-panel.open{display:flex}
@@ -729,6 +754,15 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div id="typing-indicator"></div>
     <div id="messages"><div class="empty-state"><span class="icon">💬</span><p>Bir sohbet seçin</p></div></div>
     <div id="poke-bg-toast"></div>
+<!-- First-login theme picker overlay -->
+<div id="theme-first-overlay" style="display:none">
+  <div id="theme-first-box">
+    <h3>🎨 Temanı Seç</h3>
+    <p>Uygulama renk temasını seç — istediğin zaman Ayarlar → Tema'dan değiştirebilirsin.</p>
+    <div class="theme-grid" id="first-theme-grid"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="confirmFirstTheme()">Devam Et ✓</button>
+  </div>
+</div>
     <div id="reply-bar">
       <span>↩️</span>
       <span id="reply-bar-text"></span>
@@ -760,6 +794,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <textarea id="chat-input" placeholder="Mesaj yaz..." rows="1" onkeydown="inputKeyDown(event)" oninput="autoResize(this);sendTyping()"></textarea>
         <button id="translate-input-btn" onclick="toggleTranslatePanel()" title="Çeviri Ayarları">🌐<span class="tib-badge">OTO</span></button>
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
+        <button id="poke-quick-btn" onclick="togglePokeQuickPanel()" title="Konu ikonları">🎯</button>
         <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
         <button id="poke-btn" onclick="togglePokePanel()" title="Özel konu için dürt">🫵 Dürt</button>
         <button id="send-btn" onclick="sendMessage()">Gönder ✦</button>
@@ -780,6 +815,13 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     </div>
     <div id="emoji-panel">
       <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+    <div id="poke-quick-panel">
+      <div id="poke-quick-panel-header">
+        <span id="poke-quick-label">🎯 Konu İkonları</span>
+        <button style="background:none;border:none;color:var(--txt2);cursor:pointer;font-size:.85rem" onclick="togglePokeQuickPanel()">✕</button>
+      </div>
+      <div class="poke-quick-grid" id="poke-quick-grid"></div>
     </div>
     <div id="poke-panel">
       <div id="poke-panel-title">🫵 Özel Konu Talebi — Dürt</div>
@@ -1035,6 +1077,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   <div class="modal-header"><span class="modal-title">⚙️ Ayarlar</span><button class="modal-close" onclick="closeModal('settings-modal')">✕</button></div>
   <div class="modal-tabs">
     <button class="modal-tab active" onclick="settingsTab('profile')">Profil</button>
+    <button class="modal-tab" onclick="settingsTab('tema')">🎨 Tema</button>
     <button class="modal-tab" onclick="settingsTab('muted')">Sessize Alınanlar</button>
     <button class="modal-tab" onclick="settingsTab('blocked')">Engellediklerim</button>
     <button class="modal-tab" id="admin-tab-btn" style="display:none" onclick="settingsTab('admin')">👑 Yönetici</button>
@@ -1134,6 +1177,11 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   </div>
   <div id="settings-blocked" style="display:none">
     <div id="blocked-list"><p class="text-muted">Engellenen kişi yok.</p></div>
+  </div>
+  <div id="settings-tema">
+    <h4>🎨 Uygulama Teması</h4>
+    <div class="theme-grid" id="settings-theme-grid"></div>
+    <p style="font-size:.75rem;color:var(--txt2);text-align:center">Seçim anında uygulanır ve kaydedilir.</p>
   </div>
   <div id="settings-admin" style="display:none">
     <div id="admin-panel">
@@ -2509,6 +2557,8 @@ async function startApp(){
   initTranslation();
   // Global presence
   startGlobalPresence();
+  // First-time theme picker
+  setTimeout(()=>showFirstTimeThemePicker(), 600);
 }
 function populateSettingsProfile(){
   const p=S.profile;
@@ -2575,6 +2625,62 @@ function checkInviteHash(){
   }
 }
 
+// ============================================================
+// THEME SYSTEM
+// ============================================================
+const THEMES={
+  gece:{name:'Gece',icon:'🌙',vars:{'--bg':'#09090f','--bg2':'#0e0e18','--bg3':'#151525','--acc':'#1d4ed8','--acc2':'#3b82f6','--txt':'#e8edf8','--txt2':'#6b7fa0','--brd':'#1c2540','--dm':'#0f1a30','--own':'#0a1220','--rose':'#60a5fa','--gold':'#fbbf24','--glow-rose':'rgba(59,130,246,.3)'}},
+  gul:{name:'Gül',icon:'🌹',vars:{'--bg':'#0d0a12','--bg2':'#130d1c','--bg3':'#1e1428','--acc':'#9d174d','--acc2':'#db2777','--txt':'#f0e8f8','--txt2':'#9d8ab5','--brd':'#2d1f3d','--dm':'#220d1c','--own':'#1e0a18','--rose':'#ff4d6d','--gold':'#ffd166','--glow-rose':'rgba(219,39,119,.35)'}},
+  okyanus:{name:'Okyanus',icon:'🌊',vars:{'--bg':'#040e14','--bg2':'#06141e','--bg3':'#0b1e2a','--acc':'#0e7490','--acc2':'#06b6d4','--txt':'#e0f7f7','--txt2':'#4a8a90','--brd':'#0c2838','--dm':'#051e2e','--own':'#031018','--rose':'#34d399','--gold':'#fde68a','--glow-rose':'rgba(6,182,212,.3)'}},
+  orman:{name:'Orman',icon:'🌿',vars:{'--bg':'#040c06','--bg2':'#081410','--bg3':'#0e1f16','--acc':'#166534','--acc2':'#22c55e','--txt':'#dcfce7','--txt2':'#4a7a58','--brd':'#12302a','--dm':'#081e10','--own':'#041208','--rose':'#4ade80','--gold':'#fde68a','--glow-rose':'rgba(34,197,94,.3)'}},
+  mor:{name:'Mor',icon:'💜',vars:{'--bg':'#0c0a18','--bg2':'#110d24','--bg3':'#1a1535','--acc':'#5b21b6','--acc2':'#8b5cf6','--txt':'#ede9fe','--txt2':'#7a6aaa','--brd':'#251d48','--dm':'#180d33','--own':'#100820','--rose':'#a78bfa','--gold':'#fde68a','--glow-rose':'rgba(139,92,246,.3)'}},
+  amber:{name:'Amber',icon:'🔥',vars:{'--bg':'#0e0900','--bg2':'#181200','--bg3':'#241b00','--acc':'#92400e','--acc2':'#f59e0b','--txt':'#fef9e7','--txt2':'#906a30','--brd':'#352200','--dm':'#281800','--own':'#181000','--rose':'#fbbf24','--gold':'#fde68a','--glow-rose':'rgba(245,158,11,.32)'}},
+  kirmizi:{name:'Kırmızı',icon:'❤️‍🔥',vars:{'--bg':'#0e0404','--bg2':'#180707','--bg3':'#240e0e','--acc':'#991b1b','--acc2':'#ef4444','--txt':'#fee2e2','--txt2':'#906565','--brd':'#3a1212','--dm':'#280707','--own':'#180404','--rose':'#f87171','--gold':'#fde68a','--glow-rose':'rgba(239,68,68,.32)'}},
+  kul:{name:'Kül',icon:'🩶',vars:{'--bg':'#090a0c','--bg2':'#101215','--bg3':'#181b20','--acc':'#374151','--acc2':'#9ca3af','--txt':'#f0f4f8','--txt2':'#5a6370','--brd':'#252b35','--dm':'#181d22','--own':'#101418','--rose':'#94a3b8','--gold':'#fde68a','--glow-rose':'rgba(156,163,175,.22)'}}
+};
+const THEME_BGSAMPLE={
+  gece:'linear-gradient(135deg,#09090f,#1d4ed8)',
+  gul:'linear-gradient(135deg,#130d1c,#db2777)',
+  okyanus:'linear-gradient(135deg,#040e14,#06b6d4)',
+  orman:'linear-gradient(135deg,#040c06,#22c55e)',
+  mor:'linear-gradient(135deg,#0c0a18,#8b5cf6)',
+  amber:'linear-gradient(135deg,#0e0900,#f59e0b)',
+  kirmizi:'linear-gradient(135deg,#0e0404,#ef4444)',
+  kul:'linear-gradient(135deg,#090a0c,#9ca3af)'
+};
+function applyTheme(key){
+  const t=THEMES[key];
+  if(!t) return;
+  const root=document.documentElement;
+  Object.entries(t.vars).forEach(([k,v])=>root.style.setProperty(k,v));
+  localStorage.setItem('sh_theme',key);
+}
+function loadTheme(){
+  const saved=localStorage.getItem('sh_theme')||'gece';
+  applyTheme(saved);
+}
+function renderThemePicker(containerId){
+  const el=document.getElementById(containerId);
+  if(!el) return;
+  const current=localStorage.getItem('sh_theme')||'gece';
+  el.innerHTML=Object.entries(THEMES).map(([key,t])=>`
+    <div class="theme-card${key===current?' active':''}" style="background:${THEME_BGSAMPLE[key]}" onclick="applyTheme('${key}');renderThemePicker('${containerId}');renderThemePicker('${containerId==='settings-theme-grid'?'first-theme-grid':'settings-theme-grid'}')" title="${t.name}">
+      <div class="theme-card-dot" style="background:${t.vars['--acc2']}"></div>
+      <span class="theme-card-label">${t.icon} ${t.name}</span>
+    </div>`).join('');
+}
+function showFirstTimeThemePicker(){
+  if(localStorage.getItem('sh_theme_chosen')) return;
+  const ov=document.getElementById('theme-first-overlay');
+  if(!ov) return;
+  renderThemePicker('first-theme-grid');
+  ov.style.display='flex';
+}
+function confirmFirstTheme(){
+  localStorage.setItem('sh_theme_chosen','1');
+  const ov=document.getElementById('theme-first-overlay');
+  if(ov){ov.style.animation='fadeOut .25s ease forwards';setTimeout(()=>ov.style.display='none',250);}
+}
 // ============================================================
 // REFERRAL / INVITE LINK SYSTEM
 // ============================================================
@@ -3007,6 +3113,8 @@ async function openRoom(room){
   if(pokeBtn) pokeBtn.style.display = isDM ? '' : 'none';
   const pokePnl=document.getElementById('poke-panel');
   if(pokePnl) pokePnl.classList.remove('open');
+  // Poke quick-icon button — update for new room
+  updatePokeQuickBtn();
   document.getElementById('qa-lock-btn').style.display = '';
   document.getElementById('pm-lock-btn') && (document.getElementById('pm-lock-btn').classList.remove('hidden'));
   // Update lock icon badge
@@ -3488,6 +3596,13 @@ function subscribeMessages(roomId){
           if(d.topic){
             const parts=d.topic.trim().split(' ');
             triggerPokeBackground(parts.slice(1).join(' '),parts[0]||'🫵');
+          }
+          // Also store active topic from topic field (emoji+label pattern)
+          if(d.topic){
+            const parts=d.topic.trim().split(' ');
+            const emoji=parts[0]||'🫵';
+            const label=parts.slice(1).join(' ');
+            if(label&&roomId){ _activePokeTopics[roomId]={label,emoji}; _saveActivePokeTopics(); updatePokeQuickBtn(); }
           }
         }catch(e){}
       }
@@ -5399,7 +5514,7 @@ async function deleteUser(uid){
 // SETTINGS TABS
 // ============================================================
 function settingsTab(tab){
-  ['profile','muted','blocked','admin','lang'].forEach(t=>{const el=document.getElementById('settings-'+t);if(el) el.style.display=t===tab?'block':'none';});
+  ['profile','tema','muted','blocked','admin','lang'].forEach(t=>{const el=document.getElementById('settings-'+t);if(el) el.style.display=t===tab?'block':'none';});
   document.querySelectorAll('#settings-modal .modal-tab').forEach(b=>b.classList.remove('active'));
   event?.target?.classList.add('active');
   if(tab==='lang') populateLangSelects();
@@ -5407,6 +5522,7 @@ function settingsTab(tab){
   if(tab==='admin'){ loadAdminUsers(); adminSubTab('users'); }
   if(tab==='muted') loadMutedList();
   if(tab==='blocked') loadBlockedList();
+  if(tab==='tema') renderThemePicker('settings-theme-grid');
 }
 async function loadMutedList(){
   const el=document.getElementById('muted-list');
@@ -5640,6 +5756,58 @@ const POKE_TOPIC_COLORS={
   'Düşünce & Fikir':{card:'linear-gradient(135deg,#023e8a,#4361ee)',bg:'linear-gradient(135deg,#020a1a 0%,#060a2a 60%,#010308 100%)'}
 };
 let _pokeSelectedTopic=null, _pokeSelectedEmoji=null;
+let _activePokeTopics={};
+try{ const saved=localStorage.getItem('sh_poke_active_topics'); if(saved) _activePokeTopics=JSON.parse(saved); }catch(e){}
+function _saveActivePokeTopics(){ try{ localStorage.setItem('sh_poke_active_topics',JSON.stringify(_activePokeTopics)); }catch(e){} }
+function updatePokeQuickBtn(){
+  const btn=document.getElementById('poke-quick-btn');
+  if(!btn) return;
+  const roomId=S.currentRoom?.id;
+  const isDM=S.currentRoom?.tur==='dm';
+  const active=roomId?_activePokeTopics[roomId]:null;
+  if(active&&isDM){
+    btn.style.display='inline-flex';
+    btn.innerHTML=`${active.emoji||'🎯'} <span style="font-size:.7rem">${active.label||'İkonlar'}</span>`;
+  } else {
+    btn.style.display='none';
+    const panel=document.getElementById('poke-quick-panel');
+    if(panel) panel.classList.remove('open');
+  }
+}
+function togglePokeQuickPanel(){
+  const panel=document.getElementById('poke-quick-panel');
+  if(!panel) return;
+  const roomId=S.currentRoom?.id;
+  const active=roomId?_activePokeTopics[roomId]:null;
+  if(!active) return;
+  const wasOpen=panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if(!wasOpen){
+    // Fill grid
+    const grid=document.getElementById('poke-quick-grid');
+    const label=document.getElementById('poke-quick-label');
+    if(label) label.textContent=`${active.emoji||'🎯'} ${active.label||'Konu'} İkonları`;
+    if(grid){
+      const icons=POKE_TOPIC_EMOJIS[active.label]||[];
+      const topicIdx=POKE_TOPICS.findIndex(t=>t.label===active.label);
+      const col=POKE_TOPIC_COLORS[active.label];
+      const bg=col?.card||`linear-gradient(135deg,#1e1b2e,#2d2060)`;
+      grid.innerHTML=icons.map(ic=>`<button class="poke-quick-icon" style="background:${bg}" onclick="sendPokeQuickIcon('${ic}')" title="${ic}">${ic}</button>`).join('');
+    }
+    // Close emoji panel if open
+    const epanel=document.getElementById('emoji-panel');
+    if(epanel) epanel.style.display='none';
+  }
+}
+function sendPokeQuickIcon(emoji){
+  const inp=document.getElementById('msg-input');
+  if(!inp) return;
+  inp.value=(inp.value||'')+emoji;
+  inp.focus();
+  // Close panel
+  const panel=document.getElementById('poke-quick-panel');
+  if(panel) panel.classList.remove('open');
+}
 function initPokePanel(){
   const list=document.getElementById('poke-topics-list');
   if(!list||list.childElementCount) return;
@@ -5826,7 +5994,12 @@ async function acceptPoke(msgId){
     if(origMsg){
       try{
         const d=JSON.parse(origMsg._text||'{}');
-        if(d.label) triggerPokeBackground(d.label,d.emoji||'');
+        if(d.label){
+          triggerPokeBackground(d.label,d.emoji||'');
+          // Store active poke topic for quick-icon button
+          const rid=S.currentRoom?.id;
+          if(rid){ _activePokeTopics[rid]={label:d.label,emoji:d.emoji||''}; _saveActivePokeTopics(); updatePokeQuickBtn(); }
+        }
       }catch(e){}
     }
   }catch(e){
@@ -5893,6 +6066,8 @@ document.querySelector('#settings-admin button[onclick="loadAdminUsers()"]')?.ad
 // INIT
 // ============================================================
 async function init(){
+  // Apply saved theme immediately (before render)
+  loadTheme();
   // Capture ?ref=username before anything else
   captureReferralParam();
   // Hide splash after a short delay
