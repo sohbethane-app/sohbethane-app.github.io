@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://jjkvjrvaozubvdnjdpbs.supabase.co https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' data: blob:; connect-src https://jjkvjrvaozubvdnjdpbs.supabase.co wss://jjkvjrvaozubvdnjdpbs.supabase.co; font-src 'self' data:">
+<meta name="referrer" content="no-referrer">
+<title>SohbetHane — Yönetici Paneli</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;
+  --brd:#30363d;--txt:#e6edf3;--txt2:#8b949e;
+  --acc:#6C63FF;--acc2:#FF6584;--danger:#f85149;
+  --warn:#d29922;--green:#3fb950;--info:#58a6ff;
+  --radius:10px;--shadow:0 4px 24px rgba(0,0,0,.6)
+}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+a{color:var(--acc);text-decoration:none}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+.login-box{background:var(--bg2);border:1px solid var(--brd);border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:var(--shadow)}
+.login-box h1{font-size:1.5rem;font-weight:800;margin-bottom:.3rem}
+.login-box .sub{color:var(--txt2);font-size:.85rem;margin-bottom:1.8rem}
+.logo-badge{width:54px;height:54px;background:linear-gradient(135deg,#6C63FF,#FF6584);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1.2rem;box-shadow:0 4px 20px rgba(108,99,255,.5)}
+
+/* APP */
+#app-screen{display:none;flex-direction:column;min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--brd);padding:.75rem 1.2rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100}
+.topbar-brand{font-weight:800;font-size:1rem;display:flex;align-items:center;gap:.5rem}
+.topbar-badge{background:linear-gradient(135deg,#6C63FF,#FF6584);padding:.2rem .6rem;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:.04em}
+.topbar-user{margin-left:auto;display:flex;align-items:center;gap:.7rem;font-size:.82rem;color:var(--txt2)}
+.topbar-user b{color:var(--txt)}
+.topbar-logout{background:none;border:1px solid var(--brd);color:var(--txt2);padding:.3rem .7rem;border-radius:6px;cursor:pointer;font-size:.78rem;transition:.15s}
+.topbar-logout:hover{border-color:var(--danger);color:var(--danger)}
+
+/* LAYOUT */
+.main-layout{display:flex;flex:1}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--brd);padding:1rem 0;display:flex;flex-direction:column;gap:.15rem;position:sticky;top:48px;height:calc(100vh - 48px);overflow-y:auto}
+.sidebar-section{padding:.4rem 1rem .2rem;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt2)}
+.nav-item{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;cursor:pointer;color:var(--txt2);transition:.15s;font-size:.88rem;border-left:3px solid transparent}
+.nav-item:hover{background:var(--bg3);color:var(--txt)}
+.nav-item.active{background:rgba(108,99,255,.18);color:var(--acc);border-left-color:var(--acc);font-weight:700}
+.nav-item .badge{background:var(--danger);color:#fff;font-size:.68rem;padding:.1rem .4rem;border-radius:10px;margin-left:auto}
+
+/* CONTENT */
+.content{flex:1;padding:1.5rem;overflow-y:auto;max-width:1200px}
+
+/* FORM ELEMENTS */
+input,select,textarea{background:var(--bg3);border:1px solid var(--brd);color:var(--txt);border-radius:8px;padding:.5rem .75rem;font-size:.88rem;outline:none;transition:.15s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+label{display:block;font-size:.8rem;color:var(--txt2);margin-bottom:.25rem}
+.form-group{margin-bottom:.9rem}
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .85rem;border-radius:8px;border:none;cursor:pointer;font-size:.82rem;font-weight:600;transition:.15s;white-space:nowrap}
+.btn-primary{background:var(--acc);color:#fff}
+.btn-primary:hover{background:#7c74ff}
+.btn-secondary{background:var(--bg3);color:var(--txt);border:1px solid var(--brd)}
+.btn-secondary:hover{border-color:var(--acc);color:var(--acc)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#ff6b6b}
+.btn-warn{background:var(--warn);color:#000}
+.btn-success{background:var(--green);color:#000}
+.btn-sm{padding:.3rem .6rem;font-size:.78rem}
+
+/* CARDS & STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.9rem;margin-bottom:1.5rem}
+.stat-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--radius);padding:1rem 1.2rem}
+.stat-card .num{font-size:1.8rem;font-weight:800;line-height:1}
+.stat-card .lbl{font-size:.78rem;color:var(--txt2);margin-top:.3rem}
+.stat-card .icon{font-size:1.4rem;margin-bottom:.5rem}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead th{text-align:left;padding:.5rem .75rem;color:var(--txt2);border-bottom:1px solid var(--brd);font-weight:600;white-space:nowrap}
+tbody td{padding:.5rem .75rem;border-bottom:1px solid rgba(48,54,61,.5);vertical-align:middle}
+tbody tr:hover td{background:rgba(255,255,255,.03)}
+.empty{color:var(--txt2);padding:2rem;text-align:center}
+
+/* TABS */
+.tabs{display:flex;gap:.3rem;margin-bottom:1.2rem;border-bottom:1px solid var(--brd);padding-bottom:.5rem;flex-wrap:wrap}
+.tab{background:none;border:1px solid transparent;color:var(--txt2);padding:.4rem .9rem;border-radius:8px;cursor:pointer;font-size:.82rem;transition:.15s}
+.tab:hover{color:var(--txt);background:var(--bg3)}
+.tab.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:.1rem .45rem;border-radius:12px;font-size:.7rem;font-weight:700}
+.badge-online{background:rgba(63,185,80,.2);color:var(--green)}
+.badge-offline{background:var(--bg3);color:var(--txt2)}
+.badge-ban{background:rgba(248,81,73,.2);color:var(--danger)}
+.badge-admin{background:linear-gradient(135deg,rgba(108,99,255,.3),rgba(255,101,132,.2));color:var(--acc)}
+.badge-new{background:rgba(88,166,255,.2);color:var(--info)}
+
+/* PROFILE DRAWER */
+#profile-drawer{position:fixed;right:0;top:0;bottom:0;width:400px;max-width:95vw;background:var(--bg2);border-left:1px solid var(--brd);z-index:500;transform:translateX(100%);transition:.3s cubic-bezier(.4,0,.2,1);box-shadow:-8px 0 40px rgba(0,0,0,.5);display:flex;flex-direction:column}
+#profile-drawer.open{transform:translateX(0)}
+.drawer-header{padding:1rem 1.2rem;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:.6rem}
+.drawer-header h2{font-size:1rem;font-weight:700}
+.drawer-close{margin-left:auto;background:none;border:1px solid var(--brd);color:var(--txt2);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center}
+.drawer-close:hover{color:var(--txt)}
+.drawer-body{flex:1;overflow-y:auto;padding:1rem 1.2rem}
+.drawer-tabs{display:flex;gap:.3rem;margin-bottom:1rem}
+.drawer-tab{background:var(--bg3);border:1px solid var(--brd);color:var(--txt2);padding:.35rem .7rem;border-radius:6px;cursor:pointer;font-size:.78rem;transition:.15s}
+.drawer-tab.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+
+/* AVATAR */
+.avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:#fff;flex-shrink:0}
+.avatar.lg{width:64px;height:64px;font-size:1.6rem;border-radius:14px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--brd);border-radius:14px;padding:1.5rem;width:100%;max-width:520px;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal h3{font-size:1rem;font-weight:700;margin-bottom:1rem}
+.modal-footer{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.2rem;border-top:1px solid var(--brd);padding-top:1rem}
+
+/* CHAT MESSAGES */
+.msg-bubble{background:var(--bg3);border-radius:10px;padding:.5rem .75rem;margin:.2rem 0;font-size:.82rem;line-height:1.5;border-left:3px solid var(--brd)}
+.msg-bubble.flagged{border-left-color:var(--danger)}
+.msg-meta{font-size:.72rem;color:var(--txt2);margin-bottom:.15rem}
+
+/* SEARCH */
+.search-bar{display:flex;gap:.5rem;margin-bottom:1rem}
+.search-bar input{flex:1}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .content{padding:1rem}
+  #profile-drawer{width:100%}
+}
+
+/* ALERT */
+.alert{padding:.7rem 1rem;border-radius:8px;font-size:.83rem;margin-bottom:1rem}
+.alert-info{background:rgba(88,166,255,.15);border:1px solid rgba(88,166,255,.4);color:var(--info)}
+.alert-danger{background:rgba(248,81,73,.15);border:1px solid rgba(248,81,73,.4);color:var(--danger)}
+.alert-success{background:rgba(63,185,80,.15);border:1px solid rgba(63,185,80,.4);color:var(--green)}
+
+/* TOAST */
+#toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.toast{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:.6rem 1rem;font-size:.83rem;box-shadow:var(--shadow);pointer-events:auto;animation:toastIn .2s ease}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--danger);color:var(--danger)}
+.toast.info{border-color:var(--info);color:var(--info)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* SPINNER */
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--brd);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.loading-state{padding:2rem;text-align:center;color:var(--txt2)}
+
+/* COMPLAINT CARD */
+.complaint-card{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:1rem;margin-bottom:.7rem}
+.complaint-card.resolved{opacity:.5;border-color:rgba(63,185,80,.3)}
+.complaint-card .meta{font-size:.75rem;color:var(--txt2);margin-bottom:.5rem}
+.complaint-card .content{font-size:.83rem;margin-bottom:.7rem;line-height:1.5}
+.complaint-card .actions{display:flex;gap:.4rem;flex-wrap:wrap}
+
+/* USER ROW */
+.user-row{display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;border-radius:8px;cursor:pointer;transition:.15s}
+.user-row:hover{background:var(--bg3)}
+.user-row .info{flex:1;min-width:0}
+.user-row .info b{display:block;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-row .info small{color:var(--txt2);font-size:.75rem}
+.user-row .actions{display:flex;gap:.3rem;opacity:0;transition:.15s}
+.user-row:hover .actions{opacity:1}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem}
+.section-header h2{font-size:1.1rem;font-weight:700}
+.section-header .subtitle{font-size:.8rem;color:var(--txt2)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="logo-badge">👑</div>
+    <h1>Admin Paneli</h1>
+    <p class="sub">SohbetHane yönetici girişi</p>
+    <div class="form-group">
+      <label>Kullanıcı adı</label>
+      <input id="l-user" type="text" placeholder="kullanici_adi" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="form-group">
+      <label>Şifre</label>
+      <input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:.7rem;margin-top:.3rem" onclick="doLogin()">
+      <span id="login-btn-text">Giriş Yap</span>
+    </button>
+    <p id="login-err" style="color:var(--danger);font-size:.82rem;margin-top:.7rem;text-align:center"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span>💬 SohbetHane</span>
+      <span class="topbar-badge">YÖNETİCİ</span>
+    </div>
+    <div class="topbar-user">
+      <span>👑 <b id="topbar-name">—</b></span>
+      <button class="topbar-logout" onclick="doLogout()">Çıkış</button>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <!-- SIDEBAR NAV -->
+    <div class="sidebar">
+      <div class="sidebar-section">Genel</div>
+      <div class="nav-item active" onclick="showSection('dashboard')" id="nav-dashboard">
+        <span>📊</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showSection('users')" id="nav-users">
+        <span>👥</span> Kullanıcılar
+      </div>
+      <div class="nav-item" onclick="showSection('online')" id="nav-online">
+        <span>🟢</span> Çevrimiçi
+      </div>
+      <div class="nav-item" onclick="showSection('newusers')" id="nav-newusers">
+        <span>📲</span> Yeni Üyeler
+      </div>
+      <div class="sidebar-section">İçerik</div>
+      <div class="nav-item" onclick="showSection('rooms')" id="nav-rooms">
+        <span>🏠</span> Odalar
+      </div>
+      <div class="nav-item" onclick="showSection('messages')" id="nav-messages">
+        <span>💬</span> Mesajlar
+      </div>
+      <div class="nav-item" onclick="showSection('friends')" id="nav-friends">
+        <span>🤝</span> Arkadaşlar
+      </div>
+      <div class="sidebar-section">Yönetim</div>
+      <div class="nav-item" onclick="showSection('complaints')" id="nav-complaints">
+        <span>🚩</span> Şikayetler
+        <span class="badge" id="complaint-badge" style="display:none">0</span>
+      </div>
+      <div class="nav-item" onclick="showSection('banned')" id="nav-banned">
+        <span>🚫</span> Banlı IP'ler
+      </div>
+      <div class="nav-item" onclick="showSection('archive')" id="nav-archive">
+        <span>📜</span> Arşiv
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="section-dashboard">
+        <div class="section-header">
+          <h2>📊 Dashboard</h2>
+          <span class="subtitle" id="dash-updated">Yükleniyor...</span>
+        </div>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="icon">👥</div><div class="num" id="stat-total">—</div><div class="lbl">Toplam Üye</div></div>
+          <div class="stat-card"><div class="icon">🟢</div><div class="num" id="stat-online">—</div><div class="lbl">Şu an Çevrimiçi</div></div>
+          <div class="stat-card"><div class="icon">📲</div><div class="num" id="stat-newtoday">—</div><div class="lbl">Bugün Kayıt</div></div>
+          <div class="stat-card"><div class="icon">🏠</div><div class="num" id="stat-rooms">—</div><div class="lbl">Toplam Oda</div></div>
+          <div class="stat-card"><div class="icon">💬</div><div class="num" id="stat-messages">—</div><div class="lbl">Toplam Mesaj</div></div>
+          <div class="stat-card"><div class="icon">🚩</div><div class="num" id="stat-complaints">—</div><div class="lbl">Açık Şikayet</div></div>
+          <div class="stat-card"><div class="icon">🚫</div><div class="num" id="stat-banned">—</div><div class="lbl">Banlı Kullanıcı</div></div>
+          <div class="stat-card"><div class="icon">👑</div><div class="num" id="stat-admins">—</div><div class="lbl">Yönetici</div></div>
+        </div>
+        <h3 style="font-size:.9rem;margin-bottom:.7rem;color:var(--txt2)">Son Kayıt Olan Üyeler</h3>
+        <div id="recent-users-list"></div>
+      </div>
+
+      <!-- USERS -->
+      <div id="section-users" style="display:none">
+        <div class="section-header">
+          <h2>👥 Kullanıcılar</h2>
+          <button class="btn btn-secondary btn-sm" onclick="loadUsers()">↺ Yenile</button>
+        </div>
+        <div class="search-bar">
+          <input id="user-search" placeholder="Kullanıcı adı veya isim ara..." oninput="filterUsers()">
+          <select id="user-filter-status" onchange="filterUsers()" style="width:auto;min-width:130px">
+            <option value="">Tümü</option>
+            <option value="online">Çevrimiçi</option>
+            <option value="banned">Banlı</option>
+            <option value="admin">Yönetici</option>
+          </select>
+        </div>
+        <div id="users-list" class="loading-state"><span class="spinner"></span> Yükleniyor...</div>
+      </div>
+
+      <!-- ONLINE -->
+      <div id="section-online" style="display:none">
+        <div class="section-header">
+          <h2>🟢 Çevrimiçi Kullanıcılar</h2>
+          <button class="btn btn-secondary btn-sm" onclick="loadOnline()">↺ Yenile</button>
+        </div>
+        <div id="online-list" class="loading-state"><span class="spinner"></span></div>
+      </div>
+
+      <!-- NEW USERS -->
+      <div id="section-newusers" style="display:none">
+        <div class="section-header">
+          <h2>📲 Yeni Üyeler</h2>
+          <span class="subtitle">Son 30 gün</span>
+        </div>
+        <div id="newusers-list" class="loading-state"><span class="spinner"></span></div>
+      </div>
+
+      <!-- ROOMS -->
+      <div id="section-rooms" style="display:none">
+        <div class="section-header">
+          <h2>🏠 Odalar</h2>
+          <button class="btn btn-secondary btn-sm" onclick="loadRooms()">↺ Yenile</button>
+        </div>
+        <div class="search-bar">
+          <input id="room-search" placeholder="Oda adı ara..." oninput="filterRooms()">
+          <select id="room-filter-type" onchange="filterRooms()" style="width:auto;min-width:130px">
+            <option value="">Tüm Türler</option>
+            <option value="dm">DM</option>
+            <option value="grup">Grup</option>
+            <option value="arsiv">Arşiv</option>
+            <option value="duvar">Duvar</option>
+          </select>
+        </div>
+        <div id="rooms-list" class="loading-state"><span class="spinner"></span></div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div id="section-messages" style="display:none">
+        <div class="section-header">
+          <h2>💬 Mesajlar</h2>
+          <span class="subtitle">Yalnızca grup/duvar/arşiv (DM şifrelidir, sunucu okuyamaz)</span>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+          <input id="msg-room-id" placeholder="Oda ID (boş=tüm gruplar)" style="max-width:300px">
+          <input id="msg-search" placeholder="Mesajda ara..." style="max-width:240px">
+          <button class="btn btn-primary btn-sm" onclick="loadMessages()">🔍 Ara</button>
+        </div>
+        <div id="messages-list" class="loading-state">Yukarıdan oda seçin veya boş bırakıp ara.</div>
+      </div>
+
+      <!-- FRIENDS -->
+      <div id="section-friends" style="display:none">
+        <div class="section-header">
+          <h2>🤝 Arkadaşlıklar</h2>
+          <button class="btn btn-secondary btn-sm" onclick="loadFriends()">↺ Yenile</button>
+        </div>
+        <div class="search-bar">
+          <input id="friends-search" placeholder="Kullanıcı adına göre filtrele..." oninput="filterFriends()">
+        </div>
+        <div id="friends-list" class="loading-state"><span class="spinner"></span></div>
+      </div>
+
+      <!-- COMPLAINTS -->
+      <div id="section-complaints" style="display:none">
+        <div class="section-header">
+          <h2>🚩 Şikayetler</h2>
+          <div class="tabs" id="complaint-tabs" style="margin-bottom:0">
+            <button class="tab active" onclick="setComplaintFilter('open')">Açık</button>
+            <button class="tab" onclick="setComplaintFilter('resolved')">Çözülmüş</button>
+            <button class="tab" onclick="setComplaintFilter('all')">Tümü</button>
+          </div>
+        </div>
+        <div id="complaints-list" class="loading-state"><span class="spinner"></span></div>
+      </div>
+
+      <!-- BANNED -->
+      <div id="section-banned" style="display:none">
+        <div class="section-header">
+          <h2>🚫 Banlı IP Adresleri</h2>
+          <button class="btn btn-secondary btn-sm" onclick="loadBanned()">↺ Yenile</button>
+        </div>
+        <div id="banned-list" class="loading-state"><span class="spinner"></span></div>
+      </div>
+
+      <!-- ARCHIVE -->
+      <div id="section-archive" style="display:none">
+        <div class="section-header">
+          <h2>📜 Arşiv Mesajlar</h2>
+          <span class="subtitle">admin_arsiv tablosu</span>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+          <input id="archive-search" placeholder="Kullanıcı adı ara..." style="max-width:260px" oninput="loadArchive()">
+          <button class="btn btn-secondary btn-sm" onclick="loadArchive()">↺ Yenile</button>
+        </div>
+        <div id="archive-list" class="loading-state"><span class="spinner"></span></div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main-layout -->
+</div><!-- /app-screen -->
+
+<!-- PROFILE DRAWER -->
+<div id="profile-drawer">
+  <div class="drawer-header">
+    <span id="drawer-avatar" class="avatar">?</span>
+    <div>
+      <h2 id="drawer-name">—</h2>
+      <small id="drawer-username" style="color:var(--txt2)"></small>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-tabs">
+      <button class="drawer-tab active" onclick="drawerTab('profile')">Profil</button>
+      <button class="drawer-tab" onclick="drawerTab('rooms')">Odalar</button>
+      <button class="drawer-tab" onclick="drawerTab('friends')">Arkadaşlar</button>
+      <button class="drawer-tab" onclick="drawerTab('actions')">İşlemler</button>
+    </div>
+    <div id="drawer-profile-pane"></div>
+    <div id="drawer-rooms-pane" style="display:none"></div>
+    <div id="drawer-friends-pane" style="display:none"></div>
+    <div id="drawer-actions-pane" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ROOM MESSAGES MODAL -->
+<div class="modal-overlay" id="room-msgs-modal">
+  <div class="modal" style="max-width:660px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <h3 id="room-msgs-title">Oda Mesajları</h3>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('room-msgs-modal')">✕</button>
+    </div>
+    <div id="room-msgs-content"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────
+const SUPABASE_URL = 'https://jjkvjrvaozubvdnjdpbs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impqa3ZqcnZhb3p1YnZkbmpkcGJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4ODM2NDEsImV4cCI6MjEwNzQ1OTY0MX0.ozfpJFkCuU200AQOT_hpc4QcE3jlskGi69ulXqoUa_Q';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
+
+// ─── STATE ────────────────────────────────────────────────────
+let A = {
+  user: null,
+  profile: null,
+  allUsers: [],
+  allRooms: [],
+  allFriends: [],
+  complaintFilter: 'open',
+  drawerUserId: null,
+  drawerPanes: {}
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────
+function esc(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(d){ if(!d) return '—'; return new Date(d).toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function fmtAgo(d){
+  if(!d) return '—';
+  const s=Math.floor((Date.now()-new Date(d))/1000);
+  if(s<60) return 'Az önce';
+  const m=Math.floor(s/60); if(m<60) return m+' dk önce';
+  const h=Math.floor(m/60); if(h<24) return h+' sa önce';
+  return Math.floor(h/24)+' gün önce';
+}
+function initials(name){ if(!name) return '?'; return name.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function avatarEl(name,size){ const i=initials(name); const colors=['#6C63FF','#FF6584','#3fb950','#d29922','#58a6ff','#c9184a']; const c=colors[Math.abs((name||'').charCodeAt(0)*7)%colors.length]; return `<div class="avatar${size?' '+size:''}" style="background:${c};flex-shrink:0">${esc(i)}</div>`; }
+
+function toast(msg, type='info'){
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.textContent=msg;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ─── AUTH ────────────────────────────────────────────────────
+async function doLogin(){
+  const user = document.getElementById('l-user').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const err  = document.getElementById('login-err');
+  const btn  = document.getElementById('login-btn-text');
+  if(!user||!pass){ err.textContent='Lütfen bilgileri doldurun.'; return; }
+  err.textContent='';
+  btn.textContent='Giriş yapılıyor...';
+  try {
+    // Supabase email gerekmez — kullanıcı adından email türetilir
+    const email = user + '@sohbethane.local';
+    const {data,error} = await sb.auth.signInWithPassword({email, password:pass});
+    if(error || !data.user){ err.textContent='Giriş başarısız: '+( error?.message||'Hata'); btn.textContent='Giriş Yap'; return; }
+    // Admin kontrolü
+    const {data:prof} = await sb.from('profiller').select('*').eq('id',data.user.id).single();
+    if(!prof?.yonetici){ err.textContent='Bu hesap yönetici değil. Erişim reddedildi.'; await sb.auth.signOut(); btn.textContent='Giriş Yap'; return; }
+    A.user = data.user;
+    A.profile = prof;
+    initApp();
+  } catch(e){ err.textContent='Bağlantı hatası: '+e.message; btn.textContent='Giriş Yap'; }
+}
+
+async function doLogout(){
+  await sb.auth.signOut();
+  location.reload();
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+function initApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='flex';
+  document.getElementById('topbar-name').textContent = A.profile.goruntu_adi || A.profile.kullanici_adi;
+  loadDashboard();
+  loadComplaintBadge();
+}
+
+async function loadComplaintBadge(){
+  const {count} = await sb.from('sikayetler').select('id',{count:'exact',head:true}).eq('cozuldu',false);
+  const badge = document.getElementById('complaint-badge');
+  if(count>0){ badge.textContent=count; badge.style.display=''; }
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────
+const SECTIONS = ['dashboard','users','online','newusers','rooms','messages','friends','complaints','banned','archive'];
+
+function showSection(name){
+  SECTIONS.forEach(s=>{
+    document.getElementById('section-'+s).style.display=s===name?'block':'none';
+    document.getElementById('nav-'+s)?.classList.toggle('active',s===name);
+  });
+  const loaders = {
+    users:()=>loadUsers(),
+    online:()=>loadOnline(),
+    newusers:()=>loadNewUsers(),
+    rooms:()=>loadRooms(),
+    friends:()=>loadFriends(),
+    complaints:()=>loadComplaints(),
+    banned:()=>loadBanned(),
+    archive:()=>loadArchive()
+  };
+  if(loaders[name]) loaders[name]();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────
+async function loadDashboard(){
+  const el = id=>'stat-'+id;
+  const set = (id,v)=>{ const e=document.getElementById(el(id)); if(e) e.textContent=v; };
+
+  // Paralel sorgular
+  const [
+    {count:totalUsers},
+    {count:rooms},
+    {count:messages},
+    {count:complaints},
+    {count:banned},
+    {data:admins},
+    {data:recentUsers},
+    {data:todayUsers}
+  ] = await Promise.all([
+    sb.from('profiller').select('id',{count:'exact',head:true}),
+    sb.from('odalar').select('id',{count:'exact',head:true}),
+    sb.from('mesajlar').select('id',{count:'exact',head:true}).eq('silindi',false),
+    sb.from('sikayetler').select('id',{count:'exact',head:true}).eq('cozuldu',false),
+    sb.from('profiller').select('id',{count:'exact',head:true}).eq('banli',true),
+    sb.from('profiller').select('id').eq('yonetici',true),
+    sb.from('profiller').select('id,kullanici_adi,goruntu_adi,kayit_tarihi,ulke,cinsiyet').order('kayit_tarihi',{ascending:false}).limit(8),
+    sb.from('profiller').select('id',{count:'exact',head:true}).gte('kayit_tarihi',new Date(new Date().setHours(0,0,0,0)).toISOString())
+  ]);
+
+  set('total', totalUsers||0);
+  set('rooms', rooms||0);
+  set('messages', messages ? (messages>999?(messages/1000).toFixed(1)+'K':messages) : 0);
+  set('complaints', complaints||0);
+  set('banned', banned||0);
+  set('admins', admins?.length||0);
+  set('newtoday', todayUsers||0);
+  set('online','—');
+
+  document.getElementById('dash-updated').textContent = 'Son güncelleme: '+new Date().toLocaleTimeString('tr-TR');
+
+  // Recent users
+  const el2 = document.getElementById('recent-users-list');
+  if(recentUsers?.length){
+    el2.innerHTML = recentUsers.map(p=>`
+      <div class="user-row" onclick="openDrawer('${p.id}')">
+        ${avatarEl(p.goruntu_adi||p.kullanici_adi)}
+        <div class="info">
+          <b>${esc(p.goruntu_adi||p.kullanici_adi)}</b>
+          <small>@${esc(p.kullanici_adi)} · ${p.ulke||'—'} · ${fmtAgo(p.kayit_tarihi)}</small>
+        </div>
+      </div>`).join('');
+  }
+}
+
+// ─── USERS ───────────────────────────────────────────────────
+async function loadUsers(){
+  document.getElementById('users-list').innerHTML='<div class="loading-state"><span class="spinner"></span> Yükleniyor...</div>';
+  const {data,error} = await sb.from('profiller').select('*').order('kayit_tarihi',{ascending:false});
+  if(error){ document.getElementById('users-list').innerHTML='<div class="alert alert-danger">Hata: '+esc(error.message)+'</div>'; return; }
+  A.allUsers = data||[];
+  renderUsers(A.allUsers);
+}
+
+function filterUsers(){
+  const q = document.getElementById('user-search').value.toLowerCase();
+  const status = document.getElementById('user-filter-status').value;
+  let list = A.allUsers;
+  if(q) list=list.filter(p=>(p.kullanici_adi||'').toLowerCase().includes(q)||(p.goruntu_adi||'').toLowerCase().includes(q));
+  if(status==='banned') list=list.filter(p=>p.banli);
+  if(status==='admin') list=list.filter(p=>p.yonetici);
+  renderUsers(list);
+}
+
+function renderUsers(list){
+  const el = document.getElementById('users-list');
+  if(!list.length){ el.innerHTML='<div class="empty">Kullanıcı bulunamadı.</div>'; return; }
+  el.innerHTML=`<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Kullanıcı</th><th>Cinsiyet/Yaş</th><th>Ülke/IP</th><th>Kayıt</th><th>Son Giriş</th><th>Durum</th><th style="text-align:right">İşlem</th>
+    </tr></thead>
+    <tbody>${list.map(p=>{
+      const cins = p.cinsiyet==='E'?'👨 Erkek':p.cinsiyet==='K'?'👩 Kadın':p.cinsiyet==='D'?'🌈 Diğer':'—';
+      return `<tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            ${avatarEl(p.goruntu_adi||p.kullanici_adi)}
+            <div>
+              <div style="font-weight:600;cursor:pointer;color:var(--info)" onclick="openDrawer('${p.id}')">${esc(p.goruntu_adi||p.kullanici_adi)}</div>
+              <div style="font-size:.75rem;color:var(--txt2)">@${esc(p.kullanici_adi)}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:.8rem">${cins}${p.yas?' · '+p.yas:''}</td>
+        <td style="font-size:.78rem">${esc(p.ulke||'—')}<br><span style="color:var(--txt2)">${esc(p.ip_adresi||'—')}</span></td>
+        <td style="font-size:.78rem">${fmtDate(p.kayit_tarihi)}</td>
+        <td style="font-size:.78rem">${fmtAgo(p.son_giris||p.son_aktif)}</td>
+        <td>
+          ${p.banli?'<span class="badge badge-ban">🚫 Banlı</span>':p.yonetici?'<span class="badge badge-admin">👑 Yön.</span>':'<span class="badge badge-online">✓ Aktif</span>'}
+        </td>
+        <td style="white-space:nowrap;text-align:right">
+          <button class="btn btn-secondary btn-sm" title="Profil" onclick="openDrawer('${p.id}')">👤</button>
+          ${p.id!==A.user.id?`
+          <button class="btn btn-secondary btn-sm" title="${p.yonetici?'Yetkiyi Al':'Yönetici Yap'}" onclick="toggleAdmin('${p.id}',${!p.yonetici})">${p.yonetici?'☆':'⭐'}</button>
+          ${p.banli
+            ?`<button class="btn btn-success btn-sm" onclick="setBan('${p.id}',false)" title="Yasağı Kaldır">🔓</button>`
+            :`<button class="btn btn-warn btn-sm" onclick="setBan('${p.id}',true)" title="Askıya Al">🚫</button>`}
+          <button class="btn btn-danger btn-sm" onclick="deleteUser('${p.id}',${JSON.stringify(p.kullanici_adi)})" title="Sil">🗑</button>
+          `:'<span style="color:var(--txt2);font-size:.75rem">Sen</span>'}
+        </td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+// ─── ONLINE ───────────────────────────────────────────────────
+async function loadOnline(){
+  const el = document.getElementById('online-list');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const cutoff = new Date(Date.now()-10*60*1000).toISOString(); // Son 10 dakika
+  const {data,error} = await sb.from('profiller').select('id,kullanici_adi,goruntu_adi,ulke,son_aktif,cinsiyet,ip_adresi')
+    .gte('son_aktif',cutoff).order('son_aktif',{ascending:false});
+  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  if(!data?.length){ el.innerHTML='<div class="empty">Şu an aktif kullanıcı yok (son 10 dk).</div>'; return; }
+  document.getElementById('stat-online').textContent = data.length;
+  el.innerHTML=`<div class="alert alert-info" style="margin-bottom:1rem">Son 10 dakika içinde aktif: <b>${data.length} kullanıcı</b></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Kullanıcı</th><th>Ülke</th><th>Son Aktif</th><th>IP</th><th></th></tr></thead>
+    <tbody>${data.map(p=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:.5rem">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        ${avatarEl(p.goruntu_adi||p.kullanici_adi)}
+        <div>
+          <div style="font-size:.85rem;font-weight:600">${esc(p.goruntu_adi||p.kullanici_adi)}</div>
+          <div style="font-size:.75rem;color:var(--txt2)">@${esc(p.kullanici_adi)}</div>
+        </div>
+      </div></td>
+      <td>${esc(p.ulke||'—')}</td>
+      <td style="font-size:.8rem">${fmtAgo(p.son_aktif)}</td>
+      <td style="font-size:.78rem;color:var(--txt2)">${esc(p.ip_adresi||'—')}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openDrawer('${p.id}')">👤</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ─── NEW USERS ────────────────────────────────────────────────
+async function loadNewUsers(){
+  const el = document.getElementById('newusers-list');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const cutoff = new Date(Date.now()-30*24*3600*1000).toISOString();
+  const {data,error} = await sb.from('profiller').select('*').gte('kayit_tarihi',cutoff).order('kayit_tarihi',{ascending:false});
+  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  if(!data?.length){ el.innerHTML='<div class="empty">Son 30 günde yeni üye yok.</div>'; return; }
+  el.innerHTML=`<div class="alert alert-info" style="margin-bottom:1rem">Son 30 günde kayıt: <b>${data.length} üye</b></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Kullanıcı</th><th>Ülke/IP</th><th>Kayıt Tarihi</th><th>Durum</th><th></th></tr></thead>
+    <tbody>${data.map(p=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:.5rem">
+        ${avatarEl(p.goruntu_adi||p.kullanici_adi)}
+        <div>
+          <b>${esc(p.goruntu_adi||p.kullanici_adi)}</b>
+          <div style="font-size:.75rem;color:var(--txt2)">@${esc(p.kullanici_adi)}</div>
+        </div>
+      </div></td>
+      <td style="font-size:.8rem">${esc(p.ulke||'—')}<br><span style="color:var(--txt2)">${esc(p.ip_adresi||'—')}</span></td>
+      <td style="font-size:.8rem">${fmtDate(p.kayit_tarihi)}</td>
+      <td>${p.banli?'<span class="badge badge-ban">🚫 Banlı</span>':'<span class="badge badge-new">✨ Yeni</span>'}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openDrawer('${p.id}')">👤</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ─── ROOMS ────────────────────────────────────────────────────
+async function loadRooms(){
+  document.getElementById('rooms-list').innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const {data,error} = await sb.from('odalar').select('*').order('olusturma_tarihi',{ascending:false});
+  if(error){ document.getElementById('rooms-list').innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  A.allRooms = data||[];
+  renderRooms(A.allRooms);
+}
+
+function filterRooms(){
+  const q = document.getElementById('room-search').value.toLowerCase();
+  const type = document.getElementById('room-filter-type').value;
+  let list = A.allRooms;
+  if(q) list=list.filter(r=>(r.ad||'').toLowerCase().includes(q));
+  if(type) list=list.filter(r=>r.tur===type);
+  renderRooms(list);
+}
+
+function renderRooms(list){
+  const el = document.getElementById('rooms-list');
+  if(!list.length){ el.innerHTML='<div class="empty">Oda bulunamadı.</div>'; return; }
+  const turIcon = {dm:'💬',grup:'👥',arsiv:'📁',duvar:'📰'};
+  el.innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Oda Adı</th><th>Tür</th><th>Kilit</th><th>Oluşturma</th><th></th></tr></thead>
+    <tbody>${list.map(r=>`<tr>
+      <td>
+        <div style="font-weight:600">${turIcon[r.tur]||'🏠'} ${esc(r.ad||'(İsimsiz)')}</div>
+        <div style="font-size:.72rem;color:var(--txt2)">${esc(r.id)}</div>
+      </td>
+      <td><span style="font-size:.75rem;background:var(--bg3);padding:.2rem .5rem;border-radius:8px">${esc(r.tur)}</span></td>
+      <td>${r.sifre?'🔒 Şifreli':'🔓 Açık'}</td>
+      <td style="font-size:.8rem">${fmtDate(r.olusturma_tarihi)}</td>
+      <td>${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}',${JSON.stringify(r.ad||r.id)})">💬 Mesajlar</button>`:
+        '<span style="font-size:.75rem;color:var(--txt2)">🔐 E2E Şifreli</span>'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ─── MESSAGES ────────────────────────────────────────────────
+async function loadMessages(){
+  const el = document.getElementById('messages-list');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const roomId = document.getElementById('msg-room-id').value.trim();
+  const search = document.getElementById('msg-search').value.trim();
+  let query = sb.from('mesajlar')
+    .select('id,metin,tur,olusturma_tarihi,silindi,oda_id,gonderen:gonderen_id(kullanici_adi,goruntu_adi)')
+    .eq('silindi',false)
+    .neq('tur','dm') // DM mesajları E2E şifreli
+    .order('olusturma_tarihi',{ascending:false})
+    .limit(100);
+  if(roomId) query=query.eq('oda_id',roomId);
+  if(search) query=query.ilike('metin','%'+search+'%');
+  const {data,error}=await query;
+  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  if(!data?.length){ el.innerHTML='<div class="empty">Mesaj bulunamadı.</div>'; return; }
+  el.innerHTML=`<div style="font-size:.75rem;color:var(--txt2);margin-bottom:.5rem">${data.length} mesaj (en yeni başta)</div>`+
+    data.map(m=>`<div class="msg-bubble">
+      <div class="msg-meta">
+        <b>${esc(m.gonderen?.goruntu_adi||m.gonderen?.kullanici_adi||'?')}</b>
+        · ${fmtDate(m.olusturma_tarihi)}
+        · <span style="opacity:.6">${esc(m.oda_id.slice(0,8))}…</span>
+      </div>
+      <div>${esc(m.metin||'[medya/sistem mesajı]')}</div>
+    </div>`).join('');
+}
+
+async function openRoomMessages(roomId, roomName){
+  document.getElementById('room-msgs-title').textContent='💬 '+roomName;
+  const el=document.getElementById('room-msgs-content');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  openModal('room-msgs-modal');
+  const {data,error}=await sb.from('mesajlar')
+    .select('id,metin,tur,olusturma_tarihi,gonderen:gonderen_id(kullanici_adi,goruntu_adi)')
+    .eq('oda_id',roomId).eq('silindi',false)
+    .order('olusturma_tarihi',{ascending:false}).limit(150);
+  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  if(!data?.length){ el.innerHTML='<div class="empty">Bu odada mesaj yok.</div>'; return; }
+  el.innerHTML=`<div style="font-size:.75rem;color:var(--txt2);margin-bottom:.6rem">${data.length} mesaj (en yeni başta)</div>`+
+    data.map(m=>{
+      const isDM=m.tur==='dm'||m.metin?.startsWith('{');
+      return `<div class="msg-bubble${isDM?' flagged':''}">
+        <div class="msg-meta">
+          <b>${esc(m.gonderen?.goruntu_adi||m.gonderen?.kullanici_adi||'?')}</b>
+          · ${fmtDate(m.olusturma_tarihi)}
+          ${isDM?'· <span style="color:var(--danger);font-size:.7rem">🔐 Şifreli</span>':''}
+        </div>
+        <div>${isDM?'<span style="color:var(--txt2)">[ Şifreli içerik — sunucu okuyamaz ]</span>':esc(m.metin||'[medya]')}</div>
+      </div>`;
+    }).join('');
+}
+
+// ─── FRIENDS ─────────────────────────────────────────────────
+async function loadFriends(){
+  document.getElementById('friends-list').innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const {data,error}=await sb.from('arkadasliklar')
+    .select('id,durum,olusturma_tarihi,gonderen:gonderen_id(id,kullanici_adi,goruntu_adi),alici:alici_id(id,kullanici_adi,goruntu_adi)')
+    .order('olusturma_tarihi',{ascending:false}).limit(300);
+  if(error){ document.getElementById('friends-list').innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  A.allFriends=data||[];
+  renderFriends(A.allFriends);
+}
+
+function filterFriends(){
+  const q=document.getElementById('friends-search').value.toLowerCase();
+  if(!q){ renderFriends(A.allFriends); return; }
+  renderFriends(A.allFriends.filter(f=>
+    (f.gonderen?.kullanici_adi||'').toLowerCase().includes(q)||
+    (f.alici?.kullanici_adi||'').toLowerCase().includes(q)
+  ));
+}
+
+function renderFriends(list){
+  const el=document.getElementById('friends-list');
+  if(!list.length){ el.innerHTML='<div class="empty">Arkadaşlık kaydı yok.</div>'; return; }
+  const durumBadge={kabul:'<span class="badge" style="background:rgba(63,185,80,.2);color:var(--green)">✓ Arkadaş</span>',beklemede:'<span class="badge badge-new">⏳ Beklemede</span>',reddedildi:'<span class="badge badge-ban">✗ Reddedildi</span>'};
+  el.innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Gönderen</th><th>Alıcı</th><th>Durum</th><th>Tarih</th></tr></thead>
+    <tbody>${list.map(f=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:.4rem;cursor:pointer" onclick="openDrawer('${f.gonderen?.id}')">
+        ${avatarEl(f.gonderen?.goruntu_adi||f.gonderen?.kullanici_adi)}
+        <div><b>${esc(f.gonderen?.goruntu_adi||f.gonderen?.kullanici_adi||'?')}</b>
+        <div style="font-size:.72rem;color:var(--txt2)">@${esc(f.gonderen?.kullanici_adi||'')}</div></div>
+      </div></td>
+      <td><div style="display:flex;align-items:center;gap:.4rem;cursor:pointer" onclick="openDrawer('${f.alici?.id}')">
+        ${avatarEl(f.alici?.goruntu_adi||f.alici?.kullanici_adi)}
+        <div><b>${esc(f.alici?.goruntu_adi||f.alici?.kullanici_adi||'?')}</b>
+        <div style="font-size:.72rem;color:var(--txt2)">@${esc(f.alici?.kullanici_adi||'')}</div></div>
+      </div></td>
+      <td>${durumBadge[f.durum]||esc(f.durum)}</td>
+      <td style="font-size:.8rem">${fmtDate(f.olusturma_tarihi)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ─── COMPLAINTS ──────────────────────────────────────────────
+function setComplaintFilter(f){
+  A.complaintFilter=f;
+  document.querySelectorAll('#complaint-tabs .tab').forEach((t,i)=>{
+    t.classList.toggle('active',['open','resolved','all'][i]===f);
+  });
+  loadComplaints();
+}
+
+async function loadComplaints(){
+  const el=document.getElementById('complaints-list');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  let q=sb.from('sikayetler')
+    .select('id,metin_ozet,neden,aciklama,cozuldu,cozuldu_tarih,olusturma_tarihi,sikayet_eden:sikayet_eden_id(id,kullanici_adi,goruntu_adi),hedef:hedef_id(id,kullanici_adi,goruntu_adi)')
+    .order('olusturma_tarihi',{ascending:false}).limit(100);
+  if(A.complaintFilter==='open') q=q.eq('cozuldu',false);
+  if(A.complaintFilter==='resolved') q=q.eq('cozuldu',true);
+  const {data,error}=await q;
+  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  if(!data?.length){ el.innerHTML='<div class="empty">Şikayet bulunamadı.</div>'; return; }
+  el.innerHTML=data.map(c=>`
+    <div class="complaint-card ${c.cozuldu?'resolved':''}">
+      <div class="meta">
+        🚩 <b>${esc(c.sikayet_eden?.kullanici_adi||'?')}</b> →
+        <b>${esc(c.hedef?.kullanici_adi||'?')}</b>
+        · ${fmtDate(c.olusturma_tarihi)}
+        ${c.cozuldu?'<span class="badge" style="background:rgba(63,185,80,.2);color:var(--green)">✓ Çözüldü</span>':'<span class="badge badge-ban">Açık</span>'}
+      </div>
+      <div class="content">
+        <div style="margin-bottom:.3rem"><b>Neden:</b> ${esc(c.neden||'—')}</div>
+        ${c.metin_ozet?`<div style="background:var(--bg);border-radius:6px;padding:.4rem .6rem;font-size:.8rem;color:var(--txt2)">"${esc(c.metin_ozet)}"</div>`:''}
+        ${c.aciklama?`<div style="margin-top:.4rem;font-size:.8rem">${esc(c.aciklama)}</div>`:''}
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary btn-sm" onclick="openDrawer('${c.sikayet_eden?.id}')">👤 Şikayet Eden</button>
+        <button class="btn btn-secondary btn-sm" onclick="openDrawer('${c.hedef?.id}')">👤 Hedef</button>
+        ${!c.cozuldu?`<button class="btn btn-success btn-sm" onclick="resolveComplaint('${c.id}')">✓ Çözüldü İşaretle</button>
+        <button class="btn btn-warn btn-sm" onclick="setBanFromComplaint('${c.hedef?.id}',${JSON.stringify(c.hedef?.kullanici_adi)})">🚫 Hedefi Askıya Al</button>`:''}
+        <button class="btn btn-danger btn-sm" onclick="deleteComplaint('${c.id}')">🗑 Sil</button>
+      </div>
+    </div>`).join('');
+}
+
+async function resolveComplaint(id){
+  await sb.from('sikayetler').update({cozuldu:true,cozuldu_tarih:new Date().toISOString()}).eq('id',id);
+  toast('Şikayet çözüldü işaretlendi','success');
+  loadComplaints(); loadComplaintBadge();
+}
+
+async function deleteComplaint(id){
+  if(!confirm('Bu şikayeti kalıcı sil?')) return;
+  await sb.from('sikayetler').delete().eq('id',id);
+  toast('Şikayet silindi','info');
+  loadComplaints(); loadComplaintBadge();
+}
+
+async function setBanFromComplaint(uid, name){
+  if(!uid) return;
+  if(!confirm(`${name} adlı kullanıcıyı askıya almak ister misiniz?`)) return;
+  await sb.from('profiller').update({banli:true}).eq('id',uid);
+  toast(name+' askıya alındı','success');
+  loadComplaints();
+}
+
+// ─── BANNED ──────────────────────────────────────────────────
+async function loadBanned(){
+  const el=document.getElementById('banned-list');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const {data,error}=await sb.from('yasakli_ipler').select('*').order('olusturma_tarihi',{ascending:false});
+  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  if(!data?.length){ el.innerHTML='<div class="empty">Banlı IP yok.</div>'; return; }
+  el.innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>IP Adresi</th><th>Sebep</th><th>Tarih</th><th></th></tr></thead>
+    <tbody>${data.map(b=>`<tr>
+      <td style="font-family:monospace">${esc(b.ip_adresi)}</td>
+      <td style="font-size:.8rem">${esc(b.sebep||'—')}</td>
+      <td style="font-size:.8rem">${fmtDate(b.olusturma_tarihi)}</td>
+      <td><button class="btn btn-success btn-sm" onclick="unbanIp('${b.id}',${JSON.stringify(b.ip_adresi)})">🔓 Kaldır</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+async function unbanIp(id, ip){
+  if(!confirm(`${ip} IP yasakını kaldır?`)) return;
+  await sb.from('yasakli_ipler').delete().eq('id',id);
+  toast('IP yasağı kaldırıldı','success');
+  loadBanned();
+}
+
+// ─── ARCHIVE ─────────────────────────────────────────────────
+async function loadArchive(){
+  const el=document.getElementById('archive-list');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const ara=(document.getElementById('archive-search')?.value||'').trim();
+  let q=sb.from('admin_arsiv')
+    .select('id,oda_id,oda_tur,metin,olusturma_tarihi,gonderen:gonderen_id(kullanici_adi,goruntu_adi),alici:alici_id(kullanici_adi,goruntu_adi)')
+    .order('olusturma_tarihi',{ascending:false}).limit(100);
+  const {data,error}=await q;
+  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  if(!data?.length){ el.innerHTML='<div class="empty">Arşiv boş.</div>'; return; }
+  let list=data;
+  if(ara) list=list.filter(r=>(r.gonderen?.kullanici_adi||'').includes(ara)||(r.alici?.kullanici_adi||'').includes(ara));
+  el.innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>Gönderen</th><th>Alıcı/Oda</th><th>Mesaj</th><th>Tur</th><th>Tarih</th></tr></thead>
+    <tbody>${list.map(r=>`<tr>
+      <td style="font-size:.82rem"><b>${esc(r.gonderen?.goruntu_adi||r.gonderen?.kullanici_adi||'?')}</b></td>
+      <td style="font-size:.82rem">${r.oda_tur==='dm'?esc(r.alici?.goruntu_adi||r.alici?.kullanici_adi||'?'):'Grup'}</td>
+      <td style="max-width:240px;word-break:break-word;font-size:.8rem">${esc((r.metin||'').slice(0,150))}</td>
+      <td style="font-size:.75rem"><span style="background:var(--bg3);padding:.1rem .4rem;border-radius:6px">${esc(r.oda_tur||'')}</span></td>
+      <td style="font-size:.78rem;white-space:nowrap">${fmtDate(r.olusturma_tarihi)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ─── USER DRAWER ─────────────────────────────────────────────
+async function openDrawer(uid){
+  if(!uid) return;
+  A.drawerUserId=uid;
+  const drawer=document.getElementById('profile-drawer');
+  drawer.classList.add('open');
+  // Profil verisini yükle
+  const {data:p}=await sb.from('profiller').select('*').eq('id',uid).single();
+  if(!p){ toast('Kullanıcı bulunamadı','error'); return; }
+
+  document.getElementById('drawer-avatar').textContent=initials(p.goruntu_adi||p.kullanici_adi);
+  document.getElementById('drawer-avatar').style.background=['#6C63FF','#FF6584','#3fb950','#d29922'][(p.kullanici_adi||'').charCodeAt(0)%4];
+  document.getElementById('drawer-name').textContent=p.goruntu_adi||p.kullanici_adi||'?';
+  document.getElementById('drawer-username').textContent='@'+(p.kullanici_adi||'?');
+
+  drawerTab('profile');
+  renderDrawerProfile(p);
+}
+
+function closeDrawer(){
+  document.getElementById('profile-drawer').classList.remove('open');
+}
+
+function drawerTab(tab){
+  ['profile','rooms','friends','actions'].forEach(t=>{
+    document.getElementById('drawer-'+t+'-pane').style.display=t===tab?'block':'none';
+    document.querySelector(`.drawer-tab[onclick="drawerTab('${t}')"]`)?.classList.toggle('active',t===tab);
+  });
+  if(tab==='rooms' && A.drawerUserId) loadDrawerRooms(A.drawerUserId);
+  if(tab==='friends' && A.drawerUserId) loadDrawerFriends(A.drawerUserId);
+  if(tab==='actions' && A.drawerUserId) loadDrawerActions(A.drawerUserId);
+}
+
+function renderDrawerProfile(p){
+  const cins={E:'👨 Erkek',K:'👩 Kadın',D:'🌈 Diğer'}[p.cinsiyet]||'—';
+  document.getElementById('drawer-profile-pane').innerHTML=`
+    <div style="display:grid;gap:.6rem">
+      ${p.banli?'<div class="alert alert-danger">🚫 Bu kullanıcı askıya alınmış</div>':''}
+      ${p.yonetici?'<div class="alert alert-info">👑 Yönetici</div>':''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+        ${field('Kullanıcı Adı','@'+(p.kullanici_adi||'—'))}
+        ${field('Görüntü Adı',p.goruntu_adi||'—')}
+        ${field('Cinsiyet',cins)}
+        ${field('Yaş',p.yas||'—')}
+        ${field('Ülke',p.ulke||'—')}
+        ${field('IP Adresi',p.ip_adresi||'—')}
+        ${field('Kayıt Tarihi',fmtDate(p.kayit_tarihi))}
+        ${field('Son Giriş',fmtAgo(p.son_giris||p.son_aktif))}
+        ${field('E-posta',p.email||'(gizli)')}
+        ${field('Açıklama',p.aciklama||'—')}
+      </div>
+    </div>`;
+}
+
+function field(label,val){
+  return `<div style="background:var(--bg3);border-radius:6px;padding:.4rem .6rem">
+    <div style="font-size:.7rem;color:var(--txt2)">${esc(label)}</div>
+    <div style="font-size:.82rem;font-weight:500">${esc(String(val))}</div>
+  </div>`;
+}
+
+async function loadDrawerRooms(uid){
+  const el=document.getElementById('drawer-rooms-pane');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const {data:mems}=await sb.from('oda_uyeleri').select('oda_id,rol').eq('kullanici_id',uid);
+  if(!mems?.length){ el.innerHTML='<div class="empty">Üye olduğu oda yok.</div>'; return; }
+  const roomIds=mems.map(m=>m.oda_id);
+  const {data:rooms}=await sb.from('odalar').select('id,ad,tur').in('id',roomIds);
+  const turIcon={dm:'💬',grup:'👥',arsiv:'📁',duvar:'📰'};
+  el.innerHTML=(rooms||[]).map(r=>`
+    <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem;border-radius:6px;border:1px solid var(--brd);margin-bottom:.4rem">
+      <span style="font-size:1rem">${turIcon[r.tur]||'🏠'}</span>
+      <div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.ad||'(İsimsiz)')}</div>
+      <div style="font-size:.72rem;color:var(--txt2)">${esc(r.tur)}</div></div>
+      ${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}',${JSON.stringify(r.ad||r.id)})">💬</button>`:''}
+    </div>`).join('');
+}
+
+async function loadDrawerFriends(uid){
+  const el=document.getElementById('drawer-friends-pane');
+  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
+  const {data}=await sb.from('arkadasliklar')
+    .select('id,durum,gonderen:gonderen_id(id,kullanici_adi,goruntu_adi),alici:alici_id(id,kullanici_adi,goruntu_adi)')
+    .or(`gonderen_id.eq.${uid},alici_id.eq.${uid}`)
+    .eq('durum','kabul');
+  if(!data?.length){ el.innerHTML='<div class="empty">Arkadaşı yok.</div>'; return; }
+  el.innerHTML=data.map(f=>{
+    const other=f.gonderen?.id===uid?f.alici:f.gonderen;
+    return `<div class="user-row" onclick="openDrawer('${other?.id}')">
+      ${avatarEl(other?.goruntu_adi||other?.kullanici_adi)}
+      <div class="info"><b>${esc(other?.goruntu_adi||other?.kullanici_adi||'?')}</b>
+      <small>@${esc(other?.kullanici_adi||'')}</small></div>
+    </div>`;
+  }).join('');
+}
+
+async function loadDrawerActions(uid){
+  const {data:p}=await sb.from('profiller').select('banli,yonetici,kullanici_adi').eq('id',uid).single();
+  const el=document.getElementById('drawer-actions-pane');
+  el.innerHTML=`
+    <div style="display:grid;gap:.5rem">
+      <button class="btn btn-secondary" onclick="toggleAdmin('${uid}',${!p?.yonetici})">${p?.yonetici?'☆ Yönetici Yetkisini Al':'⭐ Yönetici Yap'}</button>
+      ${p?.banli
+        ?`<button class="btn btn-success" onclick="setBan('${uid}',false)">🔓 Askıyı Kaldır</button>`
+        :`<button class="btn btn-warn" onclick="setBan('${uid}',true)">🚫 Askıya Al</button>`}
+      <button class="btn btn-danger" onclick="deleteUser('${uid}',${JSON.stringify(p?.kullanici_adi)})">🗑 Kullanıcıyı Sil</button>
+      <hr style="border-color:var(--brd);margin:.3rem 0">
+      <button class="btn btn-secondary" onclick="closeDrawer();showSection('messages');document.getElementById('msg-room-id').value='';document.getElementById('msg-search').value='';loadMessages()">💬 Mesajlarını Gör</button>
+    </div>`;
+}
+
+// ─── USER ACTIONS ────────────────────────────────────────────
+async function toggleAdmin(uid, makeAdmin){
+  await sb.from('profiller').update({yonetici:makeAdmin}).eq('id',uid);
+  toast(makeAdmin?'Yönetici yapıldı ⭐':'Yönetici yetkisi alındı','success');
+  if(A.allUsers.length) loadUsers();
+  if(A.drawerUserId===uid) loadDrawerActions(uid);
+}
+
+async function setBan(uid, ban){
+  if(ban && !confirm('Bu kullanıcıyı askıya almak istiyor musunuz? IP de yasaklanacak.')) return;
+  if(ban){
+    const {data:prof}=await sb.from('profiller').select('ip_adresi').eq('id',uid).single();
+    if(prof?.ip_adresi){
+      await sb.from('yasakli_ipler').upsert({ip_adresi:prof.ip_adresi,sebep:'Admin tarafından askıya alındı'},{onConflict:'ip_adresi'});
+    }
+  }
+  await sb.from('profiller').update({banli:ban}).eq('id',uid);
+  toast(ban?'Kullanıcı askıya alındı 🚫':'Askı kaldırıldı 🔓', ban?'success':'info');
+  if(A.allUsers.length) loadUsers();
+  if(A.drawerUserId===uid) loadDrawerActions(uid);
+}
+
+async function deleteUser(uid, name){
+  if(!confirm(`"${name}" kullanıcısını kalıcı olarak sil?\n\nIP adresi de yasaklanacak. Bu işlem GERİ ALINMAZ.`)) return;
+  const {data:prof}=await sb.from('profiller').select('ip_adresi').eq('id',uid).single();
+  if(prof?.ip_adresi){
+    await sb.from('yasakli_ipler').upsert({ip_adresi:prof.ip_adresi,sebep:'Hesap silindi'},{onConflict:'ip_adresi'});
+  }
+  // Profili sil (cascade ile ilgili kayıtlar Supabase RLS tarafından temizlenir)
+  await sb.from('profiller').delete().eq('id',uid);
+  // Auth kullanıcısını silmek admin API gerektirir — profil silinince oturum açamaz
+  toast(name+' silindi','success');
+  closeDrawer();
+  if(A.allUsers.length) loadUsers();
+}
+
+// ─── AUTO INIT ───────────────────────────────────────────────
+async function checkSession(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(!session) return;
+  const {data:prof} = await sb.from('profiller').select('*').eq('id',session.user.id).single();
+  if(!prof?.yonetici){ await sb.auth.signOut(); return; }
+  A.user=session.user;
+  A.profile=prof;
+  initApp();
+}
+
+checkSession();
+</script>
+</body>
+</html>
