@@ -2452,6 +2452,29 @@ async function loadBlockMute(){
 // ============================================================
 // AUTH
 // ============================================================
+function authErrMsg(e){
+  const msg=(e.message||'').toLowerCase();
+  const code=e.code||'';
+  if(code==='email_not_confirmed'||msg.includes('email not confirmed'))
+    return 'Hesabınız henüz etkinleştirilmemiş. Lütfen yönetici ile iletişime geçin.';
+  if(code==='invalid_credentials'||msg.includes('invalid login credentials')||msg.includes('invalid credentials'))
+    return 'Kullanıcı adı veya şifre hatalı.';
+  if(code==='user_not_found'||msg.includes('user not found'))
+    return 'Kullanıcı bulunamadı.';
+  if(code==='too_many_requests'||msg.includes('too many requests')||msg.includes('rate limit'))
+    return 'Çok fazla istek gönderildi. Lütfen bir süre bekleyin.';
+  if(code==='signup_disabled'||msg.includes('signup is disabled'))
+    return 'Şu anda yeni kayıt alınmıyor.';
+  if(msg.includes('row-level security')||msg.includes('rls')||msg.includes('violates'))
+    return 'Hesap etkinleştirme bekleniyor. Lütfen yönetici ile iletişime geçin.';
+  if(msg.includes('already registered')||msg.includes('already exists')||msg.includes('duplicate'))
+    return 'Bu kullanıcı adı zaten alınmış.';
+  if(msg.includes('network')||msg.includes('fetch failed'))
+    return 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.';
+  if(msg.includes('password')||msg.includes('weak'))
+    return 'Şifre çok zayıf. Daha uzun bir şifre deneyin.';
+  return e.message||'Bir hata oluştu. Lütfen tekrar deneyin.';
+}
 async function doLogin(){
   const username = document.getElementById('l-user').value.trim().toLowerCase();
   const password = document.getElementById('l-pass').value;
@@ -2478,7 +2501,7 @@ async function doLogin(){
     S.privateKey = await unwrapPrivateKey(prof.sarili_ozel_anahtar, prof.sarlama_iv, wrapKey);
     S.publicKey = await importPublicJwk(prof.acik_anahtar);
     await startApp();
-  } catch(e){ err.textContent = e.message||'Giriş başarısız.'; }
+  } catch(e){ err.textContent = authErrMsg(e); }
 }
 async function doRegister(){
   const username = document.getElementById('r-user').value.trim().toLowerCase();
@@ -2508,6 +2531,10 @@ async function doRegister(){
     const {data,error} = await sb.auth.signUp({email, password:hex(authKey)});
     if(error) throw error;
     S.user = data.user;
+    // Supabase "Confirm email" açıksa session null gelir — @sh.local adresleri onaylanamaz
+    if(!data.session){
+      throw new Error('Hesap oluşturuldu fakat oturum başlatılamadı. Sistem yöneticisi Supabase panelinden "Confirm email" seçeneğini kapatmalıdır.');
+    }
     // Generate keypair
     const kp = await generateKeyPair();
     S.publicKey = kp.publicKey;
@@ -2536,7 +2563,7 @@ async function doRegister(){
     await startApp();
     // If someone invited this user via referral link, open the inviter's profile
     openInviterProfileAfterReg();
-  } catch(e){ document.getElementById('register-err').textContent=e.message||'Kayıt başarısız.'; }
+  } catch(e){ document.getElementById('register-err').textContent=authErrMsg(e); }
 }
 async function doLogout(){
   if(S.user?.id) localStorage.removeItem('wk_'+S.user.id);
@@ -6273,7 +6300,7 @@ window.doLogin=async function(){
     // Store wrapKey for session resume (localStorage persists across tabs/restarts)
     localStorage.setItem('wk_'+S.user.id,b64e(wrapKey));
     await startApp();
-  } catch(e){ err.textContent=e.message||'Giriş başarısız.'; }
+  } catch(e){ err.textContent=authErrMsg(e); }
 };
 
 // Also store wrapKey on register
@@ -6304,6 +6331,9 @@ window.doRegister=async function(){
     const {data,error}=await sb.auth.signUp({email,password:hex(authKey)});
     if(error) throw error;
     S.user=data.user;
+    if(!data.session){
+      throw new Error('Hesap oluşturuldu fakat oturum başlatılamadı. Sistem yöneticisi Supabase panelinden "Confirm email" seçeneğini kapatmalıdır.');
+    }
     const kp=await generateKeyPair();
     S.publicKey=kp.publicKey; S.privateKey=kp.privateKey;
     const pubJwk=await exportPublicJwk(kp.publicKey);
@@ -6319,7 +6349,7 @@ window.doRegister=async function(){
     S.profile=await getProfile(S.user.id);
     localStorage.setItem('wk_'+S.user.id,b64e(wrapKey));
     await startApp();
-  } catch(e){ document.getElementById('register-err').textContent=e.message||'Kayıt başarısız.'; }
+  } catch(e){ document.getElementById('register-err').textContent=authErrMsg(e); }
 };
 
 // Open invite modal → load invites
