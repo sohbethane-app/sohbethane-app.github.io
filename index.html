@@ -2463,7 +2463,7 @@ const LANGS = [
 let _myLang = 'tr';
 let _targetLang = 'en';
 let _autoSendTranslate = false;
-let _autoRecvTranslate = false;
+let _autoRecvTranslate = true;
 
 // ============================================================
 // UTILITIES
@@ -3523,6 +3523,11 @@ function renderMessages(msgs){
   let lastDate='';
   for(const m of msgs) appendMessageEl(m, container, lastDate, dt=>{lastDate=dt;});
   container.scrollTop=container.scrollHeight;
+  // Auto-translate last 10 incoming messages on room load
+  if(_autoRecvTranslate){
+    const incoming=msgs.filter(m=>m.gonderen_id!==S.user.id&&m._text&&m.mesaj_tipi==='metin');
+    incoming.slice(-10).forEach((m,i)=>setTimeout(()=>autoTranslateMsg(m),i*120));
+  }
 }
 function appendMessageEl(m, container, lastDate, setDate){
   const own = m.gonderen_id===S.user.id;
@@ -3891,7 +3896,7 @@ function subscribeRooms(){
               S.messages.push(enriched);
               const cont=document.getElementById('messages');
               const es=cont?.querySelector('.empty-state');if(es)es.remove();
-              if(cont){appendMessageEl(enriched,cont,'',()=>{});cont.scrollTop=cont.scrollHeight;}
+              if(cont){appendMessageEl(enriched,cont,'',()=>{});cont.scrollTop=cont.scrollHeight;autoTranslateMsg(enriched);}
               r._lastMsg=lm;
             }
           }
@@ -3937,6 +3942,7 @@ function subscribeMessages(roomId){
       let ld=''; appendMessageEl(enriched,container,'',dt=>{ld=dt;});
       container.scrollTop=container.scrollHeight;
       if(enriched.mesaj_tipi==='dosya') setTimeout(loadImgPreviews,100);
+      autoTranslateMsg(enriched);
       // Poke accepted — trigger background for the poke sender
       if(enriched.mesaj_tipi==='poke_yanit'&&enriched.gonderen_id!==S.user.id){
         try{
@@ -6848,6 +6854,24 @@ async function myMemoryTranslate(text, from, to){
   const d = await r.json();
   const out = d.responseData?.translatedText;
   return (out && out !== text) ? out : text;
+}
+async function autoTranslateMsg(m){
+  if(!_autoRecvTranslate) return;
+  if(!m||m.gonderen_id===S.user.id) return;
+  if(!m._text||m._text.length<2) return;
+  if(m.mesaj_tipi&&m.mesaj_tipi!=='metin') return;
+  const trEl=document.getElementById('tr_'+m.id);
+  if(!trEl||trEl.style.display!=='none') return;
+  const toLang=_myLang||_UI_LANG||'tr';
+  try{
+    const out=await myMemoryTranslate(m._text,'autodetect',toLang);
+    if(out&&out!==m._text){
+      trEl.textContent='🌐 '+out;
+      trEl.style.display='block';
+      const btn=trEl.closest('.msg-bubble')?.querySelector('.msg-translate-btn');
+      if(btn) btn.style.color='var(--acc2)';
+    }
+  }catch(_){}
 }
 async function translateMsg(msgId, btn){
   const trEl = document.getElementById('tr_'+msgId);
