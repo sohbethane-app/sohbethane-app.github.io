@@ -84,6 +84,17 @@ a{color:var(--acc2);text-decoration:none}
 .auth-stat-num{display:block;font-size:1.75rem;font-weight:900;background:linear-gradient(135deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.5px;line-height:1.1;transition:transform .2s}
 .auth-stat-num.stat-bump{animation:statBump .4s ease}
 @keyframes statBump{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+/* Poke Rain */
+#poke-rain{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.poke-drop{position:absolute;top:-2.5rem;user-select:none;animation:pokeFall linear forwards;line-height:1}
+@keyframes pokeFall{to{transform:translateY(110vh) rotate(300deg)}}
+/* Poke Ticker */
+.poke-ticker-wrap{overflow:hidden;width:100%;margin:.4rem 0;-webkit-mask:linear-gradient(to right,transparent,black 10%,black 90%,transparent);mask:linear-gradient(to right,transparent,black 10%,black 90%,transparent)}
+.poke-ticker-inner{display:flex;gap:1rem;white-space:nowrap;animation:tickerScroll 34s linear infinite}
+.poke-tick-item{display:inline-flex;align-items:center;gap:.28rem;font-size:.7rem;font-weight:600;color:rgba(190,175,255,.85);background:rgba(108,99,255,.14);border:1px solid rgba(108,99,255,.22);border-radius:20px;padding:.18rem .5rem;flex-shrink:0}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+/* SVG avatar faces */
+.auth-uavatar svg{width:100%;height:100%;border-radius:50%;display:block}
 .auth-stat-label{font-size:.7rem;color:rgba(180,165,215,.72);margin-top:.15rem}
 .auth-stat-sep{width:1px;height:32px;background:rgba(255,255,255,.1);flex-shrink:0}
 /* Right panel */
@@ -620,6 +631,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 <div class="auth-blob" style="width:280px;height:280px;left:22%;bottom:8%;background:radial-gradient(circle,rgba(255,190,50,.3),transparent 68%);animation-duration:9s;animation-delay:-8s"></div>
 <div class="auth-blob" style="width:210px;height:210px;left:48%;top:4%;background:radial-gradient(circle,rgba(236,72,153,.28),transparent 68%);animation-duration:14s;animation-delay:-4s"></div>
 <div class="auth-particles" id="auth-particles"></div>
+<div id="poke-rain"></div>
 <div class="auth-wrap">
   <!-- Sol panel — sosyal tanışma vitrin -->
   <div class="auth-left">
@@ -643,6 +655,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       <div class="auth-feat-pill fp3" style="animation-delay:.3s">🕵️ <span id="feat-archive">Gizli Arşiv</span></div>
       <div class="auth-feat-pill fp4" style="animation-delay:.36s">🌍 <span id="feat-global">125 Ülke</span></div>
     </div>
+    <!-- Poke konu teker -->
+    <div class="poke-ticker-wrap"><div class="poke-ticker-inner" id="poke-ticker"></div></div>
     <!-- Kullanıcı tanışma kartları — ülkeye göre dinamik -->
     <div class="auth-users-showcase" id="auth-showcase">
       <!-- JS tarafından doldurulur: renderShowcase() -->
@@ -2085,11 +2099,11 @@ function renderShowcase(cc){
   pairs.forEach((pair,i)=>{
     const[a,b,h]=pair;
     html+=`<div class="auth-user-row" style="animation-delay:${delays[i]}s;margin-left:${margins[i]}">
-      <div class="auth-ucard"><div class="auth-uavatar">${a.e}</div>
+      <div class="auth-ucard"><div class="auth-uavatar">${_faceEl(a.e)}</div>
         <div class="auth-uinfo"><b>${a.n}</b><span>${_ccFlag(a.cc)} ${_ccName(a.cc)}</span></div>
         <div class="auth-uonline"></div></div>
       <div class="auth-heart-connector">${h}</div>
-      <div class="auth-ucard"><div class="auth-uavatar">${b.e}</div>
+      <div class="auth-ucard"><div class="auth-uavatar">${_faceEl(b.e)}</div>
         <div class="auth-uinfo"><b>${b.n}</b><span>${_ccFlag(b.cc)} ${_ccName(b.cc)}</span></div>
         <div class="auth-uonline"></div></div>
     </div>`;
@@ -2105,21 +2119,116 @@ function initLiveStats(){
   function fmtK(n){return n>=1000?(Math.round(n/100)/10).toFixed(1)+'K':String(n);}
   function bump(el){el.classList.remove('stat-bump');void el.offsetWidth;el.classList.add('stat-bump');}
   function tick(){
-    // Üye: yavaş artış
-    const dm=Math.floor(Math.random()*3);members+=dm;
-    // Aktif: dalgalanma
-    const da=Math.floor(Math.random()*18)*(Math.random()>.45?1:-1);
-    active=Math.max(1050,Math.min(1650,active+da));
+    // Üye: zaman zaman 1-4 artış
+    const dm=Math.random()>.35?Math.ceil(Math.random()*4):0;members+=dm;
+    // Aktif: daha dramatik dalgalanma
+    const swing=Math.random()>.5?1:-1;
+    const da=Math.floor(Math.random()*28)*swing;
+    active=Math.max(980,Math.min(1820,active+da));
     if(mEl){const t=fmtK(members)+'+';if(mEl.textContent!==t){mEl.textContent=t;bump(mEl);}}
     if(aEl){const t='🟢 '+fmtK(active);if(aEl.textContent!==t){aEl.textContent=t;bump(aEl);}}
   }
-  tick();setInterval(tick,3500);
+  tick();
+  // Rastgele aralıklarla çak — daha canlı görünsün
+  (function loop(){setTimeout(()=>{tick();if(document.getElementById('auth-screen')?.style.display!=='none')loop();},1200+Math.random()*2800);})();
+}
+// ── SVG AVATAR FACES ──────────────────────────────────────────
+function _genFace(s,h,e,hs){
+  const HR=[
+    '<path d="M5,17 C5,4 31,4 31,17 L29,13C26,7 10,7 7,13Z" fill="'+h+'"/>',
+    '<path d="M4,18 C4,4 32,4 32,18 L32,34Q28,38 28,32L28,21C26,9 10,9 8,21L8,32Q4,38 4,34Z" fill="'+h+'"/>',
+    '<path d="M5,18 C5,5 31,5 31,18Q29,8 18,8Q7,8 5,18Z" fill="'+h+'"/>',
+    '<ellipse cx="18" cy="8" rx="12" ry="9" fill="'+h+'"/><ellipse cx="7" cy="17" rx="5" ry="6" fill="'+h+'"/><ellipse cx="29" cy="17" rx="5" ry="6" fill="'+h+'"/>',
+    '<path d="M5,18 C5,4 31,4 31,18L29,15C26,7 10,7 7,15Z" fill="'+h+'"/><circle cx="18" cy="4" r="5" fill="'+h+'"/>',
+  ];
+  return '<svg viewBox="0 0 36 36" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="'+s+'"/>'+HR[hs]+'<ellipse cx="13" cy="19" rx="2.1" ry="2.5" fill="'+e+'"/><ellipse cx="23" cy="19" rx="2.1" ry="2.5" fill="'+e+'"/><circle cx="13.9" cy="18.4" r=".75" fill="white"/><circle cx="23.9" cy="18.4" r=".75" fill="white"/><path d="M13,26 Q18,30 23,26" stroke="'+h+'" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".5"/></svg>';
+}
+const _FACES={
+  f0:_genFace('#FFDFC4','#C8A048','#5C3D2E',2), // Sarı/dalgalı saç, açık ten
+  f1:_genFace('#C68642','#180800','#2D1B0E',0), // Kısa koyu saç, orta ten
+  f2:_genFace('#3D1800','#0A0300','#180800',3), // Afro saç, koyu ten
+  f3:_genFace('#FFECD2','#180800','#2D1B0E',1), // Uzun düz koyu saç, açık ten
+  f4:_genFace('#C8956F','#2A0E00','#2D1B0E',2), // Dalgalı koyu saç, orta ten
+  f5:_genFace('#FFDFC4','#A83220','#4A7A3A',2), // Kızıl dalgalı saç
+  f6:_genFace('#FFECD2','#180800','#2D1B0E',4), // Topuz saç, açık ten
+  f7:_genFace('#C8A882','#180800','#3D2B1F',0), // Kısa koyu saç, buğday ten
+  f8:_genFace('#8B5E3C','#180800','#2D1B0E',0), // Kısa koyu saç, koyu-orta ten
+  f9:_genFace('#FFDFC4','#6B4428','#5C80C0',0), // Kahve saç, mavi göz, açık ten
+};
+const _EFACE={
+  '👩🏻':'f0','👱🏻‍♀️':'f0','👩🏻‍🦱':'f0',
+  '👨🏽':'f1','👨🏽‍💼':'f1',
+  '👨🏿':'f2','👨🏿‍💼':'f2',
+  '👩🏼':'f3','👩🏼‍🎤':'f6',
+  '👩🏾':'f4','👩🏽':'f4',
+  '👩🏻‍🦰':'f5','👩🏽‍🦰':'f5','👩🏾‍🦰':'f5',
+  '👩🏻‍🦱':'f4',
+  '👨🏻':'f9','👨🏻‍💼':'f9','👦🏻':'f9',
+  '👨🏾':'f8','👨🏾‍💼':'f8',
+  '👩🏿':'f2','👩🏽‍🎤':'f4',
+};
+function _faceEl(emoji){
+  const k=_EFACE[emoji];
+  return k?_FACES[k]:emoji;
+}
+// ── POKE RAIN ─────────────────────────────────────────────────
+function initPokeRain(){
+  const container=document.getElementById('poke-rain');
+  if(!container||typeof POKE_TOPICS==='undefined') return;
+  const emojis=POKE_TOPICS.map(t=>t.emoji);
+  function dropOne(){
+    if(document.getElementById('auth-screen')?.style.display==='none') return;
+    const el=document.createElement('div');
+    el.className='poke-drop';
+    el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    el.style.left=(2+Math.random()*96)+'vw';
+    const dur=5+Math.random()*7;
+    el.style.animationDuration=dur+'s';
+    el.style.fontSize=(0.9+Math.random()*0.9)+'rem';
+    el.style.opacity=String(0.06+Math.random()*0.12);
+    container.appendChild(el);
+    setTimeout(()=>el.remove(),(dur+0.5)*1000);
+  }
+  dropOne();
+  setInterval(dropOne,380);
+}
+// ── POKE TICKER ───────────────────────────────────────────────
+function initPokeTicker(){
+  const el=document.getElementById('poke-ticker');
+  if(!el||typeof POKE_TOPICS==='undefined') return;
+  const items=POKE_TOPICS.map(t=>`<span class="poke-tick-item">${t.emoji} ${t.label}</span>`).join('');
+  el.innerHTML=items+items; // Çift içerik — kesintisiz döngü
+}
+// ── SHOWCASE AUTO-ROTATION ────────────────────────────────────
+let _showcaseRotateTimer=null;
+let _showcaseRotateCCs=['default','TR','IN','US','JP','DE','FR','BR','ID','RU','SA','PH','TH','VN','MY'];
+let _showcaseRotateIdx=0;
+let _showcaseGeoCC=null;
+function startShowcaseRotation(){
+  if(_showcaseRotateTimer) clearInterval(_showcaseRotateTimer);
+  _showcaseRotateTimer=setInterval(()=>{
+    // Coğrafi CC her zaman döngüde birinci sıraya alınsın
+    if(_showcaseGeoCC&&_showcaseRotateCCs[0]!==_showcaseGeoCC){
+      _showcaseRotateCCs=[_showcaseGeoCC,..._showcaseRotateCCs.filter(c=>c!==_showcaseGeoCC)];
+    }
+    _showcaseRotateIdx=(_showcaseRotateIdx+1)%_showcaseRotateCCs.length;
+    const el=document.getElementById('auth-showcase');
+    if(!el) return;
+    el.style.transition='opacity .35s ease,transform .3s ease';
+    el.style.opacity='0'; el.style.transform='translateY(8px)';
+    setTimeout(()=>{
+      renderShowcase(_showcaseRotateCCs[_showcaseRotateIdx]);
+      el.style.opacity='1'; el.style.transform='';
+    },320);
+  },5500);
 }
 // Geo bazlı dil + showcase güncelleme (sayfa yüklenince)
 async function initGeoShowcase(){
   // Showcase'i hemen varsayılanla doldur
   renderShowcase(null);
   initLiveStats();
+  // Poke rain + ticker + showcase rotasyonu başlat (POKE_TOPICS henüz yüklenmemiş olabilir, kısa gecikme)
+  setTimeout(()=>{ initPokeRain(); initPokeTicker(); startShowcaseRotation(); }, 200);
   try{
     const{ulke,ip_adresi,country_code}=await (async()=>{
       const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),5000);
@@ -2133,7 +2242,8 @@ async function initGeoShowcase(){
       }catch(e){clearTimeout(tid);return{};}
     })();
     if(country_code){
-      // Ülkeye göre showcase güncelle
+      // Ülkeye göre showcase güncelle ve rotasyon için kaydet
+      _showcaseGeoCC=country_code;
       renderShowcase(country_code);
       // Eğer tarayıcı dili desteklenen listede değilse (en gibi) ve ülke dili bilinyorsa geçiş yap
       const detectedLang=_CC_LANG[country_code];
