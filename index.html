@@ -2526,14 +2526,41 @@ async function doRegister(){
       if(inv.kullanim>=inv.max_kullanim){err.textContent='Bu davet kodu doldu.';return;}
       if(inv.bitis_tarihi&&inv.bitis_tarihi<now){err.textContent='Bu davet kodunun süresi doldu.';return;}
     }
+    // Kullanıcı adı profiller tablosunda var mı? (hızlı ön kontrol)
+    const {data:existCheck} = await sb.from('profiller').select('id').eq('kullanici_adi',username).limit(1);
+    if(existCheck?.length){err.textContent='Bu kullanıcı adı zaten alınmış.';return;}
     const {authKey,wrapKey} = await pbkdf2(password,username);
     const email = username+'@sh.local';
-    const {data,error} = await sb.auth.signUp({email, password:hex(authKey)});
-    if(error) throw error;
-    S.user = data.user;
+    let signUpData;
+    const {data:suData,error:suError} = await sb.auth.signUp({email, password:hex(authKey)});
+    if(suError){
+      // "User already registered" → Email provider kapalıyken yarım kalmış hesap olabilir
+      if((suError.message||'').toLowerCase().includes('already registered')||(suError.message||'').toLowerCase().includes('already exists')){
+        // Aynı şifreyle giriş yapmayı dene (kurtarma)
+        const {data:recData,error:recErr} = await sb.auth.signInWithPassword({email,password:hex(authKey)});
+        if(recErr||!recData?.session) throw new Error('Bu kullanıcı adı zaten alınmış.');
+        signUpData = recData;
+      } else {
+        throw suError;
+      }
+    } else {
+      signUpData = suData;
+    }
+    S.user = signUpData.user;
     // Supabase "Confirm email" açıksa session null gelir — @sh.local adresleri onaylanamaz
-    if(!data.session){
+    if(!signUpData.session){
       throw new Error('Hesap oluşturuldu fakat oturum başlatılamadı. Sistem yöneticisi Supabase panelinden "Confirm email" seçeneğini kapatmalıdır.');
+    }
+    // Profil zaten varsa (başka yerden kurtarılmış olabilir) düz giriş yap
+    const existProf = await getProfile(S.user.id);
+    if(existProf){
+      if(existProf.banli) throw new Error('Bu hesap askıya alındı.');
+      S.profile = existProf;
+      S.privateKey = await unwrapPrivateKey(existProf.sarili_ozel_anahtar, existProf.sarlama_iv, wrapKey).catch(()=>null);
+      if(!S.privateKey) throw new Error('Şifre hatalı veya hesap bozuk.');
+      S.publicKey = await importPublicJwk(existProf.acik_anahtar);
+      await startApp();
+      return;
     }
     // Generate keypair
     const kp = await generateKeyPair();
@@ -6326,13 +6353,33 @@ window.doRegister=async function(){
       if(inv.kullanim>=inv.max_kullanim){err.textContent='Bu davet kodu doldu.';return;}
       if(inv.bitis_tarihi&&inv.bitis_tarihi<now){err.textContent='Bu davet kodunun süresi doldu.';return;}
     }
+    const {data:existCheck2}=await sb.from('profiller').select('id').eq('kullanici_adi',username).limit(1);
+    if(existCheck2?.length){document.getElementById('register-err').textContent='Bu kullanıcı adı zaten alınmış.';return;}
     const {authKey,wrapKey}=await pbkdf2(password,username);
     const email=username+'@sh.local';
-    const {data,error}=await sb.auth.signUp({email,password:hex(authKey)});
-    if(error) throw error;
-    S.user=data.user;
-    if(!data.session){
+    let signUpData2;
+    const {data:suData2,error:suError2}=await sb.auth.signUp({email,password:hex(authKey)});
+    if(suError2){
+      if((suError2.message||'').toLowerCase().includes('already registered')||(suError2.message||'').toLowerCase().includes('already exists')){
+        const {data:recData2,error:recErr2}=await sb.auth.signInWithPassword({email,password:hex(authKey)});
+        if(recErr2||!recData2?.session) throw new Error('Bu kullanıcı adı zaten alınmış.');
+        signUpData2=recData2;
+      } else { throw suError2; }
+    } else { signUpData2=suData2; }
+    S.user=signUpData2.user;
+    if(!signUpData2.session){
       throw new Error('Hesap oluşturuldu fakat oturum başlatılamadı. Sistem yöneticisi Supabase panelinden "Confirm email" seçeneğini kapatmalıdır.');
+    }
+    const existProf2=await getProfile(S.user.id);
+    if(existProf2){
+      if(existProf2.banli) throw new Error('Bu hesap askıya alındı.');
+      S.profile=existProf2;
+      S.privateKey=await unwrapPrivateKey(existProf2.sarili_ozel_anahtar,existProf2.sarlama_iv,wrapKey).catch(()=>null);
+      if(!S.privateKey) throw new Error('Şifre hatalı veya hesap bozuk.');
+      S.publicKey=await importPublicJwk(existProf2.acik_anahtar);
+      localStorage.setItem('wk_'+S.user.id,b64e(wrapKey));
+      await startApp();
+      return;
     }
     const kp=await generateKeyPair();
     S.publicKey=kp.publicKey; S.privateKey=kp.privateKey;
