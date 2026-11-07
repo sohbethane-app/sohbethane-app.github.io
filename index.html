@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net https://ipapi.co;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net https://translate.googleapis.com https://ipapi.co;">
 <meta name="referrer" content="no-referrer">
 <title>SohbetHane</title>
 <style>
@@ -1267,6 +1267,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-ziyaret" onclick="adminSubTab('ziyaret')">🌍 Ziyaretçiler</button>
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-arsiv" onclick="adminSubTab('arsiv')">📜 Arşiv</button>
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-sikayet" onclick="adminSubTab('sikayet')">🚩 Şikayetler</button>
+        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-ceviri" onclick="adminSubTab('ceviri')">🌐 Çeviri</button>
       </div>
       <div id="admin-users-panel">
         <div style="margin-bottom:.5rem;display:flex;justify-content:flex-end">
@@ -1307,6 +1308,37 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
           <button class="btn btn-secondary btn-sm" onclick="loadAdminSikayetler()">Yenile</button>
         </div>
         <div id="admin-sikayet-table"></div>
+      </div>
+      <div id="admin-ceviri-panel" style="display:none">
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:.7rem;color:var(--acc2)">🌐 Çeviri Ayarları</div>
+        <div style="display:flex;flex-direction:column;gap:.6rem;font-size:.88rem">
+          <div style="background:var(--bg3);border-radius:10px;padding:.8rem 1rem">
+            <div style="font-weight:600;margin-bottom:.4rem">Çeviri Motoru</div>
+            <div style="color:var(--acc2);font-size:.82rem">✅ Google Translate (ücretsiz, sansürsüz, 100+ dil, 4000 karakter)</div>
+            <div style="color:var(--txt2);font-size:.78rem;margin-top:.3rem">Yedek: MyMemory API (1000 karakter)</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:10px;padding:.8rem 1rem">
+            <div style="font-weight:600;margin-bottom:.6rem">Gelen Mesaj Otomatik Çevirisi</div>
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+              <input type="checkbox" id="admin-auto-recv-chk" onchange="setAutoRecvTranslate(this.checked);document.getElementById('auto-recv-translate-chk').checked=this.checked;" style="width:16px;height:16px;accent-color:var(--acc2)">
+              <span>Yabancı dil mesajları otomatik çevir</span>
+            </label>
+          </div>
+          <div style="background:var(--bg3);border-radius:10px;padding:.8rem 1rem">
+            <div style="font-weight:600;margin-bottom:.6rem">Gönderilen Mesaj Otomatik Çevirisi</div>
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+              <input type="checkbox" id="admin-auto-send-chk" onchange="setAutoSendTranslate(this.checked);document.getElementById('auto-send-translate-chk').checked=this.checked;" style="width:16px;height:16px;accent-color:var(--acc2)">
+              <span>Mesajlarımı karşı tarafın diline çevir</span>
+            </label>
+          </div>
+          <div style="background:var(--bg3);border-radius:10px;padding:.8rem 1rem">
+            <div style="font-weight:600;margin-bottom:.6rem">Dil Seçimi</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+              <div><div style="font-size:.78rem;color:var(--txt2);margin-bottom:.3rem">Benim dilim</div><select id="admin-my-lang" onchange="setMyLang(this.value)" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.4rem .6rem;color:var(--txt);font-size:.82rem"></select></div>
+              <div><div style="font-size:.78rem;color:var(--txt2);margin-bottom:.3rem">Hedef dil</div><select id="admin-target-lang" onchange="setTargetLang(this.value)" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.4rem .6rem;color:var(--txt);font-size:.82rem"></select></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1951,11 +1983,13 @@ function applyI18n(){
   // Register form
   const rf=document.getElementById('register-form');
   if(rf){
+    // Form sırası: Ülke(0) → Kullanıcı adı(1) → Görünen isim(2) → Şifre(3) → Cinsiyet(4) → Yaş(5)
+    // Ülke etiketi sabit HTML'de, i18n'e dokunma
     const lbls=rf.querySelectorAll('label');
-    if(lbls[0])lbls[0].textContent=T('auth.lbl.user');
-    if(lbls[1])lbls[1].textContent=T('auth.lbl.name');
-    if(lbls[2])lbls[2].textContent=T('auth.lbl.pass');
-    // lbls[3] = Cinsiyet label — set by static HTML, not i18n (invite code removed)
+    if(lbls[1])lbls[1].textContent=T('auth.lbl.user');
+    if(lbls[2])lbls[2].textContent=T('auth.lbl.name');
+    if(lbls[3])lbls[3].textContent=T('auth.lbl.pass');
+    // lbls[4] = Cinsiyet label — sabit HTML, i18n değil
     const ru=document.getElementById('r-user');if(ru)ru.placeholder=T('auth.ph.user');
     const rn=document.getElementById('r-name');if(rn)rn.placeholder=T('auth.ph.name');
     const ry=document.getElementById('r-yas');if(ry){const _yp=T('auth.ph.yas');ry.placeholder=(_yp&&!_yp.includes('.'))?_yp:'25';}
@@ -3396,6 +3430,8 @@ async function renderRoomList(rooms){
       for(const r of kasaRooms) list.appendChild(await buildRoomEl(r,'kasa-room-item',true));
     }
   }
+  // Render online dots after list is built
+  setTimeout(renderOnlineDots, 50);
 }
 async function openRoom(room){
   // Check local password lock
@@ -3481,11 +3517,19 @@ async function loadMessages(roomId){
   document.getElementById('messages').innerHTML='<div class="empty-state"><span style="font-size:1.5rem">⏳</span></div>';
   const {data:msgs} = await sb.from('mesajlar').select('*').eq('oda_id',roomId).eq('silindi',false).order('olusturma_tarihi',{ascending:true}).limit(100);
   if(!msgs){ document.getElementById('messages').innerHTML=''; return; }
+  // For DM rooms, fetch recipient's last seen time to mark seen ticks
+  let recipientLastSeen = null;
+  if(S.currentRoom?.tur==='dm' && S.currentRoom?._otherUserId){
+    const {data:mem} = await sb.from('oda_uyeleri').select('son_gorulme').eq('oda_id',roomId).eq('kullanici_id',S.currentRoom._otherUserId).maybeSingle();
+    recipientLastSeen = mem?.son_gorulme ? new Date(mem.son_gorulme) : null;
+  }
   // Decrypt all
   const decrypted=[];
   for(const m of msgs){
     const d = await decryptMessage(m);
-    decrypted.push({...m, _text:d});
+    // Mark as seen if recipient was online after message was sent
+    const isSeen = recipientLastSeen && m.olusturma_tarihi && new Date(m.olusturma_tarihi) <= recipientLastSeen;
+    decrypted.push({...m, _text:d, _seen: isSeen});
   }
   S.messages=decrypted;
   renderMessages(decrypted);
@@ -3964,7 +4008,7 @@ function subscribeMessages(roomId){
       const r=S.rooms.find(r=>r.id===roomId);
       if(r){r._lastMsg=m; renderRoomList(S.rooms);}
       // Notification
-      if(document.hidden){
+      if(document.hidden&&Notification.permission==='granted'){
         const name=S.profiles[m.gonderen_id]?.goruntu_adi||'Biri';
         new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
       }
@@ -3992,6 +4036,34 @@ function subscribeMessages(roomId){
       clearTimeout(S.typing[roomId]); S.typing[roomId]=setTimeout(()=>ti.textContent='',3000);
     }).subscribe();
   S.subs.push(typCh);
+  // oda_uyeleri UPDATE: other user read the room → refresh seen ticks
+  if(S.currentRoom?.tur==='dm' && S.currentRoom?._otherUserId){
+    const otherUid=S.currentRoom._otherUserId;
+    const seenCh=sb.channel('seen_'+roomId)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'oda_uyeleri',filter:`oda_id=eq.${roomId}`},payload=>{
+        if(payload.new?.kullanici_id!==otherUid) return;
+        const seenAt=payload.new?.son_gorulme ? new Date(payload.new.son_gorulme) : null;
+        if(!seenAt) return;
+        // Update _seen on all my messages that were sent before seenAt
+        let changed=false;
+        S.messages.forEach(m=>{
+          if(m.gonderen_id===S.user.id && !m._seen && m.olusturma_tarihi && new Date(m.olusturma_tarihi)<=seenAt){
+            m._seen=true; changed=true;
+          }
+        });
+        if(changed){
+          // Update tick elements without full re-render
+          S.messages.filter(m=>m.gonderen_id===S.user.id&&m._seen).forEach(m=>{
+            const wrap=document.getElementById('msg_'+m.id);
+            if(wrap){
+              const tk=wrap.querySelector('.msg-ticks');
+              if(tk&&!tk.classList.contains('seen')){ tk.textContent='✓✓'; tk.classList.add('seen'); }
+            }
+          });
+        }
+      }).subscribe();
+    S.subs.push(seenCh);
+  }
   // Presence for online status
   const presCh=sb.channel('presence_'+roomId,{config:{presence:{key:S.user.id}}})
     .on('presence',{event:'sync'},()=>{
@@ -5473,7 +5545,7 @@ async function loadAdminUsers(){
   </tbody></table>`;
 }
 function adminSubTab(tab){
-  ['users','aktif','yeni','ziyaret','arsiv','sikayet'].forEach(t=>{
+  ['users','aktif','yeni','ziyaret','arsiv','sikayet','ceviri'].forEach(t=>{
     const panel=document.getElementById('admin-'+t+'-panel');
     if(panel) panel.style.display=t===tab?'block':'none';
     const btn=document.getElementById('asub-'+t);
@@ -5484,6 +5556,22 @@ function adminSubTab(tab){
   if(tab==='ziyaret') loadAdminZiyaretciler();
   if(tab==='arsiv') loadAdminArsiv();
   if(tab==='sikayet') loadAdminSikayetler();
+  if(tab==='ceviri') initAdminCeviriPanel();
+}
+function initAdminCeviriPanel(){
+  // Mevcut ayarları checkboxlara yansıt
+  const rChk=document.getElementById('admin-auto-recv-chk');
+  const sChk=document.getElementById('admin-auto-send-chk');
+  if(rChk) rChk.checked=_autoRecvTranslate;
+  if(sChk) sChk.checked=_autoSendTranslate;
+  // Dil seçimlerini doldur
+  const LANGS=[['auto','Otomatik Algıla'],['tr','Türkçe'],['en','İngilizce'],['ar','Arapça'],['de','Almanca'],['fr','Fransızca'],['es','İspanyolca'],['it','İtalyanca'],['pt','Portekizce'],['ru','Rusça'],['ja','Japonca'],['ko','Korece'],['zh','Çince'],['nl','Hollandaca'],['pl','Lehçe'],['sv','İsveççe'],['da','Danca'],['fi','Fince'],['no','Norveççe'],['cs','Çekçe'],['hu','Macarca'],['ro','Rumence'],['el','Yunanca'],['he','İbranice'],['id','Endonezce'],['ms','Malayca'],['th','Tayca'],['vi','Vietnamca'],['uk','Ukraynaca'],['fa','Farsça'],['hi','Hintçe'],['bn','Bengalce'],['ur','Urduca'],['az','Azerbaycanca'],['ka','Gürcüce'],['kk','Kazakça'],['uz','Özbekçe'],['sr','Sırpça'],['hr','Hırvatça'],['bg','Bulgarca'],['sk','Slovakça'],['lt','Litvanca'],['lv','Letonca'],['et','Estonyaca'],['sl','Slovence'],['mk','Makedonce'],['is','İzlandaca'],['af','Afrikaanca'],['sw','Svahili'],['am','Amharca'],['so','Somalice'],['mg','Madagaskarca'],['zu','Zuluca']];
+  ['admin-my-lang','admin-target-lang'].forEach((id,i)=>{
+    const sel=document.getElementById(id);
+    if(!sel) return;
+    sel.innerHTML=LANGS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+    sel.value=i===0?(_myLang||'tr'):(_targetLang||'en');
+  });
 }
 async function loadAdminArsiv(){
   const el=document.getElementById('admin-arsiv-table');
@@ -5580,8 +5668,10 @@ function startGlobalPresence(){
         setTimeout(()=>{ if(S.user) startGlobalPresence(); }, 5000);
       }
     });
-  // Heartbeat every 60s
-  _sonAktifTimer=setInterval(()=>updateSonAktif(),60000);
+  // Heartbeat every 30s (admin aktif panel için daha sık)
+  _sonAktifTimer=setInterval(()=>updateSonAktif(),30000);
+  // İlk track hemen
+  setTimeout(()=>updateSonAktif(),2000);
 }
 
 async function updateSonAktif(){
@@ -5640,23 +5730,46 @@ async function loadAdminAktif(){
   const el=document.getElementById('admin-aktif-table');
   const cnt=document.getElementById('admin-aktif-count');
   if(!el) return;
-  const allIds=[..._onlineUsersAll];
-  if(cnt) cnt.textContent=`${allIds.length} aktif kullanıcı`;
-  if(!allIds.length){ el.innerHTML='<p class="text-muted">Şu an kimse çevrimiçi değil.</p>'; return; }
-  const profs=await Promise.all(allIds.map(id=>getProfile(id)));
+  el.innerHTML='<p class="text-muted">Yükleniyor…</p>';
+
+  // Önce DB'den son 15 dakika içinde aktif olan kullanıcıları çek (presence güvenilmez)
+  const since15=new Date(Date.now()-15*60*1000).toISOString();
+  const {data:activeRows}=await sb.from('profiller')
+    .select('id,kullanici_adi,goruntu_adi,son_gorulme,son_giris')
+    .gte('son_gorulme',since15)
+    .order('son_gorulme',{ascending:false})
+    .limit(100);
+
+  // Presence set ile birleştir
+  const presenceIds=new Set([..._onlineUsersAll]);
+  const dbIds=new Set((activeRows||[]).map(p=>p.id));
+  const allUniqueIds=[...new Set([...presenceIds,...dbIds])];
+
+  if(cnt) cnt.textContent=`${allUniqueIds.length} aktif kullanıcı`;
+  if(!allUniqueIds.length){ el.innerHTML='<p class="text-muted">Şu an kimse çevrimiçi değil.</p>'; return; }
+
+  // Profil verisini topla (DB sonuçlarını önce kullan, eksikler için getProfile)
+  const profileMap={};
+  (activeRows||[]).forEach(p=>{ profileMap[p.id]=p; });
+  await Promise.all(allUniqueIds.filter(id=>!profileMap[id]).map(id=>getProfile(id).then(p=>{if(p)profileMap[id]=p;})));
+
   el.innerHTML=`<table class="admin-table"><thead><tr>
     <th>Kullanıcı</th><th>Durum</th><th>Son Aktif</th>
   </tr></thead><tbody>
-  ${profs.filter(Boolean).map(p=>{
-    const isInvisible=!_onlineUsers.has(p.id);
-    const badge=isInvisible?'<span class="badge-invisible"></span> Gizli':'<span class="badge-online"></span> Çevrimiçi';
-    const ago=_lastSeenMap[p.id]?fmtAgo(_lastSeenMap[p.id]):'—';
+  ${allUniqueIds.map(uid=>{
+    const p=profileMap[uid]; if(!p) return '';
+    const inPresence=presenceIds.has(uid);
+    const isInvisible=inPresence&&!_onlineUsers.has(uid);
+    const badge=isInvisible?'<span class="badge-invisible"></span> Gizli'
+      :inPresence?'<span class="badge-online"></span> Çevrimiçi'
+      :'<span style="color:var(--warn)">🕐</span> Son 15 dk';
+    const ago=_lastSeenMap[uid]?fmtAgo(_lastSeenMap[uid]):(p.son_gorulme?fmtAgo(p.son_gorulme):'—');
     return `<tr>
       <td>${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2);font-size:.78rem">@${p.kullanici_adi}</span></td>
       <td>${badge}</td>
       <td style="font-size:.78rem;color:var(--txt2)">${ago}</td>
     </tr>`;
-  }).join('')}
+  }).filter(Boolean).join('')}
   </tbody></table>`;
 }
 
@@ -5810,18 +5923,22 @@ async function viewProfileByUsername(uname){
 }
 function _showProfilModal(p){
   const modal=document.getElementById('profil-modal');
+  if(!modal) return;
+  // Use modal.querySelector to avoid duplicate-ID collision with person-modal
+  const q=sel=>modal.querySelector(sel);
   // Avatar
-  const av=document.getElementById('pm-avatar');
-  if(p.avatar_url) av.innerHTML=`<img src="${p.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-  else{av.textContent=avatarInitials(p.goruntu_adi||p.kullanici_adi);av.style.background=userColor(p.id);}
-  document.getElementById('pm-isim').textContent=p.goruntu_adi||p.kullanici_adi||'?';
-  document.getElementById('pm-kullanici').textContent='@'+(p.kullanici_adi||'');
+  const av=q('#pm-avatar');
+  if(av){
+    if(p.avatar_url) av.innerHTML=`<img src="${p.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    else{av.textContent=avatarInitials(p.goruntu_adi||p.kullanici_adi);av.style.background=userColor(p.id);}
+  }
+  const isimEl=q('#pm-isim'); if(isimEl) isimEl.textContent=p.goruntu_adi||p.kullanici_adi||'?';
+  const kulEl=q('#pm-kullanici'); if(kulEl) kulEl.textContent='@'+(p.kullanici_adi||'');
   // Hakkımda
-  const hakEl=document.getElementById('pm-hakkimda');
-  if(p.hakkimda){hakEl.textContent=p.hakkimda;hakEl.style.display='';}
-  else hakEl.style.display='none';
+  const hakEl=q('#pm-hakkimda');
+  if(hakEl){if(p.hakkimda){hakEl.textContent=p.hakkimda;hakEl.style.display='';}else hakEl.style.display='none';}
   // Kişisel bilgiler rozeti
-  const pmMeta=document.getElementById('pm-meta');
+  const pmMeta=q('#pm-meta');
   if(pmMeta){
     const ep=p.ekstra_profil||{};
     const chips=[];
@@ -5835,11 +5952,11 @@ function _showProfilModal(p){
     pmMeta.innerHTML=chips.map(c=>`<span style="background:var(--bg3);border:1px solid var(--brd);border-radius:20px;padding:.2rem .6rem;font-size:.78rem">${c}</span>`).join('');
     pmMeta.style.display=chips.length?'flex':'none';
   }
-  // Online durum (sadece DM'de)
-  const pmPresence=document.getElementById('pm-presence');
+  // Online durum
+  const pmPresence=q('#pm-presence');
   if(pmPresence&&p.id&&p.id!==S.user?.id){
     const isOnline=S.profile?.yonetici?_onlineUsersAll.has(p.id):_onlineUsers.has(p.id);
-    const ls=_lastSeenMap[p.id];
+    const ls=_lastSeenMap[p.id]||(S.profiles[p.id]?.son_gorulme);
     if(isOnline) pmPresence.innerHTML='<span class="badge-online"></span> <span class="presence-online">Çevrimiçi</span>';
     else if(ls) pmPresence.innerHTML=`<span class="presence-lastseen">Son görülme: ${fmtAgo(ls)}</span>`;
     else pmPresence.textContent='';
@@ -5847,27 +5964,31 @@ function _showProfilModal(p){
   } else if(pmPresence){ pmPresence.style.display='none'; }
   // Sosyal
   const soc=p.sosyal||{};
-  const socEl=document.getElementById('pm-sosyal');
-  socEl.innerHTML='';
-  Object.entries(SOSYAL_META).forEach(([k,meta])=>{
-    if(!soc[k]) return;
-    const val=soc[k];
-    const href=k==='website'?val:(k==='whatsapp'?meta.base+val.replace(/[^0-9]/g,''):meta.base+val.replace(/^@/,''));
-    const btn=document.createElement('a');
-    btn.href=href; btn.target='_blank'; btn.rel='noopener noreferrer';
-    btn.style.cssText='display:inline-flex;align-items:center;gap:.3rem;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:.3rem .7rem;font-size:.8rem;color:var(--txt);text-decoration:none';
-    btn.innerHTML=`${meta.icon} <span>${escHtml(val)}</span>`;
-    socEl.appendChild(btn);
-  });
+  const socEl=q('#pm-sosyal');
+  if(socEl){
+    socEl.innerHTML='';
+    Object.entries(SOSYAL_META||{}).forEach(([k,meta])=>{
+      if(!soc[k]) return;
+      const val=soc[k];
+      const href=k==='website'?val:(k==='whatsapp'?meta.base+val.replace(/[^0-9]/g,''):meta.base+val.replace(/^@/,''));
+      const btn=document.createElement('a');
+      btn.href=href; btn.target='_blank'; btn.rel='noopener noreferrer';
+      btn.style.cssText='display:inline-flex;align-items:center;gap:.3rem;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:.3rem .7rem;font-size:.8rem;color:var(--txt);text-decoration:none';
+      btn.innerHTML=`${meta.icon} <span>${escHtml(val)}</span>`;
+      socEl.appendChild(btn);
+    });
+  }
   // Link
   const link=`${location.origin}${location.pathname}#profil=${p.kullanici_adi}`;
-  document.getElementById('pm-link').value=link;
+  const linkEl=q('#pm-link'); if(linkEl) linkEl.value=link;
   // Aksiyon (kendi profilin ise yok, başkası ise mesaj)
-  const acts=document.getElementById('pm-actions');
-  if(p.id!==S.user?.id){
-    acts.innerHTML=`<button class="btn btn-primary" style="width:100%" onclick="closeModal('profil-modal');startDM('${p.id}')">💬 Mesaj Gönder</button>`;
-  } else {
-    acts.innerHTML=`<button class="btn btn-secondary" style="width:100%" onclick="closeModal('profil-modal');openModal('settings-modal')">✏️ Profili Düzenle</button>`;
+  const acts=q('#pm-actions');
+  if(acts){
+    if(p.id!==S.user?.id){
+      acts.innerHTML=`<button class="btn btn-primary" style="width:100%" onclick="closeModal('profil-modal');startDM('${p.id}')">💬 Mesaj Gönder</button>`;
+    } else {
+      acts.innerHTML=`<button class="btn btn-secondary" style="width:100%" onclick="closeModal('profil-modal');openModal('settings-modal')">✏️ Profili Düzenle</button>`;
+    }
   }
   openModal('profil-modal');
 }
@@ -6848,12 +6969,27 @@ function toggleLangQuick(){
   toast(_autoSendTranslate ? '✅ Otomatik çeviri açık — '+langInfo(_myLang).flag+'→'+langInfo(_targetLang).flag : '🔕 Otomatik çeviri kapalı', _autoSendTranslate?'success':'info');
 }
 async function myMemoryTranslate(text, from, to){
-  if(!text||!from||!to||from===to) return text;
-  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,500))}&langpair=${from}|${to}`;
-  const r = await fetch(url);
-  const d = await r.json();
-  const out = d.responseData?.translatedText;
-  return (out && out !== text) ? out : text;
+  if(!text||!to) return text;
+  const sl = (from==='autodetect'||!from) ? 'auto' : from;
+  if(sl!=='auto'&&sl===to) return text;
+  // Google Translate (ücretsiz, sansürsüz, tüm diller, 4000 karakter)
+  try{
+    const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${to}&dt=t&q=${encodeURIComponent(text.slice(0,4000))}`;
+    const r=await fetch(url);
+    if(!r.ok) throw new Error('http '+r.status);
+    const d=await r.json();
+    const out=d[0]?.map(x=>x?.[0]||'').join('');
+    return (out&&out.trim()&&out!==text) ? out : text;
+  }catch(_){
+    // MyMemory yedek
+    try{
+      const url2=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,1000))}&langpair=${sl==='auto'?'autodetect':sl}|${to}`;
+      const r2=await fetch(url2);
+      const d2=await r2.json();
+      const out2=d2.responseData?.translatedText;
+      return (out2&&out2!==text)?out2:text;
+    }catch(_2){ return text; }
+  }
 }
 async function autoTranslateMsg(m){
   if(!_autoRecvTranslate) return;
