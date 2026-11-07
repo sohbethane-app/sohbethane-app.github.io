@@ -859,7 +859,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <img id="paste-preview-img" style="max-height:56px;max-width:72px;border-radius:6px;object-fit:cover;border:1px solid var(--bdr)">
         <div style="flex:1;min-width:0">
           <div style="font-size:.75rem;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="paste-preview-name"></div>
-          <div style="font-size:.7rem;color:var(--acc)">Gönder'e basarak yapıştırılan resmi gönder</div>
+          <div style="font-size:.7rem;color:var(--acc)">Resim seçildi — mesaj yazıp birlikte gönderebilirsiniz</div>
         </div>
         <button onclick="cancelPaste()" title="İptal" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--txt2);padding:.2rem .4rem;border-radius:6px;line-height:1">✕</button>
       </div>
@@ -3443,9 +3443,12 @@ async function openRoom(room){
   }
   S.currentRoom=room;
   S.messages=[];
-  // Clear unread badge for this room
+  // Clear unread badge for this room — both data and DOM
   room._unread=0;
   updateTabBadge();
+  // Remove badge from the room list element immediately (no full re-render needed)
+  const roomEl=document.querySelector(`.room-item[data-id="${room.id}"]`);
+  if(roomEl){ const badge=roomEl.querySelector('.unread-badge'); if(badge) badge.remove(); }
   // Update header
   let name=room.isim||'Sohbet';
   let sub='';
@@ -3501,7 +3504,12 @@ async function openRoom(room){
   // Highlight in list
   document.querySelectorAll('.room-item').forEach(el=>el.classList.toggle('active',el.dataset.id===room.id));
   // Update son_gorulme
-  await sb.from('oda_uyeleri').update({son_gorulme:new Date().toISOString()}).eq('oda_id',room.id).eq('kullanici_id',S.user.id);
+  const _seenNow=new Date().toISOString();
+  await sb.from('oda_uyeleri').update({son_gorulme:_seenNow}).eq('oda_id',room.id).eq('kullanici_id',S.user.id);
+  // Broadcast seen event so the other user's ticks turn green immediately
+  if(room.tur==='dm'){
+    sb.channel('seen_bc_'+room.id).send({type:'broadcast',event:'room_seen',payload:{uid:S.user.id,at:_seenNow}}).catch(()=>{});
+  }
   // Load messages
   await loadMessages(room.id);
   // Subscribe realtime
@@ -3694,6 +3702,10 @@ function renderFileContent(m){
   const mime = m.dosya_tipi || mimeFromFilename(name);
   const isImg = mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|svg|heic)$/i.test(name);
   const isVid = mime.startsWith('video/') || /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(name);
+  // Extract caption from decrypted keyMeta
+  let caption='';
+  try{ const km=JSON.parse(m._text||'{}'); if(km.caption) caption=escHtml(km.caption); }catch(_){}
+  const captionHtml=caption?`<div style="margin-top:.35rem;font-size:.88rem;line-height:1.4;color:var(--txt)">${caption}</div>`:'';
   if(isImg){
     const blurKey='msgblur_'+m.id;
     const room18=isRoom18Plus(S.currentRoom?.id);
@@ -3707,6 +3719,7 @@ function renderFileContent(m){
           <span style="font-size:.76rem;color:#fff;font-weight:600">Görmek için tıkla</span>
         </div>
       </div>
+      ${captionHtml}
       <div style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem">
         <span style="font-size:.72rem;color:var(--txt2);flex:1">${name} · ${size}</span>
         <button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button>
@@ -3719,6 +3732,7 @@ function renderFileContent(m){
         Tarayıcınız video oynatmıyor.
       </video>
       <div class="msg-video-loading" id="vidload_${m.id}">⏳ Video şifresi çözülüyor...</div>
+      ${captionHtml}
       <div style="display:flex;align-items:center;gap:.5rem;margin-top:.2rem">
         <span style="font-size:.72rem;color:var(--txt2);flex:1">${name} · ${size}</span>
         <button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button>
@@ -3759,15 +3773,17 @@ function scrollToMsg(id){
 // SEND MESSAGE
 // ============================================================
 async function sendMessage(){
-  // Pending pasted image → send it first
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim();
+  // Pending file (pasted or selected) → send with optional caption
   if(_pendingPasteFile){
     const file=_pendingPasteFile;
     cancelPaste();
-    await sendFileDirectly(file);
+    if(text) inp.value=''; // clear caption input
+    await sendFileDirectly(file, text||null);
+    if(text) autoResize(inp);
     return;
   }
-  const inp=document.getElementById('chat-input');
-  const text=inp.value.trim();
   if(!text) return;
   if(!S.currentRoom){ toast('Önce bir sohbet seçin','error'); return; }
   inp.value=''; autoResize(inp);
@@ -4012,8 +4028,14 @@ function subscribeMessages(roomId){
         const name=S.profiles[m.gonderen_id]?.goruntu_adi||'Biri';
         new Notification('SohbetHane',{body:`${name}: Yeni mesaj`,icon:'data:,'}).catch(()=>{});
       }
-      // Mark son_gorulme
-      await sb.from('oda_uyeleri').update({son_gorulme:new Date().toISOString()}).eq('oda_id',roomId).eq('kullanici_id',S.user.id);
+      // Mark son_gorulme + broadcast seen (so sender's ticks turn green)
+      if(!document.hidden && m.gonderen_id!==S.user.id && S.currentRoom?.tur==='dm'){
+        const _seenTs=new Date().toISOString();
+        await sb.from('oda_uyeleri').update({son_gorulme:_seenTs}).eq('oda_id',roomId).eq('kullanici_id',S.user.id);
+        sb.channel('seen_bc_'+roomId).send({type:'broadcast',event:'room_seen',payload:{uid:S.user.id,at:_seenTs}}).catch(()=>{});
+      } else {
+        await sb.from('oda_uyeleri').update({son_gorulme:new Date().toISOString()}).eq('oda_id',roomId).eq('kullanici_id',S.user.id);
+      }
     })
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'mesajlar',filter:`oda_id=eq.${roomId}`},async payload=>{
       const m=payload.new;
@@ -4036,32 +4058,40 @@ function subscribeMessages(roomId){
       clearTimeout(S.typing[roomId]); S.typing[roomId]=setTimeout(()=>ti.textContent='',3000);
     }).subscribe();
   S.subs.push(typCh);
-  // oda_uyeleri UPDATE: other user read the room → refresh seen ticks
+  // Seen signal: listen for broadcast when other user opens this DM room
   if(S.currentRoom?.tur==='dm' && S.currentRoom?._otherUserId){
     const otherUid=S.currentRoom._otherUserId;
-    const seenCh=sb.channel('seen_'+roomId)
+    const applySeenAt=(seenAt)=>{
+      let changed=false;
+      S.messages.forEach(m=>{
+        if(m.gonderen_id===S.user.id && !m._seen && m.olusturma_tarihi && new Date(m.olusturma_tarihi)<=seenAt){
+          m._seen=true; changed=true;
+        }
+      });
+      if(changed){
+        S.messages.filter(m=>m.gonderen_id===S.user.id&&m._seen).forEach(m=>{
+          const wrap=document.getElementById('msg_'+m.id);
+          if(wrap){
+            const tk=wrap.querySelector('.msg-ticks');
+            if(tk&&!tk.classList.contains('seen')){ tk.textContent='✓✓'; tk.classList.add('seen'); }
+          }
+        });
+      }
+    };
+    // 1) Broadcast channel (reliable, real-time)
+    const seenCh=sb.channel('seen_bc_'+roomId)
+      .on('broadcast',{event:'room_seen'},payload=>{
+        if(payload.payload?.uid!==otherUid) return;
+        const seenAt=payload.payload?.at ? new Date(payload.payload.at) : new Date();
+        applySeenAt(seenAt);
+      })
+      // 2) Also try postgres_changes as backup (requires Realtime enabled on oda_uyeleri)
       .on('postgres_changes',{event:'UPDATE',schema:'public',table:'oda_uyeleri',filter:`oda_id=eq.${roomId}`},payload=>{
         if(payload.new?.kullanici_id!==otherUid) return;
         const seenAt=payload.new?.son_gorulme ? new Date(payload.new.son_gorulme) : null;
-        if(!seenAt) return;
-        // Update _seen on all my messages that were sent before seenAt
-        let changed=false;
-        S.messages.forEach(m=>{
-          if(m.gonderen_id===S.user.id && !m._seen && m.olusturma_tarihi && new Date(m.olusturma_tarihi)<=seenAt){
-            m._seen=true; changed=true;
-          }
-        });
-        if(changed){
-          // Update tick elements without full re-render
-          S.messages.filter(m=>m.gonderen_id===S.user.id&&m._seen).forEach(m=>{
-            const wrap=document.getElementById('msg_'+m.id);
-            if(wrap){
-              const tk=wrap.querySelector('.msg-ticks');
-              if(tk&&!tk.classList.contains('seen')){ tk.textContent='✓✓'; tk.classList.add('seen'); }
-            }
-          });
-        }
-      }).subscribe();
+        if(seenAt) applySeenAt(seenAt);
+      })
+      .subscribe();
     S.subs.push(seenCh);
   }
   // Presence for online status
@@ -4288,10 +4318,27 @@ async function handleFileSelect(input){
   if(!input.files?.length||!S.currentRoom) return;
   const file=input.files[0];
   input.value='';
-  await sendFileDirectly(file);
+  // Show preview so user can add a caption before sending
+  _pendingPasteFile=file;
+  const previewEl=document.getElementById('paste-preview');
+  const previewImg=document.getElementById('paste-preview-img');
+  const previewName=document.getElementById('paste-preview-name');
+  previewName.textContent=file.name+' · '+Math.round(file.size/1024)+' KB';
+  const isImg=file.type.startsWith('image/');
+  if(isImg){
+    const r=new FileReader();
+    r.onload=e=>{previewImg.src=e.target.result;previewImg.style.display='';};
+    r.readAsDataURL(file);
+  } else {
+    previewImg.style.display='none';
+  }
+  if(previewEl) previewEl.style.display='flex';
+  // Focus input so user can type a caption
+  const inp=document.getElementById('chat-input');
+  if(inp) inp.focus();
 }
 
-async function sendFileDirectly(file){
+async function sendFileDirectly(file, caption){
   if(!file||!S.currentRoom) return;
   toast('Dosya şifreleniyor...','info');
   try{
@@ -4308,8 +4355,8 @@ async function sendFileDirectly(file){
     if(ue) throw ue;
     const {data:urlData}=sb.storage.from('dosyalar').getPublicUrl(path);
     const fileUrl=urlData?.publicUrl||path;
-    // Encrypt the file key+iv as message content
-    const keyMeta=JSON.stringify({key:b64e(fileKeyRaw),iv:b64e(iv)});
+    // Encrypt the file key+iv (+ caption if any) as message content
+    const keyMeta=JSON.stringify({key:b64e(fileKeyRaw),iv:b64e(iv),...(caption?{caption}:{})});
     const room=S.currentRoom;
     let row={oda_id:room.id,gonderen_id:S.user.id,mesaj_tipi:'dosya',dosya_url:fileUrl,dosya_adi:file.name,dosya_tipi:file.type,dosya_boyut:file.size};
     if(room.tur==='dm'){
