@@ -2819,13 +2819,17 @@ async function doRegister(){
     };
     let {error:pe} = await sb.from('profiller').insert(_profInsert);
     if(pe){
-      const _pemsg=(pe.message||'').toLowerCase();
-      if(_pemsg.includes('schema cache')&&_pemsg.includes('cinsiyet')){
-        // PostgREST schema cache stale for cinsiyet — retry without it, update separately
-        const {cinsiyet:_c,..._insertNoCin}=_profInsert;
-        const {error:pe2}=await sb.from('profiller').insert(_insertNoCin);
+      if((pe.message||'').toLowerCase().includes('schema cache')){
+        // PostgREST şema önbelleği eski — opsiyonel sütunlar olmadan minimal insert, sonra update
+        const {cinsiyet:_c,yas:_y,ulke:_u,ip_adresi:_ip,..._coreInsert}=_profInsert;
+        const {error:pe2}=await sb.from('profiller').insert(_coreInsert);
         if(pe2) throw pe2;
-        if(cinsiyet) await sb.from('profiller').update({cinsiyet}).eq('id',S.user.id).catch(()=>{});
+        const _optUpd={};
+        if(cinsiyet)_optUpd.cinsiyet=cinsiyet;
+        if(yas)_optUpd.yas=yas;
+        if(ulkeCC||kayitUlke)_optUpd.ulke=ulkeCC||kayitUlke;
+        if(kayitIp)_optUpd.ip_adresi=kayitIp;
+        if(Object.keys(_optUpd).length) await sb.from('profiller').update(_optUpd).eq('id',S.user.id).catch(()=>{});
       } else { throw pe; }
     }
     // Increment invite usage
@@ -6638,12 +6642,16 @@ window.doRegister=async function(){
     const _profInsert2={id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(cinsiyet2?{cinsiyet:cinsiyet2}:{}),...(yas2?{yas:yas2}:{}),ulke:ulkeCC2||kayitUlke2||null,...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()};
     let {error:pe}=await sb.from('profiller').insert(_profInsert2);
     if(pe){
-      const _pemsg2=(pe.message||'').toLowerCase();
-      if(_pemsg2.includes('schema cache')&&_pemsg2.includes('cinsiyet')){
-        const {cinsiyet:_c2,..._insertNoCin2}=_profInsert2;
-        const {error:pe2}=await sb.from('profiller').insert(_insertNoCin2);
+      if((pe.message||'').toLowerCase().includes('schema cache')){
+        const {cinsiyet:_c2,yas:_y2,ulke:_u2,ip_adresi:_ip2,..._coreInsert2}=_profInsert2;
+        const {error:pe2}=await sb.from('profiller').insert(_coreInsert2);
         if(pe2) throw pe2;
-        if(cinsiyet2) await sb.from('profiller').update({cinsiyet:cinsiyet2}).eq('id',S.user.id).catch(()=>{});
+        const _optUpd2={};
+        if(cinsiyet2)_optUpd2.cinsiyet=cinsiyet2;
+        if(yas2)_optUpd2.yas=yas2;
+        if(ulkeCC2||kayitUlke2)_optUpd2.ulke=ulkeCC2||kayitUlke2;
+        if(kayitIp2)_optUpd2.ip_adresi=kayitIp2;
+        if(Object.keys(_optUpd2).length) await sb.from('profiller').update(_optUpd2).eq('id',S.user.id).catch(()=>{});
       } else { throw pe; }
     }
     if(hasUser&&inviteCode){
