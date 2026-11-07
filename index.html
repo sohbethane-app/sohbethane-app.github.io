@@ -93,6 +93,24 @@ a{color:var(--acc2);text-decoration:none}
 .poke-ticker-inner{display:flex;gap:1rem;white-space:nowrap;animation:tickerScroll 34s linear infinite}
 .poke-tick-item{display:inline-flex;align-items:center;gap:.28rem;font-size:.7rem;font-weight:600;color:rgba(190,175,255,.85);background:rgba(108,99,255,.14);border:1px solid rgba(108,99,255,.22);border-radius:20px;padding:.18rem .5rem;flex-shrink:0}
 @keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+/* Portrait strip background */
+#photo-strip-bg{position:absolute;bottom:0;left:0;right:0;height:88px;overflow:hidden;z-index:1;pointer-events:none;-webkit-mask:linear-gradient(to right,transparent,black 8%,black 92%,transparent);mask:linear-gradient(to right,transparent,black 8%,black 92%,transparent)}
+.ps-track{display:flex;width:max-content;animation:ps-scroll 50s linear infinite}
+.ps-card{flex-shrink:0;width:68px;margin:0 7px;display:flex;flex-direction:column;align-items:center;gap:3px;padding-bottom:6px}
+.ps-face{width:54px;height:54px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.18);box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.ps-face svg{width:100%;height:100%}
+.ps-pname{font-size:.58rem;color:rgba(255,255,255,.55);white-space:nowrap;font-weight:500;text-align:center}
+@keyframes ps-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+/* Name bubbles sidebar */
+#name-bubbles-wrap{position:absolute;right:1.2rem;top:0;bottom:88px;width:168px;overflow:hidden;pointer-events:none;z-index:2}
+.nb-bubble{position:absolute;right:0;background:rgba(30,20,60,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(108,99,255,.35);border-radius:20px;padding:5px 10px 5px 7px;font-size:.7rem;color:rgba(255,255,255,.88);display:flex;align-items:center;gap:5px;white-space:nowrap;animation:nb-rise var(--dur,6s) ease-in forwards}
+.nb-dot{width:7px;height:7px;border-radius:50%;background:#22DD88;flex-shrink:0;box-shadow:0 0 5px #22DD88}
+.nb-avatar{width:22px;height:22px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.2)}
+.nb-avatar svg{width:100%;height:100%}
+.nb-txt{display:flex;flex-direction:column;line-height:1.3}
+.nb-name{font-size:.7rem;font-weight:600;color:rgba(255,255,255,.92)}
+.nb-loc{font-size:.58rem;color:rgba(200,185,255,.7)}
+@keyframes nb-rise{0%{transform:translateY(80px);opacity:0}8%{opacity:1}75%{opacity:1}100%{transform:translateY(-100%);opacity:0}}
 /* SVG avatar faces */
 .auth-uavatar svg{width:100%;height:100%;border-radius:50%;display:block}
 .auth-stat-label{font-size:.7rem;color:rgba(180,165,215,.72);margin-top:.15rem}
@@ -632,6 +650,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 <div class="auth-blob" style="width:210px;height:210px;left:48%;top:4%;background:radial-gradient(circle,rgba(236,72,153,.28),transparent 68%);animation-duration:14s;animation-delay:-4s"></div>
 <div class="auth-particles" id="auth-particles"></div>
 <div id="poke-rain"></div>
+<div id="photo-strip-bg"><div class="ps-track" id="ps-track"></div></div>
+<div id="name-bubbles-wrap" aria-hidden="true"></div>
 <div class="auth-wrap">
   <!-- Sol panel — sosyal tanışma vitrin -->
   <div class="auth-left">
@@ -697,8 +717,9 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <div class="form-group"><label>Kullanıcı adı</label><input id="r-user" type="text" placeholder="harf_rakam_alt_cizgi" autocomplete="username"></div>
         <div class="form-group"><label>Görünen isim</label><input id="r-name" type="text" placeholder="Adınız Soyadınız"></div>
         <div class="form-group"><label>Şifre</label><input id="r-pass" type="password" placeholder="••••••••" autocomplete="new-password"></div>
-        <div class="form-group"><label>Cinsiyet <span style="font-size:.75rem;color:var(--txt2);font-weight:400">(zorunlu değil)</span></label><select id="r-cinsiyet" style="width:100%;padding:.7rem .9rem;border-radius:10px;border:1px solid var(--bdr);background:var(--inp);color:var(--txt);font-size:.95rem;outline:none"><option value="">Belirtmek istemiyorum</option><option value="E">👨 Erkek</option><option value="K">👩 Kadın</option><option value="D">🌈 Diğer</option></select></div>
-        <div class="form-group"><label>Yaş <span style="font-size:.75rem;color:var(--txt2);font-weight:400">(zorunlu değil)</span></label><input id="r-yas" type="number" min="13" max="100" placeholder="Yaşınız (örn: 25)"></div>
+        <div class="form-group"><label>Cinsiyet <span style="font-size:.75rem;color:var(--acc)">*</span></label><select id="r-cinsiyet" required style="width:100%;padding:.7rem .9rem;border-radius:10px;border:1px solid var(--bdr);background:var(--inp);color:var(--txt);font-size:.95rem;outline:none"><option value="">— Cinsiyet seçin —</option><option value="E">👨 Erkek</option><option value="K">👩 Kadın</option></select></div>
+        <div class="form-group"><label>Yaş <span style="font-size:.75rem;color:var(--acc)">*</span></label><input id="r-yas" type="number" min="13" max="100" placeholder="Yaşınız (örn: 25)" required></div>
+        <div class="form-group"><label>Ülke <span style="font-size:.75rem;color:var(--acc)">*</span></label><select id="r-ulke" required onchange="onRegCountryChange(this.value)" style="width:100%;padding:.7rem .9rem;border-radius:10px;border:1px solid var(--bdr);background:var(--inp);color:var(--txt);font-size:.95rem;outline:none"><option value="">— Ülkenizi seçin —</option><option value="AF">Afganistan</option><option value="DE">Almanya</option><option value="US">Amerika Birleşik Devletleri</option><option value="AR">Arjantin</option><option value="AL">Arnavutluk</option><option value="AU">Avustralya</option><option value="AT">Avusturya</option><option value="AZ">Azerbaycan</option><option value="BH">Bahreyn</option><option value="BD">Bangladeş</option><option value="BE">Belçika</option><option value="AE">Birleşik Arap Emirlikleri</option><option value="GB">Birleşik Krallık</option><option value="BO">Bolivya</option><option value="BA">Bosna Hersek</option><option value="BR">Brezilya</option><option value="BG">Bulgaristan</option><option value="DZ">Cezayir</option><option value="TD">Çad</option><option value="CZ">Çek Cumhuriyeti</option><option value="CN">Çin</option><option value="DK">Danimarka</option><option value="CD">Dem. Kongo Cum.</option><option value="DO">Dominik Cumhuriyeti</option><option value="EC">Ekvador</option><option value="SV">El Salvador</option><option value="ID">Endonezya</option><option value="AM">Ermenistan</option><option value="ET">Etiyopya</option><option value="MA">Fas</option><option value="PH">Filipinler</option><option value="FI">Finlandiya</option><option value="FR">Fransa</option><option value="GH">Gana</option><option value="GT">Guatemala</option><option value="ZA">Güney Afrika</option><option value="KR">Güney Kore</option><option value="GE">Gürcistan</option><option value="HT">Haiti</option><option value="IN">Hindistan</option><option value="NL">Hollanda</option><option value="HN">Honduras</option><option value="HR">Hırvatistan</option><option value="IQ">Irak</option><option value="IR">İran</option><option value="IE">İrlanda</option><option value="ES">İspanya</option><option value="IL">İsrail</option><option value="SE">İsveç</option><option value="CH">İsviçre</option><option value="IT">İtalya</option><option value="JP">Japonya</option><option value="CA">Kanada</option><option value="QA">Katar</option><option value="KZ">Kazakistan</option><option value="KE">Kenya</option><option value="CY">Kıbrıs</option><option value="KG">Kırgızistan</option><option value="CO">Kolombiya</option><option value="KM">Komorlar</option><option value="CR">Kosta Rika</option><option value="KW">Kuveyt</option><option value="CU">Küba</option><option value="LB">Lübnan</option><option value="LY">Libya</option><option value="LU">Lüksemburg</option><option value="HU">Macaristan</option><option value="MG">Madagaskar</option><option value="MY">Malezya</option><option value="ML">Mali</option><option value="MT">Malta</option><option value="MX">Meksika</option><option value="EG">Mısır</option><option value="MN">Moğolistan</option><option value="MD">Moldova</option><option value="MZ">Mozambik</option><option value="MM">Myanmar</option><option value="NP">Nepal</option><option value="NG">Nijerya</option><option value="NI">Nikaragua</option><option value="NO">Norveç</option><option value="OM">Umman</option><option value="UZ">Özbekistan</option><option value="PK">Pakistan</option><option value="PA">Panama</option><option value="PY">Paraguay</option><option value="PE">Peru</option><option value="PL">Polonya</option><option value="PT">Portekiz</option><option value="RO">Romanya</option><option value="RU">Rusya</option><option value="SN">Senegal</option><option value="RS">Sırbistan</option><option value="SG">Singapur</option><option value="SK">Slovakya</option><option value="SI">Slovenya</option><option value="LK">Sri Lanka</option><option value="SD">Sudan</option><option value="SY">Suriye</option><option value="SA">Suudi Arabistan</option><option value="TJ">Tacikistan</option><option value="TH">Tayland</option><option value="TW">Tayvan</option><option value="TZ">Tanzanya</option><option value="TG">Togo</option><option value="TN">Tunus</option><option value="TR">Türkiye</option><option value="TM">Türkmenistan</option><option value="UA">Ukrayna</option><option value="UY">Uruguay</option><option value="JO">Ürdün</option><option value="VE">Venezuela</option><option value="VN">Vietnam</option><option value="YE">Yemen</option><option value="NZ">Yeni Zelanda</option><option value="GR">Yunanistan</option><option value="ZW">Zimbabve</option></select></div>
         <button class="btn btn-primary" style="width:100%;padding:.9rem;font-size:1rem;font-weight:700;border-radius:12px;margin-top:.6rem" onclick="doRegister()">✦ Kayıt Ol</button>
         <p class="auth-err" id="register-err"></p>
       </div>
@@ -1933,7 +1954,14 @@ function _ccFlag(cc){return cc.toUpperCase().split('').map(c=>String.fromCodePoi
 // Ülke kodu → yerelleştirilmiş ülke adı (Intl API)
 function _ccName(cc){try{return new Intl.DisplayNames([_UI_LANG,'en'],{type:'region'}).of(cc)||cc;}catch(e){return cc;}}
 // Ülke kodu → arayüz dili
-const _CC_LANG={TR:'tr',AZ:'tr',KZ:'tr',TM:'tr',KG:'tr',UZ:'tr',ID:'id',MY:'ms',PH:'tl',SA:'ar',AE:'ar',EG:'ar',IQ:'ar',SY:'ar',LB:'ar',JO:'ar',KW:'ar',QA:'ar',BH:'ar',OM:'ar',YE:'ar',LY:'ar',TN:'ar',DZ:'ar',MA:'ar',SD:'ar',DE:'de',AT:'de',LI:'de',CH:'de',FR:'fr',LU:'fr',MC:'fr',BE:'fr',ES:'es',MX:'es',CO:'es',AR:'es',PE:'es',VE:'es',CL:'es',EC:'es',DO:'es',CU:'es',RU:'ru',BY:'ru',UA:'uk',CN:'zh',TW:'zh',HK:'zh',MO:'zh',SG:'ms',JP:'ja',KR:'ko',BR:'pt',PT:'pt',AO:'pt',MZ:'pt',IN:'hi',NP:'hi',TH:'th',VN:'vi',IR:'fa',AF:'fa',IT:'it',SM:'it',NL:'nl',PL:'pl',NG:'en',GH:'en',KE:'en',ET:'en',ZA:'en',AU:'en',NZ:'en',GB:'en',CA:'en',US:'en'};
+const _CC_LANG={TR:'tr',AZ:'tr',KZ:'tr',TM:'tr',KG:'tr',UZ:'tr',ID:'id',MY:'en',PH:'en',SA:'ar',AE:'ar',EG:'ar',IQ:'ar',SY:'ar',LB:'ar',JO:'ar',KW:'ar',QA:'ar',BH:'ar',OM:'ar',YE:'ar',LY:'ar',TN:'ar',DZ:'ar',MA:'ar',SD:'ar',DE:'de',AT:'de',LI:'de',CH:'de',FR:'fr',LU:'fr',MC:'fr',BE:'fr',ES:'es',MX:'es',CO:'es',AR:'es',PE:'es',VE:'es',CL:'es',EC:'es',DO:'es',CU:'es',GT:'es',HN:'es',SV:'es',NI:'es',PA:'es',PY:'es',BO:'es',UY:'es',RU:'ru',BY:'ru',UA:'en',CN:'zh',TW:'zh',HK:'zh',MO:'zh',SG:'en',JP:'ja',KR:'ko',BR:'pt',PT:'pt',AO:'pt',MZ:'pt',IN:'en',NP:'en',TH:'en',VN:'en',IR:'en',AF:'en',IT:'en',SM:'en',NL:'en',PL:'en',NG:'en',GH:'en',KE:'en',ET:'en',ZA:'en',AU:'en',NZ:'en',GB:'en',CA:'en',US:'en',IL:'en',IE:'en',SE:'en',FI:'en',DK:'en',NO:'en',GR:'en',RO:'en',BG:'en',HR:'en',RS:'en',SK:'en',SI:'en',HU:'en',CZ:'en',MD:'en',GE:'en',AM:'en',BD:'en',LK:'en',MM:'en',KH:'en',MN:'en',TJ:'en',AL:'en',BA:'en',MT:'en',CY:'en',CD:'fr',SN:'fr',ML:'fr',MG:'fr',TG:'fr',CI:'fr',CM:'fr',TZ:'en',KP:'en',CU:'es'};
+function onRegCountryChange(cc){
+  if(!cc) return;
+  const SL=['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'];
+  const raw=_CC_LANG[cc]||'en';
+  const lang=SL.includes(raw)?raw:'en';
+  if(lang!==_UI_LANG){_UI_LANG=lang;applyI18n();}
+}
 // Ülke kodu → bölge anahtarı (showcase için)
 const _CC_REGION={TR:'TR',AZ:'TR',KZ:'TR',UZ:'TR',KG:'TR',TM:'TR',ID:'ID',MY:'MY',PH:'PH',JP:'JP',KR:'KR',SA:'SA',AE:'SA',EG:'SA',IQ:'SA',SY:'SA',LB:'SA',JO:'SA',KW:'SA',QA:'SA',BH:'SA',OM:'SA',YE:'SA',LY:'SA',TN:'SA',DZ:'SA',MA:'SA',SD:'SA',DE:'DE',AT:'DE',LI:'DE',CH:'DE',FR:'FR',BE:'FR',LU:'FR',MC:'FR',ES:'ES',MX:'ES',CO:'ES',AR:'ES',PE:'ES',VE:'ES',CL:'ES',EC:'ES',DO:'ES',CU:'ES',RU:'RU',BY:'RU',UA:'UA',BR:'BR',PT:'BR',AO:'BR',MZ:'BR',CN:'CN',TW:'CN',HK:'CN',MO:'CN',IN:'IN',NP:'IN',BD:'IN',LK:'IN',TH:'TH',VN:'VN',IR:'IR',AF:'IR',IT:'IT',SM:'IT',NL:'NL',PL:'PL',US:'US',CA:'US',AU:'US',GB:'US',NZ:'US',IE:'US',ZA:'US',NG:'NG',GH:'NG',KE:'NG',ET:'NG',SG:'MY'};
 // Bölge → 4 çift tanım  [a:{e,n,cc}, b:{e,n,cc}, kalp]
@@ -2127,43 +2155,48 @@ function initLiveStats(){
   (function loop(){setTimeout(()=>{tick();if(document.getElementById('auth-screen')?.style.display!=='none')loop();},1200+Math.random()*2800);})();
 }
 // ── SVG AVATAR FACES ──────────────────────────────────────────
-function _genFace(s,h,e,hs){
-  const HR=[
-    '<path d="M5,17 C5,4 31,4 31,17 L29,13C26,7 10,7 7,13Z" fill="'+h+'"/>',
-    '<path d="M4,18 C4,4 32,4 32,18 L32,34Q28,38 28,32L28,21C26,9 10,9 8,21L8,32Q4,38 4,34Z" fill="'+h+'"/>',
-    '<path d="M5,18 C5,5 31,5 31,18Q29,8 18,8Q7,8 5,18Z" fill="'+h+'"/>',
-    '<ellipse cx="18" cy="8" rx="12" ry="9" fill="'+h+'"/><ellipse cx="7" cy="17" rx="5" ry="6" fill="'+h+'"/><ellipse cx="29" cy="17" rx="5" ry="6" fill="'+h+'"/>',
-    '<path d="M5,18 C5,4 31,4 31,18L29,15C26,7 10,7 7,15Z" fill="'+h+'"/><circle cx="18" cy="4" r="5" fill="'+h+'"/>',
+// ── REALISTIC PORTRAIT SYSTEM ─────────────────────────────────
+(function(){
+  // Core portrait builder (no defs/IDs - shadow overlay shading)
+  function _mkP(bg,sk,eye,br,lp,BEF,AFT){
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="50" fill="${bg}"/>${BEF}<rect x="40" y="68" width="20" height="24" fill="${sk}" rx="5"/><ellipse cx="50" cy="45" rx="25" ry="29" fill="${sk}"/><ellipse cx="57" cy="49" rx="17" ry="21" fill="rgba(0,0,0,.09)"/><ellipse cx="43" cy="38" rx="15" ry="16" fill="rgba(255,255,255,.17)"/><ellipse cx="34" cy="53" rx="5" ry="3.5" fill="rgba(255,150,130,.22)"/><ellipse cx="66" cy="53" rx="5" ry="3.5" fill="rgba(255,150,130,.22)"/><ellipse cx="39" cy="43" rx="6.5" ry="4.2" fill="white"/><ellipse cx="61" cy="43" rx="6.5" ry="4.2" fill="white"/><circle cx="39" cy="43" r="3" fill="${eye}"/><circle cx="61" cy="43" r="3" fill="${eye}"/><circle cx="39" cy="43" r="1.4" fill="#111"/><circle cx="61" cy="43" r="1.4" fill="#111"/><circle cx="40.3" cy="42" r="1" fill="rgba(255,255,255,.85)"/><circle cx="62.3" cy="42" r="1" fill="rgba(255,255,255,.85)"/><path d="M33,37Q39,33 44.5,36.5" stroke="${br}" stroke-width="2.3" fill="none" stroke-linecap="round"/><path d="M55.5,36.5Q61,33 67,37" stroke="${br}" stroke-width="2.3" fill="none" stroke-linecap="round"/><circle cx="46.5" cy="52" r="1.5" fill="rgba(0,0,0,.12)"/><circle cx="53.5" cy="52" r="1.5" fill="rgba(0,0,0,.12)"/><path d="M46,52.5Q50,56 54,52.5" stroke="rgba(0,0,0,.1)" stroke-width="1.3" fill="none"/><path d="M44,61.5 L47,60 L50,61.5 L53,60 L56,61.5Q50,67 44,61.5Z" fill="${lp}" opacity=".85"/>${AFT}</svg>`;
+  }
+  // Hair layer presets
+  const _H={
+    hj:c=>`<circle cx="50" cy="50" r="50" fill="${c}"/>`,  // hijab = full circle cover
+    lg:c=>`<ellipse cx="50" cy="19" rx="27" ry="17" fill="${c}"/><rect x="22" y="38" width="10" height="46" fill="${c}" rx="5"/><rect x="68" y="38" width="10" height="46" fill="${c}" rx="5"/>`,
+    sh:c=>`<ellipse cx="50" cy="19" rx="27" ry="17" fill="${c}"/>`,
+    cr:c=>`<ellipse cx="50" cy="16" rx="29" ry="20" fill="${c}"/><ellipse cx="21" cy="38" rx="9" ry="15" fill="${c}"/><ellipse cx="79" cy="38" rx="9" ry="15" fill="${c}"/>`,
+    wb:c=>`<ellipse cx="50" cy="19" rx="27" ry="17" fill="${c}"/><rect x="22" y="38" width="10" height="46" fill="${c}" rx="5"/>`,
+  };
+  // 20 portrait styles [bg, skin, eye, brow, lip, hair-layer]
+  window._PORTRAITS=[
+    _mkP('#4A8A6C','#D4B090','#5C3D2E','#4A2D10','#C07060',_H.hj('#3A6A4A'),''),   // 0 Türk kadın yeşil başörtü
+    _mkP('#9E6BA8','#D4B090','#5C3D2E','#3A1D00','#C07060',_H.lg('#150800'),''),   // 1 Türk kadın koyu saç
+    _mkP('#5B8FC4','#C8956A','#4A2D10','#2A1300','#A06040',_H.sh('#1A0800'),''),   // 2 Türk/Ortadoğu erkek
+    _mkP('#E8884C','#C09060','#2A1200','#180800','#8B3C30',_H.lg('#030100'),''),   // 3 Hintli kadın
+    _mkP('#F47E8C','#FFECD0','#302010','#180800','#C85060',_H.lg('#050208'),''),   // 4 Doğu Asya kadın
+    _mkP('#4CA8A8','#FFEED8','#5A7ABA','#8A6830','#D07060',_H.lg('#C0A048'),''),   // 5 Avrupalı sarışın kadın
+    _mkP('#8F5BBF','#5A3015','#2A1200','#150800','#8A3C2A',_H.sh('#050200'),''),   // 6 Nijeryalı erkek
+    _mkP('#6A9ABC','#D4A87A','#3A2010','#2A1500','#A05840',_H.hj('#1A1A3A'),''),   // 7 Arap kadın lacivert başörtü
+    _mkP('#BC7C4C','#FFECD0','#302010','#150A00','#C04858',_H.sh('#060408'),''),   // 8 Japon erkek
+    _mkP('#4A8A6C','#C89060','#4A2D10','#1A0A00','#9A4030',_H.lg('#120700'),''),   // 9 Brezilya kadın
+    _mkP('#7C8CBC','#FFECD5','#607090','#5A4820','#C07060',_H.sh('#9A7840'),''),   // 10 Rus erkek
+    _mkP('#CA6090','#C8A07A','#3A2010','#2A1500','#9A5848',_H.hj('#CA4080'),''),   // 11 Endonezya kadın pembe başörtü
+    _mkP('#8C7CC8','#FFEBD0','#302010','#180A00','#D04560',_H.lg('#0A0508'),''),   // 12 Koreli kadın
+    _mkP('#BC7044','#C8906A','#3A2010','#1A0800','#A04830',_H.sh('#100500'),''),   // 13 Meksikalı erkek
+    _mkP('#4890A8','#4A2010','#1A0800','#0A0400','#7A2A20',_H.cr('#080300'),''),   // 14 Afrika kadın kıvırcık saç
+    _mkP('#C04870','#FFEAD0','#4A2D10','#2A1500','#D05070',_H.wb('#4A0A18'),''),   // 15 Latin kadın
+    _mkP('#2A7A9C','#D4B090','#4A2D10','#2A1300','#B06040',_H.lg('#150800'),''),   // 16 Türk genç erkek uzun saç
+    _mkP('#A84C8C','#FFECD0','#302010','#180800','#C84860',_H.sh('#050208'),''),   // 17 Çin/Tayvan kadın kısa saç
+    _mkP('#6050BC','#C8956A','#3A2010','#1A0800','#C06050',_H.hj('#5040A0'),''),   // 18 Pakistan kadın mor başörtü
+    _mkP('#4A9C60','#FFECD5','#4A6A30','#8A6030','#C07060',_H.sh('#A87838'),''),   // 19 Avrupalı erkek kumral
   ];
-  return '<svg viewBox="0 0 36 36" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="18" fill="'+s+'"/>'+HR[hs]+'<ellipse cx="13" cy="19" rx="2.1" ry="2.5" fill="'+e+'"/><ellipse cx="23" cy="19" rx="2.1" ry="2.5" fill="'+e+'"/><circle cx="13.9" cy="18.4" r=".75" fill="white"/><circle cx="23.9" cy="18.4" r=".75" fill="white"/><path d="M13,26 Q18,30 23,26" stroke="'+h+'" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".5"/></svg>';
-}
-const _FACES={
-  f0:_genFace('#FFDFC4','#C8A048','#5C3D2E',2), // Sarı/dalgalı saç, açık ten
-  f1:_genFace('#C68642','#180800','#2D1B0E',0), // Kısa koyu saç, orta ten
-  f2:_genFace('#3D1800','#0A0300','#180800',3), // Afro saç, koyu ten
-  f3:_genFace('#FFECD2','#180800','#2D1B0E',1), // Uzun düz koyu saç, açık ten
-  f4:_genFace('#C8956F','#2A0E00','#2D1B0E',2), // Dalgalı koyu saç, orta ten
-  f5:_genFace('#FFDFC4','#A83220','#4A7A3A',2), // Kızıl dalgalı saç
-  f6:_genFace('#FFECD2','#180800','#2D1B0E',4), // Topuz saç, açık ten
-  f7:_genFace('#C8A882','#180800','#3D2B1F',0), // Kısa koyu saç, buğday ten
-  f8:_genFace('#8B5E3C','#180800','#2D1B0E',0), // Kısa koyu saç, koyu-orta ten
-  f9:_genFace('#FFDFC4','#6B4428','#5C80C0',0), // Kahve saç, mavi göz, açık ten
-};
-const _EFACE={
-  '👩🏻':'f0','👱🏻‍♀️':'f0','👩🏻‍🦱':'f0',
-  '👨🏽':'f1','👨🏽‍💼':'f1',
-  '👨🏿':'f2','👨🏿‍💼':'f2',
-  '👩🏼':'f3','👩🏼‍🎤':'f6',
-  '👩🏾':'f4','👩🏽':'f4',
-  '👩🏻‍🦰':'f5','👩🏽‍🦰':'f5','👩🏾‍🦰':'f5',
-  '👩🏻‍🦱':'f4',
-  '👨🏻':'f9','👨🏻‍💼':'f9','👦🏻':'f9',
-  '👨🏾':'f8','👨🏾‍💼':'f8',
-  '👩🏿':'f2','👩🏽‍🎤':'f4',
-};
+})();
 function _faceEl(emoji){
-  const k=_EFACE[emoji];
-  return k?_FACES[k]:emoji;
+  const MAP={'👩🏻':0,'👱🏻‍♀️':5,'👩🏻‍🦱':1,'👨🏽':2,'👨🏽‍💼':2,'👨🏿':6,'👨🏿‍💼':6,'👩🏼':5,'👩🏼‍🎤':12,'👩🏾':9,'👩🏽':3,'👩🏻‍🦰':15,'👩🏽‍🦰':9,'👩🏾‍🦰':9,'👩🏻‍🦱':1,'👨🏻':19,'👨🏻‍💼':19,'👦🏻':19,'👨🏾':13,'👨🏾‍💼':13,'👩🏿':14,'👩🏽‍🎤':11};
+  const idx=MAP[emoji];
+  return idx!==undefined?window._PORTRAITS[idx]:emoji;
 }
 // ── POKE RAIN ─────────────────────────────────────────────────
 function initPokeRain(){
@@ -2222,7 +2255,7 @@ async function initGeoShowcase(){
   renderShowcase(null);
   initLiveStats();
   // Poke rain + ticker + showcase rotasyonu başlat (POKE_TOPICS henüz yüklenmemiş olabilir, kısa gecikme)
-  setTimeout(()=>{ initPokeRain(); initPokeTicker(); startShowcaseRotation(); }, 200);
+  setTimeout(()=>{ initPokeRain(); initPokeTicker(); startShowcaseRotation(); initPortraitStrip(); initNameBubbles(); }, 200);
   try{
     const{ulke,ip_adresi,country_code}=await (async()=>{
       const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),5000);
@@ -2248,6 +2281,51 @@ async function initGeoShowcase(){
       }
     }
   }catch(_){}
+}
+function initPortraitStrip(){
+  const track=document.getElementById('ps-track');
+  if(!track) return;
+  // Build portrait strip cards with names from various countries
+  const data=[
+    [0,'Ayşe K.','🇹🇷'],[1,'Zeynep A.','🇹🇷'],[2,'Mehmet S.','🇹🇷'],[3,'Priya R.','🇮🇳'],
+    [4,'Wei M.','🇨🇳'],[5,'Emma L.','🇩🇪'],[6,'Chidi O.','🇳🇬'],[7,'Fatima A.','🇸🇦'],
+    [8,'Kenji T.','🇯🇵'],[9,'Camila S.','🇧🇷'],[10,'Ivan P.','🇷🇺'],[11,'Siti D.','🇮🇩'],
+    [12,'Ji-Yeon L.','🇰🇷'],[13,'Carlos M.','🇲🇽'],[14,'Amara K.','🇸🇳'],[15,'Sofia G.','🇪🇸'],
+    [16,'Emre Y.','🇹🇷'],[17,'Mei X.','🇨🇳'],[18,'Noor H.','🇵🇰'],[19,'Lucas M.','🇫🇷'],
+    [0,'Yasemin T.','🇹🇷'],[7,'Layla K.','🇦🇪'],[3,'Deepa V.','🇮🇳'],[11,'Dewi R.','🇮🇩'],
+  ];
+  const html=data.map(([idx,nm,fl])=>`<div class="ps-card"><div class="ps-face">${window._PORTRAITS[idx]}</div><div class="ps-pname">${fl} ${nm}</div></div>`).join('');
+  track.innerHTML=html+html; // double for seamless loop
+}
+function initNameBubbles(){
+  const wrap=document.getElementById('name-bubbles-wrap');
+  if(!wrap) return;
+  const names=[
+    ['Ahmet Y.','🇹🇷 İstanbul',0],['Priya S.','🇮🇳 Delhi',3],['Siti R.','🇮🇩 Jakarta',11],
+    ['Mohammed A.','🇸🇦 Riyad',2],['Emma W.','🇩🇪 Berlin',5],['Wei L.','🇨🇳 Shanghai',4],
+    ['Carlos R.','🇲🇽 Mexico City',13],['Yuki T.','🇯🇵 Tokyo',8],['Anna K.','🇷🇺 Moskova',10],
+    ['Ji-ho K.','🇰🇷 Seul',12],['Fatou D.','🇸🇳 Dakar',14],['Lucas P.','🇫🇷 Paris',19],
+    ['Ayşe M.','🇹🇷 Ankara',1],['Layla H.','🇦🇪 Dubai',7],['Pedro S.','🇧🇷 São Paulo',9],
+    ['Nour F.','🇵🇰 Karaçi',18],['Sofia L.','🇪🇸 Madrid',15],['Chidi E.','🇳🇬 Lagos',6],
+    ['Deepa V.','🇮🇳 Mumbai',3],['Dewi A.','🇮🇩 Bali',11],['Kenji M.','🇯🇵 Osaka',8],
+    ['Olga N.','🇷🇺 Sankt Petersburg',10],['Omar K.','🇸🇦 Cidde',2],['Meiling Z.','🇨🇳 Beijing',17],
+    ['Isabel C.','🇵🇹 Lizbon',9],['Hamid R.','🇮🇷 Tahran',2],['Valentina A.','🇦🇷 B.Aires',15],
+    ['Rini W.','🇮🇩 Surabaya',11],['Burak D.','🇹🇷 İzmir',16],['Yemi A.','🇳🇬 Abuja',6],
+  ];
+  let ni=0;
+  function spawn(){
+    if(document.getElementById('auth-screen')?.style.display==='none') return;
+    const [nm,loc,pidx]=names[ni%names.length]; ni++;
+    const el=document.createElement('div');
+    el.className='nb-bubble';
+    const dur=5+Math.random()*4;
+    el.style.cssText=`bottom:${-60+Math.random()*20}px;--dur:${dur.toFixed(1)}s`;
+    el.innerHTML=`<div class="nb-dot"></div><div class="nb-avatar">${window._PORTRAITS[pidx]}</div><div class="nb-txt"><span class="nb-name">${nm}</span><span class="nb-loc">${loc}</span></div>`;
+    wrap.appendChild(el);
+    setTimeout(()=>el.remove(), dur*1000+200);
+    setTimeout(spawn, 1200+Math.random()*1800);
+  }
+  spawn();
 }
 document.addEventListener('DOMContentLoaded',()=>{applyI18n();initGeoShowcase();});
 // ============================================================
@@ -2615,11 +2693,14 @@ async function doRegister(){
   const cinsiyet  = document.getElementById('r-cinsiyet')?.value || '';
   const yasStr    = (document.getElementById('r-yas')?.value||'').trim();
   const yas       = yasStr ? parseInt(yasStr,10) : null;
+  const ulkeCC    = document.getElementById('r-ulke')?.value || '';
   const err = document.getElementById('register-err');
   err.textContent='';
   if(!username||!goruntu||!password){err.textContent='Tüm alanları doldurun.';return;}
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
-  if(yasStr&&(isNaN(yas)||yas<13||yas>100)){err.textContent='Geçerli bir yaş girin (13-100).';return;}
+  if(!cinsiyet){err.textContent='Lütfen cinsiyetinizi seçin.';return;}
+  if(!yasStr||isNaN(yas)||yas<13||yas>100){err.textContent='Geçerli bir yaş girin (13-100).';return;}
+  if(!ulkeCC){err.textContent='Lütfen ülkenizi seçin.';return;}
   try{
     // Check if first user
     const {data:hasUser} = await sb.rpc('kullanici_var_mi');
@@ -2681,7 +2762,7 @@ async function doRegister(){
       acik_anahtar:pubJwk, sarili_ozel_anahtar:sarili, sarlama_iv,
       ...(cinsiyet?{cinsiyet}:{}),
       ...(yas?{yas}:{}),
-      ...(kayitUlke?{ulke:kayitUlke}:{}),
+      ulke:ulkeCC||kayitUlke||null,
       ...(kayitIp?{ip_adresi:kayitIp}:{}),
       son_giris:new Date().toISOString()
     });
@@ -2707,6 +2788,8 @@ async function doLogout(){
 // APP STARTUP
 // ============================================================
 async function startApp(){
+  // Set UI language from user's saved country code (for incoming message auto-translation)
+  if(S.profile?.ulke){const SL=['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'];const cl=_CC_LANG[S.profile.ulke];if(cl&&SL.includes(cl)){_UI_LANG=cl;}}
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='flex';
   // My avatar
@@ -6441,10 +6524,13 @@ window.doRegister=async function(){
   const cinsiyet2=document.getElementById('r-cinsiyet')?.value||'';
   const yasStr2=(document.getElementById('r-yas')?.value||'').trim();
   const yas2=yasStr2?parseInt(yasStr2,10):null;
+  const ulkeCC2=document.getElementById('r-ulke')?.value||'';
   const err=document.getElementById('register-err'); err.textContent='';
   if(!username||!goruntu||!password){err.textContent='Tüm alanları doldurun.';return;}
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
-  if(yasStr2&&(isNaN(yas2)||yas2<13||yas2>100)){err.textContent='Geçerli bir yaş girin (13-100).';return;}
+  if(!cinsiyet2){err.textContent='Lütfen cinsiyetinizi seçin.';return;}
+  if(!yasStr2||isNaN(yas2)||yas2<13||yas2>100){err.textContent='Geçerli bir yaş girin (13-100).';return;}
+  if(!ulkeCC2){err.textContent='Lütfen ülkenizi seçin.';return;}
   try{
     const {data:hasUser}=await sb.rpc('kullanici_var_mi');
     if(hasUser&&inviteCode){
@@ -6488,7 +6574,7 @@ window.doRegister=async function(){
     const {sarili,iv:sarlama_iv}=await wrapPrivateKey(kp.privateKey,wrapKey);
     const {ulke:kayitUlke2,ip_adresi:kayitIp2}=await detectGeoInfo();
     if(kayitIp2){const{data:banCheck2}=await sb.from('yasakli_ipler').select('id').eq('ip_adresi',kayitIp2).limit(1);if(banCheck2?.length){document.getElementById('register-err').textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
-    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(cinsiyet2?{cinsiyet:cinsiyet2}:{}),...(yas2?{yas:yas2}:{}),...(kayitUlke2?{ulke:kayitUlke2}:{}),...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()});
+    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(cinsiyet2?{cinsiyet:cinsiyet2}:{}),...(yas2?{yas:yas2}:{}),ulke:ulkeCC2||kayitUlke2||null,...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()});
     if(pe) throw pe;
     if(hasUser&&inviteCode){
       const {data:inv2}=await sb.from('davetler').select('id,kullanim').eq('kod',inviteCode).single();
