@@ -2559,6 +2559,7 @@ async function doRegister(){
       S.privateKey = await unwrapPrivateKey(existProf.sarili_ozel_anahtar, existProf.sarlama_iv, wrapKey).catch(()=>null);
       if(!S.privateKey) throw new Error('Şifre hatalı veya hesap bozuk.');
       S.publicKey = await importPublicJwk(existProf.acik_anahtar);
+      localStorage.setItem('wk_'+S.user.id, b64e(wrapKey));
       await startApp();
       return;
     }
@@ -3745,7 +3746,10 @@ function subscribeMessages(roomId){
           else { dot?.remove(); }
         }
       });
-    }).subscribe(async s=>{ if(s==='SUBSCRIBED') await presCh.track({online:true}); });
+    }).subscribe(async s=>{
+      if(s==='SUBSCRIBED') await presCh.track({online:true}).catch(()=>{});
+      else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT') { setTimeout(()=>{ if(S.currentRoom?.id===roomId) subscribeMessages(roomId); },4000); }
+    });
   S.subs.push(presCh);
 }
 
@@ -5312,6 +5316,9 @@ function startGlobalPresence(){
     .subscribe(async(status)=>{
       if(status==='SUBSCRIBED'){
         await _presenceChannel.track({gizli:isGizli,son_aktif:new Date().toISOString()});
+      } else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+        // Yeniden bağlan
+        setTimeout(()=>{ if(S.user) startGlobalPresence(); }, 5000);
       }
     });
   // Heartbeat every 60s
@@ -5324,7 +5331,7 @@ async function updateSonAktif(){
   const now=new Date().toISOString();
   _presenceChannel.track({gizli:isGizli,son_aktif:now}).catch(()=>{});
   // Also update DB (ignore error if column doesn't exist)
-  sb.from('profiller').update({son_aktif:now}).eq('id',S.user.id).then(()=>{}).catch(()=>{});
+  sb.from('profiller').update({son_gorulme:now}).eq('id',S.user.id).then(()=>{}).catch(()=>{});
 }
 
 function renderOnlineDots(){
