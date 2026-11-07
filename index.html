@@ -1950,7 +1950,7 @@ function applyI18n(){
     if(lbls[0])lbls[0].textContent=T('auth.lbl.user');
     if(lbls[1])lbls[1].textContent=T('auth.lbl.name');
     if(lbls[2])lbls[2].textContent=T('auth.lbl.pass');
-    if(lbls[3])lbls[3].textContent=T('auth.lbl.invite');
+    // lbls[3] = Cinsiyet label — set by static HTML, not i18n (invite code removed)
     const ru=document.getElementById('r-user');if(ru)ru.placeholder=T('auth.ph.user');
     const rn=document.getElementById('r-name');if(rn)rn.placeholder=T('auth.ph.name');
     const ry=document.getElementById('r-yas');if(ry)ry.placeholder=T('auth.ph.yas')||'Yaşınız (örn: 25)';
@@ -2808,7 +2808,7 @@ async function doRegister(){
     const {ulke:kayitUlke,ip_adresi:kayitIp}=await detectGeoInfo();
     // IP ban check
     if(kayitIp){const{data:banCheck}=await sb.from('yasakli_ipler').select('id').eq('ip_adresi',kayitIp).limit(1);if(banCheck?.length){err.textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
-    const {error:pe} = await sb.from('profiller').insert({
+    const _profInsert={
       id:S.user.id, kullanici_adi:username, goruntu_adi:goruntu,
       acik_anahtar:pubJwk, sarili_ozel_anahtar:sarili, sarlama_iv,
       ...(cinsiyet?{cinsiyet}:{}),
@@ -2816,8 +2816,18 @@ async function doRegister(){
       ulke:ulkeCC||kayitUlke||null,
       ...(kayitIp?{ip_adresi:kayitIp}:{}),
       son_giris:new Date().toISOString()
-    });
-    if(pe) throw pe;
+    };
+    let {error:pe} = await sb.from('profiller').insert(_profInsert);
+    if(pe){
+      const _pemsg=(pe.message||'').toLowerCase();
+      if(_pemsg.includes('schema cache')&&_pemsg.includes('cinsiyet')){
+        // PostgREST schema cache stale for cinsiyet — retry without it, update separately
+        const {cinsiyet:_c,..._insertNoCin}=_profInsert;
+        const {error:pe2}=await sb.from('profiller').insert(_insertNoCin);
+        if(pe2) throw pe2;
+        if(cinsiyet) await sb.from('profiller').update({cinsiyet}).eq('id',S.user.id).catch(()=>{});
+      } else { throw pe; }
+    }
     // Increment invite usage
     if(hasUser && inviteCode){
       const {data:inv2} = await sb.from('davetler').select('id,kullanim').eq('kod',inviteCode).single();
@@ -6625,8 +6635,17 @@ window.doRegister=async function(){
     const {sarili,iv:sarlama_iv}=await wrapPrivateKey(kp.privateKey,wrapKey);
     const {ulke:kayitUlke2,ip_adresi:kayitIp2}=await detectGeoInfo();
     if(kayitIp2){const{data:banCheck2}=await sb.from('yasakli_ipler').select('id').eq('ip_adresi',kayitIp2).limit(1);if(banCheck2?.length){document.getElementById('register-err').textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
-    const {error:pe}=await sb.from('profiller').insert({id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(cinsiyet2?{cinsiyet:cinsiyet2}:{}),...(yas2?{yas:yas2}:{}),ulke:ulkeCC2||kayitUlke2||null,...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()});
-    if(pe) throw pe;
+    const _profInsert2={id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(cinsiyet2?{cinsiyet:cinsiyet2}:{}),...(yas2?{yas:yas2}:{}),ulke:ulkeCC2||kayitUlke2||null,...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()};
+    let {error:pe}=await sb.from('profiller').insert(_profInsert2);
+    if(pe){
+      const _pemsg2=(pe.message||'').toLowerCase();
+      if(_pemsg2.includes('schema cache')&&_pemsg2.includes('cinsiyet')){
+        const {cinsiyet:_c2,..._insertNoCin2}=_profInsert2;
+        const {error:pe2}=await sb.from('profiller').insert(_insertNoCin2);
+        if(pe2) throw pe2;
+        if(cinsiyet2) await sb.from('profiller').update({cinsiyet:cinsiyet2}).eq('id',S.user.id).catch(()=>{});
+      } else { throw pe; }
+    }
     if(hasUser&&inviteCode){
       const {data:inv2}=await sb.from('davetler').select('id,kullanim').eq('kod',inviteCode).single();
       if(inv2) await sb.from('davetler').update({kullanim:inv2.kullanim+1}).eq('id',inv2.id);
