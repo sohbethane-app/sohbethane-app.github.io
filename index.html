@@ -3212,6 +3212,7 @@ async function startApp(){
   }, 100);
   // Translation system
   initTranslation();
+  try{ renderPokeStrip(false); }catch(e){}
   setTimeout(()=>{try{maybeAskNativeLang();}catch(e){}},600);
   // Global presence
   startGlobalPresence();
@@ -7616,7 +7617,6 @@ const POKE_STRIP_MAIN=['Cinsel','Flört','Tutku','Romantik','Oyuncu','Özlem','G
 let _pokeStripMore=false;
 function renderPokeStrip(isDM){
   const el=document.getElementById('poke-strip'); if(!el) return;
-  if(!isDM){ el.style.display='none'; return; }
   const byLabel={}; POKE_TOPICS.forEach(t=>byLabel[t.label]=t);
   const chip=function(t){ return '<button type="button" class="pks-chip" data-l="'+escHtml(t.label)+'">'+escHtml(t.emoji)+' '+escHtml(_tUI(t.label))+'</button>'; };
   const main=POKE_STRIP_MAIN.map(function(l){return byLabel[l];}).filter(Boolean);
@@ -7629,6 +7629,7 @@ document.addEventListener('click',function(e){
   const b=e.target.closest&&e.target.closest('#poke-strip button'); if(!b) return;
   if(b.dataset.more){ _pokeStripMore=!_pokeStripMore; renderPokeStrip(true); return; }
   const t=POKE_TOPICS.find(function(x){return x.label===b.dataset.l;}); if(!t) return;
+  if(!S.currentRoom||S.currentRoom.tur!=='dm'){ toast(_tUI('Dürtmek için önce birebir bir sohbet aç 💬'),'info'); return; }
   const panel=document.getElementById('poke-panel');
   if(panel&&!panel.classList.contains('open')) togglePokePanel();
   openPokeSub(t.emoji,t.label);
