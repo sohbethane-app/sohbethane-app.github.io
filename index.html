@@ -733,6 +733,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .room-item{margin:2px .5rem;border-radius:14px;padding:.7rem .8rem}
 .room-item:hover{background:rgba(255,255,255,.05)}
 
+#gender-overlay{position:fixed;inset:0;z-index:100000;background:rgba(6,3,20,.86);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem}
+#gender-overlay .gender-pick{grid-template-columns:1fr 1fr}
 #native-lang-overlay{position:fixed;inset:0;z-index:99999;background:rgba(6,3,20,.78);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:1rem}
 .nl-card{width:min(560px,96vw);max-height:92vh;overflow-y:auto;background:linear-gradient(160deg,#1b1040,#10082b);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:1.6rem 1.4rem;text-align:center;box-shadow:0 30px 90px rgba(0,0,0,.6)}
 .nl-ico{font-size:2.2rem}.nl-card h2{margin:.2rem 0 0;font-size:1.5rem;color:#fff}.nl-en{color:#c9bcff;font-size:.95rem;margin-bottom:.6rem}
@@ -1446,10 +1448,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       <div class="form-group" style="margin:0">
         <label style="font-size:.78rem">⚧ Cinsiyet</label>
         <select id="settings-cinsiyet" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem;color:var(--txt);font-size:.85rem">
-          <option value="">Belirtmek istemiyorum</option>
           <option value="E">👨 Erkek</option>
           <option value="K">👩 Kadın</option>
-          <option value="D">🌈 Diğer</option>
         </select>
       </div>
       <div class="form-group" style="margin:0">
@@ -3310,6 +3310,7 @@ async function startApp(){
   // Translation system
   initTranslation();
   setTimeout(function(){ try{ renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(e){} },900);
+  setTimeout(()=>{try{maybeAskGender();}catch(e){}},300);
   setTimeout(()=>{try{maybeAskNativeLang();}catch(e){}},600);
   // Global presence
   startGlobalPresence();
@@ -6493,7 +6494,8 @@ async function saveProfile(){
   // Remove empty keys
   Object.keys(ekstraProfil).forEach(k=>{ if(!ekstraProfil[k]) delete ekstraProfil[k]; });
   const updates={goruntu_adi:goruntu,hakkimda,sosyal,ekstra_profil:ekstraProfil};
-  if(cinsiyet) updates.cinsiyet=cinsiyet; else updates.cinsiyet=null;
+  if(cinsiyet!=='E'&&cinsiyet!=='K'){toast('Lütfen cinsiyetinizi seçin (Erkek / Kadın)','error');return;}
+  updates.cinsiyet=cinsiyet;
   if(yas&&yas>=18&&yas<120) updates.yas=yas; else updates.yas=null;
   const {error}=await sb.from('profiller').update(updates).eq('id',S.user.id);
   if(error){toast(error.message,'error');return;}
@@ -7674,6 +7676,23 @@ async function openUserTunel(){
 (function(){try{['l-pass','r-pass'].forEach(function(id){var i=document.getElementById(id);if(!i||i.parentNode.classList.contains('pw-wrap'))return;var w=document.createElement('div');w.className='pw-wrap';i.parentNode.insertBefore(w,i);w.appendChild(i);var b=document.createElement('button');b.type='button';b.className='pw-eye';b.textContent='👁';b.setAttribute('aria-label','Show password');b.onclick=function(){var h=i.type==='password';i.type=h?'text':'password';b.textContent=h?'🙈':'👁';};w.appendChild(b);});}catch(e){}})();
 
 // ── Ana dil sorusu (ilk giriş) ───────────────────────────────
+function maybeAskGender(){
+  if(!S.user||!S.profile) return;
+  if(S.profile.cinsiyet==='E'||S.profile.cinsiyet==='K') return;
+  if(document.getElementById('gender-overlay')) return;
+  const o=document.createElement('div'); o.id='gender-overlay'; o.className='gender-ov';
+  o.innerHTML='<div class="nl-card"><div class="nl-ico">⚧</div><h2>'+escHtml(_tUI('Cinsiyetinizi seçin'))+'</h2><p>'+escHtml(_tUI('Devam etmek için zorunludur. Sohbet önerileri karşı tarafa uygun hazırlanır.'))+'</p><div class="nl-grid gender-pick"><button type="button" data-g="E"><span>👨</span> '+escHtml(_tUI('Erkek'))+'</button><button type="button" data-g="K"><span>👩</span> '+escHtml(_tUI('Kadın'))+'</button></div></div>';
+  o.addEventListener('click',async function(e){
+    const b=e.target.closest('button[data-g]'); if(!b) return;
+    const g=b.dataset.g;
+    const {error}=await sb.from('profiller').update({cinsiyet:g}).eq('id',S.user.id);
+    if(error){ toast(error.message,'error'); return; }
+    S.profile.cinsiyet=g; if(S.profiles&&S.profiles[S.user.id]) S.profiles[S.user.id].cinsiyet=g;
+    o.remove(); toast('✓','success');
+    try{ renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(x){}
+  });
+  document.body.appendChild(o);
+}
 function maybeAskNativeLang(){
   if(!S.user||!S.profile||S.profile.dil_secildi) return;
   try{ if(localStorage.getItem('sh_native_'+S.user.id)) return; }catch(e){}
