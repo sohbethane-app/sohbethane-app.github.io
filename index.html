@@ -1081,7 +1081,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
         <button id="poke-quick-btn" onclick="togglePokeQuickPanel()" title="Konu ikonları">🎯</button>
         <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
-        <button id="poke-btn" onclick="togglePokePanel()" title="Özel konu için dürt">🫵 Dürt</button>
+        <button id="poke-btn" onclick="togglePokePanel()" title="Özel konu için dürt">👉 Dürt</button>
         <button id="send-btn" onclick="sendMessage()">Gönder ✦</button>
       </div>
       <div id="enter-send-row">
@@ -1109,7 +1109,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       <div class="poke-quick-grid" id="poke-quick-grid"></div>
     </div>
     <div id="poke-panel">
-      <div id="poke-panel-title">🫵 Özel Konu Talebi — Dürt</div>
+      <div id="poke-panel-title">👉 Özel Konu Talebi — Dürt</div>
       <div id="poke-panel-subtitle">Bir konu seç, karşı tarafa öneride bulun</div>
       <div class="poke-topics" id="poke-topics-list"></div>
       <div id="poke-emoji-sub">
@@ -1117,7 +1117,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <div class="poke-sub-emojis" id="poke-sub-emojis"></div>
         <div class="poke-send-row">
           <button class="poke-cancel-sub" onclick="closePokeSub()">↩ Geri</button>
-          <button class="poke-send-topic-btn" id="poke-send-final-btn" onclick="sendPokeConfirm()">🫵 Dürt Et</button>
+          <button class="poke-send-topic-btn" id="poke-send-final-btn" onclick="sendPokeConfirm()">👉 Dürt Et</button>
         </div>
       </div>
     </div>
@@ -3258,7 +3258,7 @@ async function startApp(){
   }, 100);
   // Translation system
   initTranslation();
-  try{ renderPokeStrip(false); }catch(e){}
+  setTimeout(function(){ try{ renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(e){} },900);
   setTimeout(()=>{try{maybeAskNativeLang();}catch(e){}},600);
   // Global presence
   startGlobalPresence();
@@ -3719,7 +3719,7 @@ async function renderRoomList(rooms){
     if(r._lastMsg){
       if(r._lastMsg.mesaj_tipi==='dosya'){const _mt=r._lastMsg.dosya_tipi||'';const _fn=r._lastMsg.dosya_adi||'';const _isImg=_mt.startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|svg|heic)$/i.test(_fn);preview=_isImg?'📷 Resim':'📎 Dosya';}
       else if(r._lastMsg.mesaj_tipi==='ses') preview='🎤 Ses mesajı';
-      else if(r._lastMsg.mesaj_tipi==='poke') preview='🫵 Konu talebi';
+      else if(r._lastMsg.mesaj_tipi==='poke') preview='👉 Konu talebi';
       else if(r._lastMsg.mesaj_tipi==='poke_yanit') preview=_tUI('✅ Talebi kabul etti');
       else if(r._lastMsg.silindi) preview='Bu mesaj silindi.';
       else preview='🔒 Şifreli mesaj';
@@ -4006,7 +4006,7 @@ function mimeFromFilename(name=''){
 }
 function renderPokeCard(m){
   const own=m.gonderen_id===S.user.id;
-  let emoji='🫵', label='Konu Talebi';
+  let emoji='👉', label='Konu Talebi';
   try{
     const d=JSON.parse(m._text||'{}');
     if(d.emoji) emoji=d.emoji;
@@ -4014,7 +4014,7 @@ function renderPokeCard(m){
   }catch(e){}
   const acceptBtn=(!own)?`<div class="poke-btn-row"><button class="poke-accept-btn" data-id="${m.id}" onclick="acceptPoke('${m.id}')">${escHtml(_tUI('Kabul Et ✓'))}</button><button class="poke-decline-btn" data-id="${m.id}" onclick="declinePoke('${m.id}')">${escHtml(_tUI('Şimdi değil 🙏'))}</button></div>`:`<span style="font-size:.72rem;color:var(--txt2)">${escHtml(_tUI('Yanıt bekleniyor…'))}</span>`;
   return `<div class="poke-card">
-    <div class="poke-card-header">🫵 ${escHtml(_tUI('DÜRT — Konu Talebi'))}</div>
+    <div class="poke-card-header">👉 ${escHtml(_tUI('DÜRT — Konu Talebi'))}</div>
     <div class="poke-card-topic">${escHtml(emoji)} ${escHtml(_tUI(label))}</div>
     <div class="poke-card-sub">${escHtml(_tUI(own?'Bu konuda sohbet açmak istiyorsun':'Bu konuda seninle sohbet etmek istiyor'))}</div>
     ${acceptBtn}
@@ -4343,12 +4343,12 @@ function subscribeMessages(roomId){
           const d=JSON.parse(enriched._text||'{}');
           if(d.topic){
             const parts=d.topic.trim().split(' ');
-            triggerPokeBackground(parts.slice(1).join(' '),parts[0]||'🫵');
+            triggerPokeBackground(parts.slice(1).join(' '),parts[0]||'👉');
           }
           // Also store active topic from topic field (emoji+label pattern)
           if(d.topic){
             const parts=d.topic.trim().split(' ');
-            const emoji=parts[0]||'🫵';
+            const emoji=parts[0]||'👉';
             const label=parts.slice(1).join(' ');
             if(label&&roomId){ _activePokeTopics[roomId]={label,emoji}; _saveActivePokeTopics(); updatePokeQuickBtn(); }
           }
@@ -6526,7 +6526,7 @@ const EMOJI_CATS = {
   '😊':['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😶‍🌫️','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','😵‍💫','🤯','🤠','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👾','🤖','🎃','🗿','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🫠','🫤','🫡','🫢','🫣','🫥','🥸'],
   '❤️':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','💘','💝','💖','💗','💓','💞','💕','💟','❣️','🫀','😘','😍','🥰','🤩','💋','👄','🫦','😻','💑','👫','👬','👭','💏','🫶','🤗','🌹','🌺','🌸','💐','🌷','🏩','💒','💍','🎀','💄','👙','🩱','🩲','🩳','👗','👘','👚','🩴','👠','👡','💅','🛁','🛏️','🕯️','🌙','✨','💫','🌃','🥂','🍾','🍷','🍓','🍒','🍑','🫐','🥭','🍌','🍫','🍬','🧁','🎂','🌻','🌼','🌺','🏵️','🎁','💝','🎀','🌶️','🥵','💦','🫧','🌊','🔥','⛓️','🪢','🦋','🕊️'],
   '🔥':['🔥','💯','✨','💫','⚡','💥','🌈','🎯','👑','💎','🏆','🥇','🌟','⭐','🌙','☀️','🎵','🎶','🚀','🛸','💰','💸','🤑','📱','💻','🎮','🕹️','🎲','🎁','🎀','🎊','🎉','🎈','🔔','💡','🔮','🪄','🧿','🌠','🌌','🪐','💠','🫧','🪩','🎭','🎪','🎨','🏅','🎖️','🌐','🔑','🗝️','📸','🎬','🔵','🟢','🟡','🟠','🔴','⬛','🌀','♾️'],
-  '👋':['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦵','🦶','🦷','👁️','👅','👂','🦻','🧠','🫀','🫁','🦴','🦿','🫂','👤','👥','🧍','🧎','🚶','🏃','💃','🕺','🧖','🧗','🏋️','🤸','🤼','🤺','🥊','🤾','🏇','🧘','🧜','🧚','🧛','🧟','🧞','🧝'],
+  '👋':['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👉','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦵','🦶','🦷','👁️','👅','👂','🦻','🧠','🫀','🫁','🦴','🦿','🫂','👤','👥','🧍','🧎','🚶','🏃','💃','🕺','🧖','🧗','🏋️','🤸','🤼','🤺','🥊','🤾','🏇','🧘','🧜','🧚','🧛','🧟','🧞','🧝'],
   '🌿':['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🦋','🐌','🐞','🐜','🦟','🦗','🪲','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🦈','🐳','🐬','🦭','🐟','🐠','🐡','🐊','🦧','🌸','🌺','🌻','🌹','🥀','🪷','🌷','🍀','🌴','🌲','🌳','🌵','🪴','🌱','🌿','☘️','🍁','🍂','🍃','🍄','🌾','🪸','🪨','🪵','🌍','🌎','🌏','🌞','🌝','🌛','🌚','🌕','🌙','⭐','🌟','💫','✨','🌠','☄️','⛅','🌦️','⛈️','🌈','❄️','💧','🌊','🌋','🗻','🏔️','🏕️','🏝️','🌅'],
   '🍔':['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🥑','🍆','🥦','🥕','🧄','🌽','🌶️','🥒','🥬','🥗','🧆','🥚','🍳','🥞','🧇','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🫔','🥪','🥙','🌮','🌯','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍥','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🫘','🧂','🍯','🧃','🥤','🧋','☕','🍵','🫖','🧉','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🍾','🧊','🫗','🫙'],
   '🎉':['🎉','🎊','🎈','🎁','🎀','🎗️','🎟️','🎫','🏆','🥇','🥈','🥉','🏅','🎖️','🎪','🤹','🎭','🎨','🖼️','🎰','🎲','🧩','🃏','🀄','🎯','🎳','🎮','🕹️','🎸','🎺','🎻','🥁','🪘','🎤','🎧','🎼','🎵','🎶','🎷','🪗','🪕','🎹','🎬','📽️','🎞️','📺','📻','📸','🎠','🎡','🎢','🏋️','🤸','🏊','🚴','⛷️','🏄','🧗','🏇','🥋','🤺','🏹','🛹','🛷','🛼','🎿','⛸️','🪂','🤿','🏕️','🎣','🤽','🏌️','🏓','🏸','🥌'],
@@ -6783,7 +6783,7 @@ function triggerPokeBackground(topicLabel,topicEmoji){
   // Show animated toast
   const t=document.getElementById('poke-bg-toast');
   if(t){
-    t.innerHTML=`<span style="font-size:2.2rem;line-height:1">${topicEmoji||'🫵'}</span><span style="font-size:.88rem">${topicLabel} konusu kabul edildi! 🎉</span>`;
+    t.innerHTML=`<span style="font-size:2.2rem;line-height:1">${topicEmoji||'👉'}</span><span style="font-size:.88rem">${topicLabel} konusu kabul edildi! 🎉</span>`;
     t.classList.add('active');
     setTimeout(()=>{
       t.style.animation='pokeToastOut .4s ease forwards';
@@ -6870,7 +6870,7 @@ async function sendPoke(emoji,label){
       enc_alici:ea,iv_alici:ia,enc_gonderen:es,iv_gonderen:is,eph_anahtar:ephPubJwk
     });
     if(error) throw error;
-    toast('Dürt gönderildi 🫵','success');
+    toast('Dürt gönderildi 👉','success');
   }catch(e){
     toast((e?.message||'Dürt gönderilemedi'),'error');
   }
@@ -7668,7 +7668,7 @@ function renderPokeStrip(isDM){
   const chip=function(t){ return '<button type="button" class="pks-chip" data-l="'+escHtml(t.label)+'">'+escHtml(t.emoji)+' '+escHtml(_tUI(t.label))+'</button>'; };
   const main=POKE_STRIP_MAIN.map(function(l){return byLabel[l];}).filter(Boolean);
   const rest=POKE_TOPICS.filter(function(t){return POKE_STRIP_MAIN.indexOf(t.label)<0;});
-  el.innerHTML='<div class="pks-row"><span class="pks-title">🫵 '+escHtml(_tUI('Dürt'))+'</span><div class="pks-chips">'+main.map(chip).join('')+'</div><button type="button" class="pks-chip pks-more" data-more="1">'+escHtml(_tUI('Diğer'))+' '+(_pokeStripMore?'▴':'▾')+'</button></div>'
+  el.innerHTML='<div class="pks-row"><span class="pks-title">👉 '+escHtml(_tUI('Dürt'))+'</span><div class="pks-chips">'+main.map(chip).join('')+'</div><button type="button" class="pks-chip pks-more" data-more="1">'+escHtml(_tUI('Diğer'))+' '+(_pokeStripMore?'▴':'▾')+'</button></div>'
     +(_pokeStripMore?'<div class="pks-rest">'+rest.map(chip).join('')+'</div>':'');
   el.style.display='block';
 }
@@ -7703,6 +7703,8 @@ async function renderProfileSide(room){
     +'<div class="ps-actions"><button type="button" onclick="qaOpenTunel()">📰<span>'+escHtml(_tUI('Tünel'))+'</span></button><button type="button" onclick="qaOpenIkiliTunel()">🔗<span>'+escHtml(_tUI('İkili'))+'</span></button><button type="button" onclick="toggleBlock()">🚫<span>'+escHtml(_tUI('Engelle'))+'</span></button></div>';
   el.style.display='';
 }
+
+window.addEventListener('load',function(){ setTimeout(function(){ try{ if(document.getElementById('app-screen')&&getComputedStyle(document.getElementById('app-screen')).display!=='none') renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(e){} },1200); });
 </script>
 </body>
 </html>
