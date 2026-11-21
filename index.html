@@ -2906,14 +2906,17 @@ const hex  = buf => Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padSta
 const TE   = new TextEncoder();
 const TD   = new TextDecoder();
 function randId(){ return crypto.randomUUID(); }
+const _AGO={tr:['az önce','{n}d önce','{n} saat önce','{n} gün önce'],en:['just now','{n}m ago','{n}h ago','{n}d ago'],de:['gerade eben','vor {n} Min.','vor {n} Std.','vor {n} Tg.'],fr:["à l'instant",'il y a {n} min','il y a {n} h','il y a {n} j'],es:['ahora','hace {n} min','hace {n} h','hace {n} d'],pt:['agora','há {n} min','há {n} h','há {n} d'],ru:['только что','{n} мин назад','{n} ч назад','{n} дн назад'],ar:['الآن','منذ {n} د','منذ {n} س','منذ {n} ي'],zh:['刚刚','{n}分钟前','{n}小时前','{n}天前'],ja:['たった今','{n}分前','{n}時間前','{n}日前'],ko:['방금','{n}분 전','{n}시간 전','{n}일 전'],id:['baru saja','{n} mnt lalu','{n} jam lalu','{n} hari lalu']};
+function _agoWord(k,n){ const a=_AGO[(typeof _UI_LANG!=='undefined'&&_AGO[_UI_LANG])?_UI_LANG:'tr']; const i={now:0,min:1,hour:2,day:3}[k]; return a[i].replace('{n}',n); }
 function fmtTime(ts){
   if(!ts) return '';
   const d = new Date(ts), now = new Date();
   const diff = now - d;
-  if(diff < 60000) return 'az önce';
-  if(diff < 3600000) return Math.floor(diff/60000)+'d önce';
-  if(d.toDateString()===now.toDateString()) return d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
-  return d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit'});
+  const _lc=(typeof _UI_LANG!=='undefined'?_UI_LANG:'tr');
+  if(diff < 60000) return _agoWord('now');
+  if(diff < 3600000) return _agoWord('min',Math.floor(diff/60000));
+  if(d.toDateString()===now.toDateString()) return d.toLocaleTimeString(_lc==='tr'?'tr-TR':_lc,{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString(_lc==='tr'?'tr-TR':_lc,{day:'2-digit',month:'2-digit'});
 }
 function fmtSize(n){ if(!n) return ''; if(n<1024) return n+'B'; if(n<1048576) return (n/1024).toFixed(1)+'KB'; return (n/1048576).toFixed(1)+'MB'; }
 function toast(msg, type='info'){
@@ -6089,11 +6092,11 @@ function fmtAgo(isoDate){
   if(!isoDate) return null;
   const diff=Date.now()-new Date(isoDate).getTime();
   const s=Math.floor(diff/1000);
-  if(s<60) return 'Az önce';
-  const m=Math.floor(s/60); if(m<60) return `${m} dakika önce`;
-  const h=Math.floor(m/60); if(h<24) return `${h} saat önce`;
-  const d=Math.floor(h/24); if(d<7) return `${d} gün önce`;
-  return new Date(isoDate).toLocaleDateString('tr-TR');
+  if(s<60) return _agoWord('now');
+  const m=Math.floor(s/60); if(m<60) return _agoWord('min',m);
+  const h=Math.floor(m/60); if(h<24) return _agoWord('hour',h);
+  const d=Math.floor(h/24); if(d<7) return _agoWord('day',d);
+  return new Date(isoDate).toLocaleDateString(_UI_LANG==='tr'?'tr-TR':_UI_LANG);
 }
 
 function startGlobalPresence(){
@@ -7993,6 +7996,8 @@ function _psOpenAll(){
 }
 
 (function(){ const _r=_psRefreshStarters; window._psRefreshStarters=_psRefreshStarters=function(x){ const v=_r.apply(this,arguments); try{_psThemeProfile();}catch(e){} try{_psNormalBtn();}catch(e){} return v; }; })();
+
+(function(){ const _a=applyI18n; applyI18n=function(){ const v=_a.apply(this,arguments); try{ const pb=document.getElementById('poke-btn'); if(pb){ pb.textContent='👉 '+_tUI('Dürt'); pb.title=_tUI('Özel konu için dürt'); } }catch(e){} try{ if(typeof renderPokeStrip==='function'&&S&&S.currentRoom) renderPokeStrip(S.currentRoom.tur==='dm'); }catch(e){} return v; }; })();
 </script>
 </body>
 </html>
