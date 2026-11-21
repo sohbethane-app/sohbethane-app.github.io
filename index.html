@@ -929,6 +929,9 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .ps-fx i{position:absolute;bottom:-12%;font-style:normal;font-size:1.3rem;opacity:.9;animation:psUp 5.5s linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
 @keyframes psUp{0%{transform:translateY(0) scale(.7);opacity:0}15%{opacity:.95}100%{transform:translateY(-330px) scale(1.2);opacity:0}}
 .ps-badge{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(0,0,0,.55);backdrop-filter:blur(6px);color:#fff;border-radius:999px;padding:.28rem .8rem;font-size:.78rem;font-weight:800;white-space:nowrap;border:1px solid rgba(255,255,255,.25)}
+#chat-area{position:relative}
+#normal-back{position:absolute;top:122px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(20,10,35,.82);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:.4rem 1rem;font-size:.82rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+#normal-back:hover{background:rgba(194,32,143,.7)}
 </style>
 </head>
 <body>
@@ -7784,6 +7787,16 @@ window.addEventListener('load',function(){ setTimeout(function(){ try{ if(docume
 // ── Konuya göre kalıcı sohbet teması ────────────────────────
 function _tpHex(label){ const c=(POKE_TOPIC_COLORS[label]||{}).card||''; const m=c.match(/#[0-9a-fA-F]{6}/g)||['#7a2bd6','#d0238f']; return [m[0],m[1]||m[0]]; }
 function _tpRgba(hex,a){ const n=parseInt(hex.slice(1),16); return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+a+')'; }
+const PS_FX_TOPICS=['Cinsel','Flört','Tutku','Romantik'];
+function _psNormalBtn(){
+  const rid=S.currentRoom&&S.currentRoom.id; const act=rid&&_activePokeTopics[rid];
+  const label=_psPreviewTopic||(act&&act.label)||null;
+  let b=document.getElementById('normal-back');
+  if(!label||PS_FX_TOPICS.indexOf(label)<0){ if(b) b.remove(); return; }
+  const ca=document.getElementById('chat-area'); if(!ca) return;
+  if(!b){ b=document.createElement('button'); b.id='normal-back'; b.type='button'; b.onclick=function(){ _psPreviewTopic=null; clearRoomTopic(); try{_psRefreshStarters(true);}catch(e){} toast('💬 '+_tUI('Normal sohbete dönüldü'),'success'); }; ca.appendChild(b); }
+  b.textContent='↩ '+_tUI('Normal sohbete dön');
+}
 function applyRoomTopicTheme(roomId){
   const ca=document.getElementById('chat-area'); if(!ca) return;
   let fx=document.getElementById('topic-fx');
@@ -7791,7 +7804,7 @@ function applyRoomTopicTheme(roomId){
   const label=act&&act.label;
   if(!label||!POKE_TOPIC_COLORS[label]){
     ca.removeAttribute('data-topic'); ca.style.removeProperty('--tp-bg'); ca.style.removeProperty('--tp-a'); ca.style.removeProperty('--tp-b');
-    if(fx) fx.innerHTML=''; const chip=document.getElementById('topic-chip'); if(chip) chip.style.display='none'; _psRefreshStarters(); return;
+    if(fx) fx.innerHTML=''; const chip=document.getElementById('topic-chip'); if(chip) chip.style.display='none'; _psRefreshStarters(); _psNormalBtn(); return;
   }
   const [a,b]=_tpHex(label), base=POKE_TOPIC_COLORS[label].bg;
   ca.dataset.topic=label;
@@ -7800,13 +7813,13 @@ function applyRoomTopicTheme(roomId){
   if(!fx){ fx=document.createElement('div'); fx.id='topic-fx'; fx.setAttribute('aria-hidden','true'); ca.insertBefore(fx,ca.firstChild); }
   let icons=(POKE_TOPIC_EMOJIS[label]||['✨']).slice(0,7);
   const _vg=S.profile&&S.profile.cinsiyet; if(_vg==='K') icons=icons.concat(['🌹','💐','🦋']); else if(_vg==='E') icons=icons.concat(['🥂','🍷','🎩']);
-  let h=''; for(let i=0;i<16;i++){ const e=icons[i%icons.length]; h+='<span style="left:'+(Math.random()*96).toFixed(1)+'%;font-size:'+(14+Math.random()*22).toFixed(0)+'px;animation-duration:'+(11+Math.random()*14).toFixed(1)+'s;animation-delay:-'+(Math.random()*20).toFixed(1)+'s">'+escHtml(e)+'</span>'; }
+  let h=''; if(PS_FX_TOPICS.indexOf(label)>=0) for(let i=0;i<16;i++){ const e=icons[i%icons.length]; h+='<span style="left:'+(Math.random()*96).toFixed(1)+'%;font-size:'+(14+Math.random()*22).toFixed(0)+'px;animation-duration:'+(11+Math.random()*14).toFixed(1)+'s;animation-delay:-'+(Math.random()*20).toFixed(1)+'s">'+escHtml(e)+'</span>'; }
   fx.innerHTML=h;
   let chip=document.getElementById('topic-chip');
   if(!chip){ chip=document.createElement('button'); chip.id='topic-chip'; chip.type='button'; chip.title='✕'; chip.onclick=function(){ clearRoomTopic(); }; const hd=document.getElementById('chat-header'); if(hd) hd.insertBefore(chip,hd.children[3]||null); }
-  chip.textContent=(act.emoji||'')+' '+_tUI(label)+'  ✕'; chip.style.display='inline-block'; _psRefreshStarters();
+  chip.textContent=(act.emoji||'')+' '+_tUI(label)+'  ✕'; chip.style.display='inline-block'; _psRefreshStarters(); _psNormalBtn();
 }
-function clearRoomTopic(){ const rid=S.currentRoom&&S.currentRoom.id; if(rid){ delete _activePokeTopics[rid]; _saveActivePokeTopics(); } applyRoomTopicTheme(rid); try{updatePokeQuickBtn();}catch(e){} }
+function clearRoomTopic(){ _psPreviewTopic=null; const rid=S.currentRoom&&S.currentRoom.id; if(rid){ delete _activePokeTopics[rid]; _saveActivePokeTopics(); } applyRoomTopicTheme(rid); try{updatePokeQuickBtn();}catch(e){} }
 
 // ── Profil: cümle geçişleri, anahtar kelime teması, cinsiyete göre sohbet başlatıcılar ──
 const PS_KEYWORDS=[
@@ -7895,7 +7908,7 @@ function _psThemeProfile(){
   el.style.setProperty('--pp-bg','radial-gradient(260px 220px at 50% 0%,'+_tpRgba(a,.45)+',transparent 70%),radial-gradient(240px 240px at 50% 100%,'+_tpRgba(b,.35)+',transparent 70%),'+base);
   const em=(POKE_TOPIC_EMOJIS[label]||['✨']).slice(0,5);
   if(!fx){ fx=document.createElement('div'); fx.className='ps-fx'; ph.appendChild(fx); }
-  fx.innerHTML=em.map(function(e,i){return '<i style="left:'+(8+i*19)+'%;animation-delay:-'+(i*1.7).toFixed(1)+'s">'+escHtml(e)+'</i>';}).join('');
+  fx.innerHTML=PS_FX_TOPICS.indexOf(label)<0?'':em.map(function(e,i){return '<i style="left:'+(8+i*19)+'%;animation-delay:-'+(i*1.7).toFixed(1)+'s">'+escHtml(e)+'</i>';}).join('');
   if(!bd){ bd=document.createElement('div'); bd.className='ps-badge'; ph.appendChild(bd); }
   const byL={}; POKE_TOPICS.forEach(function(t){byL[t.label]=t.emoji;});
   bd.textContent=(byL[label]||'✨')+' '+_tUI(label);
@@ -7938,7 +7951,7 @@ function _psOpenAll(){
   }
 }
 
-(function(){ const _r=_psRefreshStarters; window._psRefreshStarters=_psRefreshStarters=function(x){ const v=_r.apply(this,arguments); try{_psThemeProfile();}catch(e){} return v; }; })();
+(function(){ const _r=_psRefreshStarters; window._psRefreshStarters=_psRefreshStarters=function(x){ const v=_r.apply(this,arguments); try{_psThemeProfile();}catch(e){} try{_psNormalBtn();}catch(e){} return v; }; })();
 </script>
 </body>
 </html>
