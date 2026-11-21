@@ -572,6 +572,25 @@ a{color:var(--acc2);text-decoration:none}
 .divider::before{left:0}.divider::after{right:0}
 .empty-state{text-align:center;color:var(--txt2);margin:auto;padding:2rem}
 .empty-state .icon{font-size:3rem;display:block;margin-bottom:.5rem}
+.wp{max-width:640px;width:100%;margin:auto;padding:1.4rem 1.2rem 2rem;text-align:center}
+.wp h2{font-size:1.55rem;margin:.1rem 0 .3rem;background:linear-gradient(90deg,var(--acc2),#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wp-sub{color:var(--txt2);font-size:.92rem;margin-bottom:.8rem;line-height:1.5}
+.wp-badge{display:inline-block;padding:.22rem .75rem;border:1px solid var(--acc);border-radius:999px;font-size:.74rem;color:var(--acc2);margin-bottom:.9rem}
+.wp-chips{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin-bottom:1.1rem}
+.wp-chip{background:var(--bg3);border:1px solid var(--brd);border-radius:999px;padding:.3rem .7rem;font-size:.78rem}
+.wp-h{font-size:.74rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin:1.1rem 0 .5rem}
+.wp-card{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--brd);border-radius:14px;padding:1rem;cursor:pointer;transition:border-color .15s}
+.wp-card:hover{border-color:var(--acc2)}
+.wp-q{font-size:1.05rem;line-height:1.55}
+.wp-hint{font-size:.72rem;color:var(--txt2);margin-top:.4rem}
+.wp-pills{display:flex;flex-direction:column;gap:.4rem}
+.wp-pill{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:.55rem .8rem;font-size:.85rem;cursor:pointer;text-align:start;transition:border-color .15s,background .15s}
+.wp-pill:hover{border-color:var(--acc2);background:var(--bg2)}
+.wp-guide{display:grid;gap:.4rem;text-align:start;font-size:.84rem}
+.wp-guide div{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:.5rem .7rem}
+.wp-actions{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:1.2rem}
+.wp-btn{background:var(--acc);color:#fff;border:none;border-radius:10px;padding:.5rem .9rem;font-size:.85rem;cursor:pointer}
+.wp-btn:hover{background:var(--acc2)}
 hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .flex{display:flex}.gap{gap:.5rem}.items-center{align-items:center}.justify-between{justify-content:space-between}
 .mt{margin-top:.8rem}.mb{margin-bottom:.8rem}
@@ -723,6 +742,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   <!-- Sağ panel -->
   <div class="auth-right">
     <div class="auth-box">
+      <div data-no-i18n style="display:flex;justify-content:flex-end;margin:-.3rem 0 .5rem"><select class="ui-lang-select" aria-label="Language" onchange="_setUiLang(this.value,true)" style="background:var(--bg3);border:1px solid var(--brd);border-radius:8px;padding:.25rem .5rem;color:var(--txt);font-size:.78rem;cursor:pointer"></select></div>
       <div class="auth-logo">
         <h1>💬 SohbetHane</h1>
         <p>Uçtan uca şifreli mesajlaşma</p>
@@ -1178,6 +1198,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     </div>
     <div class="form-group"><label>Görünen isim</label><input id="settings-goruntu-adi" placeholder="Adınız Soyadınız"></div>
     <div class="form-group"><label>Hakkımda</label><textarea id="settings-hakkimda" placeholder="Kendinizi kısaca tanıtın..." rows="2" style="width:100%;resize:vertical;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.6rem;color:var(--txt);font-size:.88rem;font-family:inherit"></textarea></div>
+    <div style="font-size:.8rem;font-weight:600;color:var(--txt2);margin:.6rem 0 .3rem">🌐 Arayüz dili</div>
+    <select class="ui-lang-select" data-no-i18n aria-label="Language" onchange="_setUiLang(this.value,true)" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.5rem;color:var(--txt);font-size:.85rem;margin-bottom:.4rem"></select>
     <div style="font-size:.8rem;font-weight:600;color:var(--txt2);margin:.6rem 0 .3rem">👤 Kişisel bilgiler <span style="font-weight:400">(isteğe bağlı)</span></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
       <div class="form-group" style="margin:0">
@@ -1422,7 +1444,10 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 // ============================================================
 // I18N — Dil paketi ve çeviri sistemi
 // ============================================================
-let _UI_LANG=(()=>{const l=(navigator.language||'en').toLowerCase().split('-')[0];return['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'].includes(l)?l:'en';})();
+const UI_LANGS=[['tr','Türkçe'],['en','English'],['id','Bahasa Indonesia'],['ar','العربية'],['de','Deutsch'],['fr','Français'],['es','Español'],['ru','Русский'],['zh','中文'],['ja','日本語'],['ko','한국어'],['pt','Português']];
+const UI_LANG_CODES=UI_LANGS.map(x=>x[0]);
+function _uiLangStored(){try{const v=localStorage.getItem('sh_ui_lang');return UI_LANG_CODES.includes(v)?v:null;}catch(e){return null;}}
+let _UI_LANG=(()=>{const st=_uiLangStored();if(st)return st;const list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'];for(const x of list){const l=String(x).toLowerCase().split('-')[0];if(UI_LANG_CODES.includes(l))return l;}return 'en';})();
 const I18N={
 tr:{
   'auth.tagline1':'Mesajlarınız yalnızca size aittir.',
@@ -1944,6 +1969,127 @@ uk:{'feat.enc.title':'Наскрізно зашифрований чат','feat.
 pl:{'feat.enc.title':'Chat zaszyfrowany end-to-end','feat.enc.desc':'Serwer nie może przeczytać ani jednej litery — widzą tylko ty i druga osoba.','feat.translate':'🌐 Automatyczne tłumaczenie','feat.groups':'👥 Grupy & prywatne DM','feat.archive':'🕵️ Tajne archiwum','feat.global':'🌍 125 krajów'},
 };for(const l in _FW){if(I18N[l])Object.assign(I18N[l],_FW[l]);}}
 function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]||k;}
+// ============================================================
+// ARAYÜZ DİLİ — sözlük (i18n/<dil>.json), uygulama, seçici
+// Sözlükler sitenin kendi dosyalarında durur; üçüncü taraf çeviri servisi kullanılmaz.
+// Anahtar: Türkçe kaynak metin. Kullanıcı içeriği (mesaj, gönderi, isim) asla çevrilmez.
+// ============================================================
+const _I18N_VER='1';
+const _UI_DICT={};
+let _I18N_CAPTURED=false;const _I18N_TEXT=[],_I18N_ATTR=[];
+const _I18N_ATTRS=['placeholder','title','aria-label','alt'];
+function _i18nNorm(s){return String(s).replace(/\s+/g,' ').trim();}
+function _i18nCapture(){
+  if(_I18N_CAPTURED)return;_I18N_CAPTURED=true;
+  const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode(n){
+    const p=n.parentElement;
+    if(!p||!n.nodeValue.trim()||p.closest('script,style,textarea,[data-no-i18n]'))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;}});
+  let n;while((n=w.nextNode()))_I18N_TEXT.push({n,src:n.nodeValue,key:_i18nNorm(n.nodeValue),last:null});
+  document.querySelectorAll('[placeholder],[title],[aria-label],[alt]').forEach(el=>{
+    if(el.closest('[data-no-i18n]'))return;
+    _I18N_ATTRS.forEach(a=>{const v=el.getAttribute(a);if(v&&v.trim())_I18N_ATTR.push({el,a,src:v,key:_i18nNorm(v),last:null});});
+  });
+}
+async function _i18nLoadDict(lang){
+  if(lang==='tr'||_UI_DICT[lang])return;
+  try{const r=await fetch('i18n/'+lang+'.json?v='+_I18N_VER);_UI_DICT[lang]=r.ok?await r.json():{};}
+  catch(e){_UI_DICT[lang]={};}
+}
+function _i18nApply(){
+  _i18nCapture();
+  const lang=_UI_LANG,d=lang==='tr'?null:(_UI_DICT[lang]||{});
+  let dn=null;if(d){try{dn=new Intl.DisplayNames([lang],{type:'region'});}catch(e){}}
+  for(const it of _I18N_TEXT){
+    const cur=it.n.nodeValue;
+    if(cur!==it.src&&cur!==it.last)continue; // kod bu metni sonradan değiştirdiyse dokunma
+    let out=it.src;
+    if(d){
+      const p=it.n.parentElement;let tr=null;
+      if(dn&&p&&p.tagName==='OPTION'&&p.parentElement&&p.parentElement.id==='r-ulke'&&/^[A-Z]{2}$/.test(p.value)){try{tr=dn.of(p.value);}catch(e){}}
+      else tr=d[it.key];
+      if(tr)out=it.src.match(/^\s*/)[0]+tr+it.src.match(/\s*$/)[0];
+    }
+    if(cur!==out)it.n.nodeValue=out;
+    it.last=out;
+  }
+  for(const it of _I18N_ATTR){
+    const cur=it.el.getAttribute(it.a);
+    if(cur!==it.src&&cur!==it.last)continue;
+    const tr=d?d[it.key]:null;const out=tr||it.src;
+    if(cur!==out)it.el.setAttribute(it.a,out);
+    it.last=out;
+  }
+}
+function _tUI(s){if(_UI_LANG==='tr'||typeof s!=='string')return s;const d=_UI_DICT[_UI_LANG];return(d&&d[_i18nNorm(s)])||s;}
+(function(){const c=window.confirm.bind(window),a=window.alert.bind(window),p=window.prompt.bind(window);
+  window.confirm=m=>c(_tUI(m));window.alert=m=>a(_tUI(m));window.prompt=(m,v)=>p(_tUI(m),v);})();
+function _syncLangSelects(){document.querySelectorAll('.ui-lang-select').forEach(s=>{s.value=_UI_LANG;});}
+function _initLangSelects(){
+  document.querySelectorAll('.ui-lang-select').forEach(sel=>{
+    sel.innerHTML=UI_LANGS.map(([c,n])=>'<option value="'+c+'">'+n+'</option>').join('');
+    sel.value=_UI_LANG;
+  });
+}
+async function _setUiLang(lang,manual){
+  if(!UI_LANG_CODES.includes(lang))return;
+  if(manual){try{localStorage.setItem('sh_ui_lang',lang);}catch(e){}}
+  _UI_LANG=lang;
+  await _i18nLoadDict(lang);
+  _i18nApply();applyI18n();_syncLangSelects();
+  try{renderWelcomePanel();}catch(e){}
+}
+// Otomatik (konum/profil) dil değişimi — kullanıcı dili elle seçtiyse dokunma
+function _autoUiLang(lang){
+  if(_uiLangStored()||!UI_LANG_CODES.includes(lang)||lang===_UI_LANG)return;
+  _setUiLang(lang,false);
+}
+// ============================================================
+// KARŞILAMA PANELİ — sohbet seçilmediğinde ana alanda gösterilir
+// ============================================================
+const _WP_QUESTIONS=['Bugün seni en çok ne gülümsetti?','Hayatında yaşadığın en güzel sürpriz neydi?','Bir hafta sonu için hayalindeki plan nedir?','Son zamanlarda seni en çok etkileyen şarkı ya da film neydi?','Mutlu olmak için vazgeçemediğin küçük bir alışkanlığın var mı?','İlk buluşmada seni en çok ne etkiler?','Bir akşam yemeği için dünyanın neresine gitmek isterdin?','Bir arkadaşlıkta senin için en önemli değer nedir?','Sana en iyi gelen şey nedir: sessizlik, müzik ya da sohbet?','Kendini nasıl şımartırsın?','Hiç unutamadığın bir seyahat anın var mı?','Bir süper güç seçebilseydin hangisi olurdu?','Sabah insanı mısın, gece kuşu mu?','Son zamanlarda öğrendiğin yeni bir şey var mı?'];
+function _wpEsc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function _wpCopy(i){
+  const q=_tUI(_WP_QUESTIONS[i]);
+  try{navigator.clipboard.writeText(q).then(()=>toast('Kopyalandı','success'),()=>{});}catch(e){}
+}
+function renderWelcomePanel(){
+  const m=document.getElementById('messages'),app=document.getElementById('app-screen');
+  if(!m||!app||app.style.display==='none'||S.currentRoom)return;
+  const name=S.profile?.goruntu_adi||S.profile?.kullanici_adi||'';
+  const n=_WP_QUESTIONS.length,qi=Math.floor(Date.now()/86400000)%n;
+  const pills=[1,2,3,4,5,6].map(o=>(qi+o)%n);
+  const t=_tUI;
+  m.innerHTML=`<div class="wp">
+    <h2>${_wpEsc(t('Hoş geldin'))}${name?', '+_wpEsc(name):''} 👋</h2>
+    <p class="wp-sub">${_wpEsc(t('Burası yetişkinlere özel, sakin ve güvenli bir sohbet alanı.'))}</p>
+    <span class="wp-badge">${_wpEsc(t('+18 · Yetişkinlere özel alan'))}</span>
+    <div class="wp-chips">
+      <span class="wp-chip">${_wpEsc(t('🔐 Uçtan uca şifreli'))}</span>
+      <span class="wp-chip">${_wpEsc(t('🙈 Sunucu mesajlarını okuyamaz'))}</span>
+      <span class="wp-chip">${_wpEsc(t('🤝 Rıza ve saygı esastır'))}</span>
+    </div>
+    <div class="wp-h">${_wpEsc(t('✨ Günün sorusu'))}</div>
+    <div class="wp-card" onclick="_wpCopy(${qi})"><div class="wp-q">${_wpEsc(t(_WP_QUESTIONS[qi]))}</div><div class="wp-hint">${_wpEsc(t('Dokun, kopyala ve bir sohbette paylaş'))}</div></div>
+    <div class="wp-h">${_wpEsc(t('💬 Sohbeti başlatacak sorular'))}</div>
+    <div class="wp-pills">${pills.map(i=>`<div class="wp-pill" onclick="_wpCopy(${i})">${_wpEsc(t(_WP_QUESTIONS[i]))}</div>`).join('')}</div>
+    <div class="wp-h">${_wpEsc(t('🧭 Kısa rehber'))}</div>
+    <div class="wp-guide">
+      <div>${_wpEsc(t('💬 Sohbetler: birebir, uçtan uca şifreli konuşmalar'))}</div>
+      <div>${_wpEsc(t('👥 Gruplar: ortak ilgi alanlarına göre odalar'))}</div>
+      <div>${_wpEsc(t('📰 Zaman Tüneli: anılarını ve düşüncelerini paylaş'))}</div>
+      <div>${_wpEsc(t('🔗 İkili Tünel: yalnızca ikinizin göreceği özel alan'))}</div>
+      <div>${_wpEsc(t('🔞 +18 içerik: yetişkin içerikleri işaretle, istemediğini gizle'))}</div>
+      <div>${_wpEsc(t('🛡️ Rahatsız olursan: engelle veya şikayet et'))}</div>
+    </div>
+    <div class="wp-actions">
+      <button class="wp-btn" onclick="switchSideTab(document.getElementById('stab-duvar'),'duvar')">${_wpEsc(t('📰 Zaman Tüneli'))}</button>
+      <button class="wp-btn" onclick="switchSideTab(document.getElementById('stab-grup'),'grup')">${_wpEsc(t('👥 Gruplar'))}</button>
+      <button class="wp-btn" onclick="openModal('new-room-modal')">${_wpEsc(t('➕ Yeni oda'))}</button>
+      <button class="wp-btn" onclick="openModal('settings-modal')">${_wpEsc(t('⚙️ Ayarlar'))}</button>
+    </div>
+  </div>`;
+}
 function applyI18n(){
   // RTL for Arabic and Persian
   if(_UI_LANG==='ar'||_UI_LANG==='fa'){document.documentElement.dir='rtl';document.documentElement.lang=_UI_LANG;}
@@ -2024,7 +2170,7 @@ function onRegCountryChange(cc){
   const SL=['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'];
   const raw=_CC_LANG[cc]||'en';
   const lang=SL.includes(raw)?raw:'en';
-  if(lang!==_UI_LANG){_UI_LANG=lang;applyI18n();}
+  _autoUiLang(lang);
 }
 function selectGender(v){
   document.getElementById('r-cinsiyet').value=v;
@@ -2345,10 +2491,8 @@ async function initGeoShowcase(){
       renderShowcase(country_code);
       // Eğer tarayıcı dili desteklenen listede değilse (en gibi) ve ülke dili bilinyorsa geçiş yap
       const detectedLang=_CC_LANG[country_code];
-      const browserRaw=(navigator.language||'').toLowerCase().split('-')[0];
-      const supported=['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'];
-      if(detectedLang&&!supported.includes(browserRaw)&&_UI_LANG==='en'){
-        _UI_LANG=detectedLang;applyI18n();renderShowcase(country_code);
+      if(detectedLang&&UI_LANG_CODES.includes(detectedLang)&&_UI_LANG==='en'&&!_uiLangStored()){
+        _autoUiLang(detectedLang);renderShowcase(country_code);
       }
     }
   }catch(_){}
@@ -2417,7 +2561,7 @@ function initNameBubbles(){
   }
   spawn();
 }
-document.addEventListener('DOMContentLoaded',()=>{applyI18n();initGeoShowcase();});
+document.addEventListener('DOMContentLoaded',()=>{_i18nCapture();_initLangSelects();applyI18n();_i18nLoadDict(_UI_LANG).then(()=>{_i18nApply();applyI18n();});initGeoShowcase();});
 // ============================================================
 // CONFIG — Supabase projenizin bilgilerini buraya girin
 // ============================================================
@@ -2522,7 +2666,7 @@ function toast(msg, type='info'){
   const c = document.getElementById('toast-container');
   const t = document.createElement('div');
   t.className = 'toast '+type;
-  t.textContent = msg;
+  t.textContent = _tUI(msg);
   c.appendChild(t);
   setTimeout(()=>t.remove(), 3500);
 }
@@ -2892,7 +3036,7 @@ async function doLogout(){
 // ============================================================
 async function startApp(){
   // Set UI language from user's saved country code (for incoming message auto-translation)
-  if(S.profile?.ulke){const SL=['tr','en','id','ar','de','fr','es','ru','zh','ja','ko','pt'];const cl=_CC_LANG[S.profile.ulke];if(cl&&SL.includes(cl)){_UI_LANG=cl;}}
+  if(S.profile?.ulke){const cl=_CC_LANG[S.profile.ulke];if(cl)_autoUiLang(cl);}
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='flex';
   // My avatar
@@ -2905,6 +3049,7 @@ async function startApp(){
   await loadRooms();
   // Realtime
   subscribeRooms();
+  renderWelcomePanel();
   // Set initial favicon & tab title
   updateTabBadge();
   // Timed message cleanup
@@ -4553,7 +4698,7 @@ async function deleteRoom(roomId){
   S.rooms=S.rooms.filter(r=>r.id!==roomId);
   if(S.currentRoom?.id===roomId){
     S.currentRoom=null;
-    document.getElementById('messages').innerHTML='';
+    document.getElementById('messages').innerHTML='';renderWelcomePanel();
     const hdr=document.getElementById('chat-header-name');
     if(hdr) hdr.textContent='SohbetHane';
   }
@@ -4618,7 +4763,7 @@ async function hideRoomToKasa(roomId){
   localStorage.setItem('kasa_rooms',JSON.stringify(ids));
   if(S.currentRoom?.id===roomId){
     S.currentRoom=null;
-    document.getElementById('messages').innerHTML='';
+    document.getElementById('messages').innerHTML='';renderWelcomePanel();
     const h=document.getElementById('chat-header-name');
     if(h) h.textContent='SohbetHane';
   }
