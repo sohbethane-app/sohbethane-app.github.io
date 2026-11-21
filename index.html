@@ -786,6 +786,15 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .wp-btn:hover{background:linear-gradient(135deg,#ff6f80,#ffab78)}
 .wp-badge{background:rgba(255,90,110,.14);border-color:rgba(255,90,110,.5);color:#ffc2c9}
 #sidebar-header{background:linear-gradient(90deg,rgba(255,90,110,.16),rgba(255,154,98,.07))}
+#poke-strip{padding:.45rem .8rem .5rem;border-top:1px solid var(--brd);background:linear-gradient(90deg,rgba(255,90,110,.08),rgba(255,154,98,.04))}
+.pks-row{display:flex;align-items:center;gap:.6rem}
+.pks-title{font-size:.78rem;font-weight:800;color:#ffb3bd;white-space:nowrap}
+.pks-chips{display:flex;gap:.4rem;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;padding:2px}
+.pks-chips::-webkit-scrollbar{display:none}
+.pks-chip{flex:0 0 auto;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--txt);border-radius:999px;padding:.32rem .75rem;font-size:.8rem;cursor:pointer;transition:transform .12s,border-color .12s,background .12s;white-space:nowrap}
+.pks-chip:hover{transform:translateY(-2px);border-color:#ff5a6e;background:rgba(255,90,110,.18)}
+.pks-more{font-weight:700;color:#ffb3bd}
+.pks-rest{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;max-height:96px;overflow-y:auto}
 </style>
 </head>
 <body>
@@ -950,6 +959,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div id="typing-indicator"></div>
     <div id="messages"><div class="empty-state"><span class="icon">💬</span><p>Bir sohbet seçin</p></div></div>
     <div id="poke-bg-toast"></div>
+    <div id="poke-strip" style="display:none"></div>
 <!-- First-login theme picker overlay -->
 <div id="theme-first-overlay" style="display:none">
   <div id="theme-first-box">
@@ -3739,6 +3749,7 @@ async function openRoom(room){
   document.getElementById('qa-ikili-btn').style.display = isDM ? '' : 'none';
   const pokeBtn=document.getElementById('poke-btn');
   if(pokeBtn) pokeBtn.style.display = isDM ? '' : 'none';
+  try{ renderPokeStrip(isDM); }catch(e){}
   const pokePnl=document.getElementById('poke-panel');
   if(pokePnl) pokePnl.classList.remove('open');
   // Room info button visibility
@@ -6865,7 +6876,7 @@ async function acceptPoke(msgId){
 document.addEventListener('click',e=>{
   const panel=document.getElementById('poke-panel');
   if(!panel||!panel.classList.contains('open')) return;
-  if(!panel.contains(e.target)&&e.target.id!=='poke-btn'&&!e.target.closest('#poke-btn')) panel.classList.remove('open');
+  if(!panel.contains(e.target)&&e.target.id!=='poke-btn'&&!e.target.closest('#poke-btn')&&!e.target.closest('#poke-strip')) panel.classList.remove('open');
 });
 /* ===== END DÜRT ===== */
 function insertEmoji(e){
@@ -7574,6 +7585,29 @@ async function chooseNativeLang(code){
   try{ await sb.from('profiller').update({dil:code,dil_secildi:true}).eq('id',S.user.id); }catch(e){}
   toast(langInfo(code).flag+' '+langInfo(code).name,'success');
 }
+
+// ── Sürekli görünen dürt şeridi (yalnızca DM) ────────────────
+const POKE_STRIP_MAIN=['Cinsel','Flört','Tutku','Romantik','Oyuncu','Özlem','Gece Sohbeti'];
+let _pokeStripMore=false;
+function renderPokeStrip(isDM){
+  const el=document.getElementById('poke-strip'); if(!el) return;
+  if(!isDM){ el.style.display='none'; return; }
+  const byLabel={}; POKE_TOPICS.forEach(t=>byLabel[t.label]=t);
+  const chip=function(t){ return '<button type="button" class="pks-chip" data-l="'+escHtml(t.label)+'">'+escHtml(t.emoji)+' '+escHtml(_tUI(t.label))+'</button>'; };
+  const main=POKE_STRIP_MAIN.map(function(l){return byLabel[l];}).filter(Boolean);
+  const rest=POKE_TOPICS.filter(function(t){return POKE_STRIP_MAIN.indexOf(t.label)<0;});
+  el.innerHTML='<div class="pks-row"><span class="pks-title">🫵 '+escHtml(_tUI('Dürt'))+'</span><div class="pks-chips">'+main.map(chip).join('')+'</div><button type="button" class="pks-chip pks-more" data-more="1">'+escHtml(_tUI('Diğer'))+' '+(_pokeStripMore?'▴':'▾')+'</button></div>'
+    +(_pokeStripMore?'<div class="pks-rest">'+rest.map(chip).join('')+'</div>':'');
+  el.style.display='block';
+}
+document.addEventListener('click',function(e){
+  const b=e.target.closest&&e.target.closest('#poke-strip button'); if(!b) return;
+  if(b.dataset.more){ _pokeStripMore=!_pokeStripMore; renderPokeStrip(true); return; }
+  const t=POKE_TOPICS.find(function(x){return x.label===b.dataset.l;}); if(!t) return;
+  const panel=document.getElementById('poke-panel');
+  if(panel&&!panel.classList.contains('open')) togglePokePanel();
+  openPokeSub(t.emoji,t.label);
+});
 </script>
 </body>
 </html>
