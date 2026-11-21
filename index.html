@@ -749,7 +749,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <div class="form-group"><label>Görünen isim</label><input id="r-name" type="text" placeholder="Adınız Soyadınız"></div>
         <div class="form-group"><label>Şifre</label><input id="r-pass" type="password" placeholder="••••••••" autocomplete="new-password"></div>
         <div class="form-group"><label>Cinsiyet <span style="font-size:.75rem;color:var(--acc)">*</span></label><div class="gender-cards"><div class="gender-card" id="gc-erkek" onclick="selectGender('E')"><span class="gender-card-emoji">👨</span><span>Erkek</span></div><div class="gender-card" id="gc-kadin" onclick="selectGender('K')"><span class="gender-card-emoji">👩</span><span>Kadın</span></div></div><input type="hidden" id="r-cinsiyet" value=""></div>
-        <div class="form-group"><label>Yaş <span style="font-size:.75rem;color:var(--acc)">*</span></label><input id="r-yas" type="number" min="13" max="100" placeholder="25"></div>
+        <div class="form-group"><label>Yaş <span style="font-size:.75rem;color:var(--acc)">*</span></label><input id="r-yas" type="number" min="18" max="100" placeholder="25"></div>
         <button class="btn btn-primary" style="width:100%;padding:.9rem;font-size:1rem;font-weight:700;border-radius:12px;margin-top:.6rem" onclick="doRegister()">✦ Kayıt Ol</button>
         <p class="auth-err" id="register-err"></p>
       </div>
@@ -2790,7 +2790,7 @@ async function doRegister(){
   if(password.length<8){err.textContent='Şifre en az 8 karakter olmalı.';return;}
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
   if(!cinsiyet){err.textContent='Lütfen cinsiyetinizi seçin.';return;}
-  if(!yasStr||isNaN(yas)||yas<13||yas>100){err.textContent='Geçerli bir yaş girin (13-100).';return;}
+  if(!yasStr||isNaN(yas)||yas<18||yas>100){err.textContent='Bu uygulamayı kullanmak için 18 yaşında veya daha büyük olmalısınız.';return;}
   if(!ulkeCC){err.textContent='Lütfen ülkenizi seçin.';return;}
   try{
     // Check if first user
@@ -6767,7 +6767,7 @@ window.doRegister=async function(){
   if(password.length<8){err.textContent='Şifre en az 8 karakter olmalı.';return;}
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
   if(!cinsiyet2){err.textContent='Lütfen cinsiyetinizi seçin.';return;}
-  if(!yasStr2||isNaN(yas2)||yas2<13||yas2>100){err.textContent='Geçerli bir yaş girin (13-100).';return;}
+  if(!yasStr2||isNaN(yas2)||yas2<18||yas2>100){err.textContent='Bu uygulamayı kullanmak için 18 yaşında veya daha büyük olmalısınız.';return;}
   if(!ulkeCC2){err.textContent='Lütfen ülkenizi seçin.';return;}
   try{
     const {data:hasUser}=await sb.rpc('kullanici_var_mi');
