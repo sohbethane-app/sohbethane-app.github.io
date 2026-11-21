@@ -795,6 +795,30 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .pks-chip:hover{transform:translateY(-2px);border-color:#ff5a6e;background:rgba(255,90,110,.18)}
 .pks-more{font-weight:700;color:#ffb3bd}
 .pks-rest{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;max-height:96px;overflow-y:auto}
+
+/* ===== v4: fotoğraflı hero ===== */
+#auth-screen{position:relative;background:#0c0a10}
+#auth-screen::before{content:'';position:absolute;inset:-40px;background:url(img/bg.jpg) center/cover;filter:blur(26px) brightness(.5) saturate(1.2);z-index:0}
+.auth-wrap{position:relative;z-index:2}
+.auth-blob{display:none!important}
+.auth-left{background:linear-gradient(90deg,rgba(12,6,20,.92) 0%,rgba(12,6,20,.55) 55%,rgba(12,6,20,.15) 100%),linear-gradient(0deg,rgba(12,6,20,.9) 0%,transparent 45%),url(img/hero.jpg) center/cover!important;justify-content:space-between;min-height:620px}
+.auth-left::before,.auth-left::after{display:none}
+.auth-hero-line{text-shadow:0 2px 24px rgba(0,0,0,.6)}
+.auth-feats{display:grid;grid-template-columns:repeat(2,max-content);gap:.5rem}
+.auth-feat-pill{background:rgba(12,6,20,.55)!important;backdrop-filter:blur(10px);font-size:.8rem;padding:.5rem .9rem}
+.auth-stats{background:rgba(12,6,20,.6);backdrop-filter:blur(12px)}
+.hero-18{display:inline-flex;align-self:flex-start;align-items:center;gap:.4rem;background:rgba(255,90,110,.2);border:1px solid rgba(255,90,110,.55);color:#ffd0d6;border-radius:999px;padding:.3rem .8rem;font-size:.76rem;font-weight:700;backdrop-filter:blur(8px)}
+
+.auth-left{min-height:680px;background-position:center top!important;gap:.7rem!important;justify-content:flex-start!important}
+.auth-left .auth-brand{display:contents}
+.auth-brand-row{order:0}
+.hero-18{order:2;margin-top:auto}
+.auth-hero-line{order:3;font-size:1.6rem!important;margin:0}
+.auth-feats{order:4}
+.auth-stats{order:5}
+.auth-feat-pill.fp4{display:none}
+.auth-feats{grid-template-columns:repeat(3,max-content)}
+.auth-left{background:linear-gradient(0deg,rgba(12,6,20,.97) 0%,rgba(12,6,20,.9) 34%,rgba(12,6,20,0) 56%),linear-gradient(180deg,rgba(12,6,20,.55) 0%,transparent 22%),url(img/hero.jpg) center top/cover no-repeat!important}
 </style>
 </head>
 <body>
@@ -834,7 +858,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     </div>
     <!-- Portrait cluster hero — 7 overlapping circles -->
     <div id="portrait-cluster-hero" class="portrait-cluster"></div>
-    <div class="hero-collage" aria-hidden="true"><figure class="hc-tile hc-a"><img src="img/hero-1.jpg" alt="" loading="lazy" onerror="this.remove()"><svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="gff6b6bc2185b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6b6b"/><stop offset="1" stop-color="#c2185b"/></linearGradient></defs><rect width="100" height="130" fill="url(#gff6b6bc2185b)"/><circle cx="78" cy="26" r="22" fill="#fff" opacity=".10"/><circle cx="18" cy="104" r="30" fill="#fff" opacity=".07"/><text x="50" y="20" font-size="9" text-anchor="middle" opacity=".9">💞</text><circle cx="40" cy="62" r="14" fill="#fff0e8" opacity="0.95"/><path d="M20.0 80 q20.0 -27.500000000000004 40 0 v50 h-40 z" fill="#fff0e8" opacity="0.95"/><circle cx="64" cy="70" r="13" fill="#2a0f24" opacity="0.92"/><path d="M45.0 87 q19.0 -27.500000000000004 38 0 v50 h-38 z" fill="#2a0f24" opacity="0.92"/></svg><span class="hc-chip hc-c1">💬 ✨</span></figure><figure class="hc-tile hc-b"><img src="img/hero-2.jpg" alt="" loading="lazy" onerror="this.remove()"><svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="gffb36bff5f6d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb36b"/><stop offset="1" stop-color="#ff5f6d"/></linearGradient></defs><rect width="100" height="130" fill="url(#gffb36bff5f6d)"/><circle cx="78" cy="26" r="22" fill="#fff" opacity=".10"/><circle cx="18" cy="104" r="30" fill="#fff" opacity=".07"/><circle cx="50" cy="58" r="15" fill="#fff4ea" opacity="0.95"/><path d="M28.0 77 q22.0 -27.500000000000004 44 0 v50 h-44 z" fill="#fff4ea" opacity="0.95"/></svg></figure><figure class="hc-tile hc-c"><img src="img/hero-3.jpg" alt="" loading="lazy" onerror="this.remove()"><svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="g5b6bffff6fa5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b6bff"/><stop offset="1" stop-color="#ff6fa5"/></linearGradient></defs><rect width="100" height="130" fill="url(#g5b6bffff6fa5)"/><circle cx="78" cy="26" r="22" fill="#fff" opacity=".10"/><circle cx="18" cy="104" r="30" fill="#fff" opacity=".07"/><circle cx="50" cy="58" r="15" fill="#1b1030" opacity="0.9"/><path d="M28.0 77 q22.0 -27.500000000000004 44 0 v50 h-44 z" fill="#1b1030" opacity="0.9"/></svg><span class="hc-chip hc-c2">❤️ 2.4K</span></figure><figure class="hc-tile hc-d"><img src="img/hero-4.jpg" alt="" loading="lazy" onerror="this.remove()"><svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="gff8a5b8a2be2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a5b"/><stop offset="1" stop-color="#8a2be2"/></linearGradient></defs><rect width="100" height="130" fill="url(#gff8a5b8a2be2)"/><circle cx="78" cy="26" r="22" fill="#fff" opacity=".10"/><circle cx="18" cy="104" r="30" fill="#fff" opacity=".07"/><text x="50" y="20" font-size="9" text-anchor="middle" opacity=".9">🌹</text><circle cx="36" cy="68" r="13" fill="#2a0f24" opacity="0.92"/><path d="M18.0 85 q18.0 -25.3 36 0 v46 h-36 z" fill="#2a0f24" opacity="0.92"/><circle cx="62" cy="60" r="14" fill="#fff0e8" opacity="0.95"/><path d="M42.0 78 q20.0 -28.6 40 0 v52 h-40 z" fill="#fff0e8" opacity="0.95"/></svg><span class="hc-chip hc-c3">🌹</span></figure></div>
+    <span class="hero-18">🔞 <span>+18 · Yetişkinlere özel alan</span></span>
+    
     <!-- Online user count pill -->
     <div class="auth-online-pill"><span class="aop-dot"></span><span id="stat-num-active-pill">1.2K kişi şu an aktif</span></div>
     <!-- Feature pills -->
