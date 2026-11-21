@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net https://translate.googleapis.com https://ipapi.co;">
 <meta name="referrer" content="no-referrer">
-<title>SohbetHane</title>
+<title>SohbetHane – Uçtan Uca Şifreli +18 Sohbet</title>
+<meta name="description" content="SohbetHane: uçtan uca şifreli, +18 yetişkin sohbet uygulaması. Dünyanın her yerinden insanlarla özel sohbet, otomatik çeviri, konuya göre sohbet ortamı. Ücretsiz."><meta name="robots" content="index,follow,max-image-preview:large"><meta name="rating" content="adult">
+<link rel="canonical" href="https://sohbethane-app.github.io/"><link rel="alternate" hreflang="tr" href="https://sohbethane-app.github.io/"><link rel="alternate" hreflang="id" href="https://sohbethane-app.github.io/id/"><link rel="alternate" hreflang="en" href="https://sohbethane-app.github.io/en/"><link rel="alternate" hreflang="x-default" href="https://sohbethane-app.github.io/en/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="SohbetHane"><meta property="og:title" content="SohbetHane – Uçtan Uca Şifreli +18 Sohbet"><meta property="og:description" content="SohbetHane: uçtan uca şifreli, +18 yetişkin sohbet uygulaması. Dünyanın her yerinden insanlarla özel sohbet, otomatik çeviri, konuya göre sohbet ortamı. Ücretsiz."><meta property="og:url" content="https://sohbethane-app.github.io/"><meta property="og:image" content="https://sohbethane-app.github.io/img/hero.jpg"><meta property="og:locale" content="tr_TR"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -1695,7 +1698,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 const UI_LANGS=[['tr','Türkçe'],['en','English'],['id','Bahasa Indonesia'],['ar','العربية'],['de','Deutsch'],['fr','Français'],['es','Español'],['ru','Русский'],['zh','中文'],['ja','日本語'],['ko','한국어'],['pt','Português']];
 const UI_LANG_CODES=UI_LANGS.map(x=>x[0]);
 function _uiLangStored(){try{const v=localStorage.getItem('sh_ui_lang');return UI_LANG_CODES.includes(v)?v:null;}catch(e){return null;}}
-let _UI_LANG=(()=>{const st=_uiLangStored();if(st)return st;const list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'];for(const x of list){const l=String(x).toLowerCase().split('-')[0];if(UI_LANG_CODES.includes(l))return l;}return 'en';})();
+let _UI_LANG=(()=>{try{const q=new URLSearchParams(location.search).get('lang');if(q&&UI_LANG_CODES.includes(q)){try{localStorage.setItem('sh_ui_lang',q);}catch(e){}return q;}}catch(e){}const st=_uiLangStored();if(st)return st;const list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'];for(const x of list){const l=String(x).toLowerCase().split('-')[0];if(UI_LANG_CODES.includes(l))return l;}return 'en';})();
 const I18N={
 tr:{
   'auth.tagline1':'Mesajlarınız yalnızca size aittir.',
