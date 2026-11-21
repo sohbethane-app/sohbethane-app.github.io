@@ -1087,6 +1087,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
       </div>
       <button class="icon-btn" title="Arama" onclick="openSearch()">🔍</button>
       <button class="icon-btn" id="room-info-btn" title="Oda Bilgisi" onclick="openRoomInfo()" style="display:none">ℹ️</button>
+      <button class="icon-btn" id="clear-chat-btn" title="Sohbet geçmişini sil" onclick="openClearMenu(event)">🧹</button>
       <button class="icon-btn" title="Duvar kağıdı" onclick="openModal('wallpaper-modal')">🎨</button>
     </div>
     <div id="search-bar" style="display:none;padding:.5rem 1rem;border-bottom:1px solid var(--brd);background:var(--bg2)">
@@ -3927,8 +3928,17 @@ async function openRoom(room){
 // ============================================================
 async function loadMessages(roomId){
   document.getElementById('messages').innerHTML='<div class="empty-state"><span style="font-size:1.5rem">⏳</span></div>';
-  const {data:msgs} = await sb.from('mesajlar').select('*').eq('oda_id',roomId).eq('silindi',false).order('olusturma_tarihi',{ascending:true}).limit(100);
+  let {data:msgs} = await sb.from('mesajlar').select('*').eq('oda_id',roomId).eq('silindi',false).order('olusturma_tarihi',{ascending:true}).limit(100);
   if(!msgs){ document.getElementById('messages').innerHTML=''; return; }
+  try{
+    const [mm,hh]=await Promise.all([
+      sb.from('oda_uyeleri').select('temizlendi_tarihi').eq('oda_id',roomId).eq('kullanici_id',S.user.id).maybeSingle(),
+      sb.from('mesaj_gizli').select('mesaj_id').eq('kullanici_id',S.user.id).in('mesaj_id',msgs.map(function(x){return x.id;}).slice(0,200))
+    ]);
+    const ct=mm&&mm.data&&mm.data.temizlendi_tarihi?new Date(mm.data.temizlendi_tarihi):null;
+    const hid=new Set(((hh&&hh.data)||[]).map(function(x){return x.mesaj_id;}));
+    if(ct||hid.size) msgs=msgs.filter(function(x){ return !hid.has(x.id)&&(!ct||new Date(x.olusturma_tarihi)>ct); });
+  }catch(e){}
   // For DM rooms, fetch recipient's last seen time to mark seen ticks
   let recipientLastSeen = null;
   if(S.currentRoom?.tur==='dm' && S.currentRoom?._otherUserId){
@@ -4598,8 +4608,9 @@ function showMsgMenu(e,m){
   }
   if(own||isAdmin){
     if(own&&!m.silindi) items.push({label:'✏️ Düzenle',fn:()=>editMessage(m)});
-    if(!m.silindi) items.push({label:'🗑 Sil',fn:()=>deleteMessage(m)});
+    if(!m.silindi) items.push({label:own?'↩️ Geri çek (herkesten sil)':'🗑 Herkesten sil',fn:()=>deleteMessage(m)});
   }
+  if(!m.silindi) items.push({label:'🗑 Benden sil',fn:()=>hideMessageForMe(m)});
   if(isAdmin&&m.bek_onay){
     items.push({label:'✅ Onayla',fn:()=>approveMessage(m)});
     items.push({label:'❌ Reddet',fn:()=>rejectMessage(m)});
@@ -4671,8 +4682,34 @@ async function editMessage(m){
   } catch(e){ toast(e.message,'error'); }
 }
 async function deleteMessage(m){
-  if(!confirm('Mesajı sil?')) return;
-  await sb.from('mesajlar').update({silindi:true}).eq('id',m.id);
+  if(!confirm('Mesaj herkesten silinsin mi?')) return;
+  const {error}=await sb.from('mesajlar').update({silindi:true}).eq('id',m.id);
+  if(error){ toast(error.message,'error'); return; }
+  // Yönetici ile konuşuluyorsa sunucu mesajı yönetici için korur; bizim ekranımızdan kaldır
+  try{ const {data}=await sb.from('mesajlar').select('silindi').eq('id',m.id).maybeSingle(); if(data&&!data.silindi){ const w=document.querySelector('[data-msg-id="'+m.id+'"]'); if(w) w.remove(); } }catch(e){}
+}
+async function hideMessageForMe(m){
+  const {error}=await sb.from('mesaj_gizli').insert({mesaj_id:m.id});
+  if(error&&!/duplicate/i.test(error.message)){ toast(error.message,'error'); return; }
+  const w=document.querySelector('[data-msg-id="'+m.id+'"]'); if(w) w.remove();
+  S.messages=(S.messages||[]).filter(function(x){return x.id!==m.id;});
+}
+function openClearMenu(e){
+  if(!S.currentRoom){ return; }
+  const r=e.currentTarget.getBoundingClientRect();
+  showContextMenu(r.left,r.bottom+4,[
+    {label:'🧹 Geçmişi benden temizle',fn:()=>clearChatHistory(false)},
+    {label:'🧹 Geçmişi herkesten temizle',fn:()=>clearChatHistory(true)}
+  ]);
+}
+async function clearChatHistory(everyone){
+  const room=S.currentRoom; if(!room) return;
+  if(!confirm(everyone?'Bu sohbetteki TÜM mesajlar herkesten silinsin mi?\nKişi ve sohbet kalır. Geri alınamaz.':'Bu sohbetteki tüm mesajlar sizden temizlensin mi?\nKarşı tarafta kalır.')) return;
+  const {data,error}=await sb.rpc('sohbet_gecmisi_temizle',{p_oda:room.id,p_herkes:!!everyone});
+  if(error){ toast('Temizlenemedi: '+error.message,'error'); return; }
+  S.messages=[]; renderMessages([]);
+  try{ room._lastMsg=null; renderRoomList(S.rooms); }catch(e){}
+  toast(data==='herkes_temizlendi'?'Tüm geçmiş herkesten silindi ✓':'Geçmiş sizden temizlendi ✓','success');
 }
 async function approveMessage(m){
   await sb.from('mesajlar').update({bek_onay:false}).eq('id',m.id);
