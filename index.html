@@ -1974,7 +1974,7 @@ function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]|
 // Sözlükler sitenin kendi dosyalarında durur; üçüncü taraf çeviri servisi kullanılmaz.
 // Anahtar: Türkçe kaynak metin. Kullanıcı içeriği (mesaj, gönderi, isim) asla çevrilmez.
 // ============================================================
-const _I18N_VER='1';
+const _I18N_VER='2';
 const _UI_DICT={};
 let _I18N_CAPTURED=false;const _I18N_TEXT=[],_I18N_ATTR=[];
 const _I18N_ATTRS=['placeholder','title','aria-label','alt'];
@@ -3515,8 +3515,11 @@ async function renderRoomList(rooms){
       }
       if(r._otherUserId) el.dataset.otherUser=r._otherUserId;
       const op = r._otherUserId ? await getProfile(r._otherUserId) : null;
-      name = op?.goruntu_adi||op?.kullanici_adi||'DM';
+      // Karşı tarafın hesabı silinmişse (üyelik kalmadıysa): boş odayı gizle, doluysa "Silinmiş hesap" göster
+      if(!r._otherUserId && !r._lastMsg && !fromKasa) return null;
+      name = op?.goruntu_adi||op?.kullanici_adi||(r._otherUserId?'DM':_tUI('Silinmiş hesap'));
       if(op?.avatar_url) avatarHtml=`<img src="${op.avatar_url}" alt="">`;
+      else if(!r._otherUserId) avatarHtml='<span style="font-size:1.1rem">👤</span>';
       else avatarHtml=`<span style="color:#fff;font-size:.85rem">${avatarInitials(name)}</span>`;
     } else {
       const icon = r.tur==='arsiv'?'📁':r.tur==='duvar'?'📰':'👥';
@@ -3540,7 +3543,7 @@ async function renderRoomList(rooms){
         ${r.tur==='dm'?'<span class="online-dot" style="display:none"></span>':''}
       </div>
       <div class="room-info">
-        <div class="room-name">${name}${badge}</div>
+        <div class="room-name">${escHtml(name)}${badge}</div>
         <div class="room-preview">${preview}</div>
       </div>
       <div class="room-meta">
@@ -3551,7 +3554,7 @@ async function renderRoomList(rooms){
     return el;
   };
   // Normal odaları ekle
-  for(const r of filtered) list.appendChild(await buildRoomEl(r));
+  for(const r of filtered){const _el=await buildRoomEl(r);if(_el)list.appendChild(_el);}
   // KASA BÖLÜMÜ — kasa odaları varsa daima göster
   if(validKasaIds.length > 0){
     const kasaDivider = document.createElement('div');
@@ -3571,7 +3574,7 @@ async function renderRoomList(rooms){
     // Kasa açıksa gizli odaları göster
     if(S.kasaUnlocked){
       const kasaRooms = (rooms||[]).filter(r=>kasaIds.includes(r.id));
-      for(const r of kasaRooms) list.appendChild(await buildRoomEl(r,'kasa-room-item',true));
+      for(const r of kasaRooms){const _el=await buildRoomEl(r,'kasa-room-item',true);if(_el)list.appendChild(_el);}
     }
   }
   // Render online dots after list is built
@@ -3598,7 +3601,7 @@ async function openRoom(room){
   let sub='';
   if(room.tur==='dm'){
     const op = room._otherUserId ? await getProfile(room._otherUserId) : null;
-    name=op?.goruntu_adi||op?.kullanici_adi||'DM';
+    name=op?.goruntu_adi||op?.kullanici_adi||(room._otherUserId?'DM':_tUI('Silinmiş hesap'));
     sub='Birebir sohbet';
     document.getElementById('chat-header-avatar').innerHTML = op?.avatar_url?`<img src="${op.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : `<span style="color:#fff">${avatarInitials(name)}</span>`;
     document.getElementById('chat-header-avatar').style.background=userColor(op?.id||'');
@@ -3746,7 +3749,7 @@ function appendMessageEl(m, container, lastDate, setDate){
   let replyHtml='';
   if(m.yanit_id){
     const quoted=S.messages.find(q=>q.id===m.yanit_id);
-    if(quoted) replyHtml=`<div class="msg-reply" onclick="scrollToMsg('${m.yanit_id}')"><b>${S.profiles[quoted.gonderen_id]?.kullanici_adi||'?'}</b>: ${(quoted._text||'').slice(0,60)}</div>`;
+    if(quoted) replyHtml=`<div class="msg-reply" onclick="scrollToMsg('${m.yanit_id}')"><b>${escHtml(S.profiles[quoted.gonderen_id]?.kullanici_adi||'?')}</b>: ${escHtml((quoted._text||'').slice(0,60))}</div>`;
   }
   // Content
   let content='';
@@ -3857,7 +3860,7 @@ function renderFileContent(m){
     return `<div>
       <div class="msg-img-wrap${isBlurred?' blurred':''}" id="imgwrap_${m.id}">
         <div class="msg-img-loading" id="imgload_${m.id}">🔓 Şifre çözülüyor…</div>
-        <img class="msg-img-preview" id="imgel_${m.id}" data-msg-id="${m.id}" onclick="openImgLightbox('${m.id}')" alt="${name}" style="display:none">
+        <img class="msg-img-preview" id="imgel_${m.id}" data-msg-id="${m.id}" onclick="openImgLightbox('${m.id}')" alt="${escHtml(name)}" style="display:none">
         <div class="msg-img-blur-overlay" onclick="unblurMsgImg('${m.id}')">
           <span style="font-size:1.6rem">🔒</span>
           <span style="font-size:.76rem;color:#fff;font-weight:600">Görmek için tıkla</span>
@@ -3865,7 +3868,7 @@ function renderFileContent(m){
       </div>
       ${captionHtml}
       <div style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem">
-        <span style="font-size:.72rem;color:var(--txt2);flex:1">${name} · ${size}</span>
+        <span style="font-size:.72rem;color:var(--txt2);flex:1">${escHtml(name)} · ${size}</span>
         <button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button>
       </div>
     </div>`;
@@ -3878,7 +3881,7 @@ function renderFileContent(m){
       <div class="msg-video-loading" id="vidload_${m.id}">⏳ Video şifresi çözülüyor...</div>
       ${captionHtml}
       <div style="display:flex;align-items:center;gap:.5rem;margin-top:.2rem">
-        <span style="font-size:.72rem;color:var(--txt2);flex:1">${name} · ${size}</span>
+        <span style="font-size:.72rem;color:var(--txt2);flex:1">${escHtml(name)} · ${size}</span>
         <button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button>
       </div>
     </div>`;
@@ -3887,7 +3890,7 @@ function renderFileContent(m){
   const ext=(name.split('.').pop()||'').toLowerCase();
   const docIcons={pdf:'📕',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',ppt:'📋',pptx:'📋',zip:'🗜️',rar:'🗜️',txt:'📃'};
   const icon=docIcons[ext]||'📄';
-  return `<div class="msg-file"><span class="msg-file-icon">${icon}</span><div class="msg-file-info"><div class="msg-file-name">${name}</div><div class="msg-file-size">${size}</div></div><button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button></div>`;
+  return `<div class="msg-file"><span class="msg-file-icon">${icon}</span><div class="msg-file-info"><div class="msg-file-name">${escHtml(name)}</div><div class="msg-file-size">${size}</div></div><button class="msg-file-dl" onclick="downloadFile('${m.id}')">⬇️ İndir</button></div>`;
 }
 function renderVoiceContent(m){
   return `<div class="msg-file" onclick="playVoice('${m.id}')"><span class="msg-file-icon">🎤</span><div class="msg-file-info"><div class="msg-file-name">Ses mesajı</div><audio id="audio_${m.id}" style="display:none"></audio></div></div>`;
@@ -5065,7 +5068,7 @@ async function searchUsers(q){
       const el=document.createElement('div');
       el.className='user-item';
       const avHtml=p.avatar_url?`<img src="${p.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span>`;
-      el.innerHTML=`<div class="user-avatar-sm" style="background:${userColor(p.id)};flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();viewProfile('${p.id}')">${avHtml}</div><div style="min-width:0"><div style="font-size:.9rem;font-weight:600">${escHtml(p.goruntu_adi||p.kullanici_adi)}</div><div style="font-size:.78rem;color:var(--txt2)">@${p.kullanici_adi}</div></div>`;
+      el.innerHTML=`<div class="user-avatar-sm" style="background:${userColor(p.id)};flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();viewProfile('${p.id}')">${avHtml}</div><div style="min-width:0"><div style="font-size:.9rem;font-weight:600">${escHtml(p.goruntu_adi||p.kullanici_adi)}</div><div style="font-size:.78rem;color:var(--txt2)">@${escHtml(p.kullanici_adi)}</div></div>`;
       el.onclick=()=>{document.getElementById('user-search').value='';res.style.display='none';list.style.display='';startDM(p.id);};
       res.appendChild(el);
     });
@@ -5084,7 +5087,7 @@ async function _searchMembersToAdd(q,resId,selId,arr,tur){
     if(p.id===S.user.id||arr.includes(p.id)) return;
     const el=document.createElement('div');
     el.className='user-item';
-    el.innerHTML=`<div class="user-avatar-sm" style="background:${userColor(p.id)}"><span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span></div><div style="font-size:.85rem">${p.goruntu_adi||p.kullanici_adi} <span style="color:var(--txt2)">@${p.kullanici_adi}</span></div>`;
+    el.innerHTML=`<div class="user-avatar-sm" style="background:${userColor(p.id)}"><span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span></div><div style="font-size:.85rem">${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2)">@${escHtml(p.kullanici_adi)}</span></div>`;
     el.onclick=()=>{
       arr.push(p.id);
       S.profiles[p.id]=p;
@@ -5092,7 +5095,7 @@ async function _searchMembersToAdd(q,resId,selId,arr,tur){
       const selEl=document.getElementById(selId);
       const chip=document.createElement('div');
       chip.style.cssText='display:inline-flex;align-items:center;gap:.3rem;background:var(--acc);color:#fff;padding:.2rem .6rem;border-radius:12px;font-size:.78rem';
-      chip.innerHTML=`${p.kullanici_adi} <button onclick="this.parentElement.remove();arr.splice(arr.indexOf('${p.id}'),1)" style="background:none;color:#fff;font-size:1rem;padding:0">×</button>`;
+      chip.innerHTML=`${escHtml(p.kullanici_adi)} <button onclick="this.parentElement.remove();arr.splice(arr.indexOf('${p.id}'),1)" style="background:none;color:#fff;font-size:1rem;padding:0">×</button>`;
       selEl.appendChild(chip);
     };
     res.appendChild(el);
@@ -5159,7 +5162,7 @@ async function openPersonModal(){
     const wrap=document.getElementById('pm-members-wrap');
     wrap.style.display='block';
     const list=document.getElementById('pm-members-list');
-    list.innerHTML=members.map(p=>`<div class="member-item"><div class="user-avatar-sm" style="background:${userColor(p.id)}">${p.avatar_url?`<img src="${p.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span>`}</div><div style="font-size:.85rem">${p.goruntu_adi||p.kullanici_adi} <span style="color:var(--txt2)">@${p.kullanici_adi}</span></div>${p.id===room.olusturan_id?'<span class="badge-admin">Kurucu</span>':''}</div>`).join('');
+    list.innerHTML=members.map(p=>`<div class="member-item"><div class="user-avatar-sm" style="background:${userColor(p.id)}">${p.avatar_url?`<img src="${p.avatar_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span>`}</div><div style="font-size:.85rem">${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2)">@${escHtml(p.kullanici_adi)}</span></div>${p.id===room.olusturan_id?'<span class="badge-admin">Kurucu</span>':''}</div>`).join('');
     if(S.profile.yonetici){document.getElementById('pm-pending-btn').classList.remove('hidden');document.getElementById('pm-pending-btn').dataset.roomId=room.id;}
     document.getElementById('pm-block-btn').textContent='';document.getElementById('pm-mute-btn').textContent='';
   }
@@ -5414,7 +5417,7 @@ function unblurPost(postId){
   try{ localStorage.setItem('unblur_'+postId,'1'); }catch(e){}
 }
 
-function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
 function handlePostFile(input){
   const file=input.files[0]; if(!file) return;
@@ -5950,7 +5953,7 @@ async function loadAdminAktif(){
       :'<span style="color:var(--warn)">🕐</span> Son 15 dk';
     const ago=_lastSeenMap[uid]?fmtAgo(_lastSeenMap[uid]):(p.son_gorulme?fmtAgo(p.son_gorulme):'—');
     return `<tr>
-      <td>${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2);font-size:.78rem">@${p.kullanici_adi}</span></td>
+      <td>${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2);font-size:.78rem">@${escHtml(p.kullanici_adi)}</span></td>
       <td>${badge}</td>
       <td style="font-size:.78rem;color:var(--txt2)">${ago}</td>
     </tr>`;
@@ -5976,7 +5979,7 @@ async function loadAdminYeniUyeler(){
     const tarih=p.son_giris?new Date(p.son_giris).toLocaleString('tr-TR'):'-';
     const cins=p.cinsiyet==='E'?'👨 Erkek':p.cinsiyet==='K'?'👩 Kadın':p.cinsiyet==='D'?'🌈 Diğer':'—';
     return `<tr>
-      <td>${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2);font-size:.78rem">@${p.kullanici_adi}</span>${p.yonetici?' ⭐':''}${p.banli?' 🚫':''}</td>
+      <td>${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2);font-size:.78rem">@${escHtml(p.kullanici_adi)}</span>${p.yonetici?' ⭐':''}${p.banli?' 🚫':''}</td>
       <td>${cins}</td>
       <td>${p.yas||'—'}</td>
       <td>${escHtml(p.ulke||'—')}</td>
@@ -6155,7 +6158,7 @@ function _showProfilModal(p){
     Object.entries(SOSYAL_META||{}).forEach(([k,meta])=>{
       if(!soc[k]) return;
       const val=soc[k];
-      const href=k==='website'?val:(k==='whatsapp'?meta.base+val.replace(/[^0-9]/g,''):meta.base+val.replace(/^@/,''));
+      const href=k==='website'?(/^https?:\/\//i.test(String(val).trim())?String(val).trim():'https://'+String(val).trim().replace(/^[a-z][a-z0-9+.-]*:\/*/i,'')):(k==='whatsapp'?meta.base+val.replace(/[^0-9]/g,''):meta.base+val.replace(/^@/,''));
       const btn=document.createElement('a');
       btn.href=href; btn.target='_blank'; btn.rel='noopener noreferrer';
       btn.style.cssText='display:inline-flex;align-items:center;gap:.3rem;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:.3rem .7rem;font-size:.8rem;color:var(--txt);text-decoration:none';
@@ -6233,13 +6236,13 @@ async function loadMutedList(){
   const el=document.getElementById('muted-list');
   if(!S.muteList.length){el.innerHTML='<p class="text-muted">Sessize alınan kişi yok.</p>';return;}
   const profiles=await Promise.all(S.muteList.map(id=>getProfile(id)));
-  el.innerHTML=profiles.filter(Boolean).map(p=>`<div class="user-item"><div class="user-avatar-sm" style="background:${userColor(p.id)}"><span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span></div><div style="flex:1;font-size:.85rem">${p.goruntu_adi||p.kullanici_adi} <span style="color:var(--txt2)">@${p.kullanici_adi}</span></div><button class="btn btn-secondary btn-sm" onclick="unmuteUser('${p.id}')">🔔 Kaldır</button></div>`).join('');
+  el.innerHTML=profiles.filter(Boolean).map(p=>`<div class="user-item"><div class="user-avatar-sm" style="background:${userColor(p.id)}"><span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span></div><div style="flex:1;font-size:.85rem">${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2)">@${escHtml(p.kullanici_adi)}</span></div><button class="btn btn-secondary btn-sm" onclick="unmuteUser('${p.id}')">🔔 Kaldır</button></div>`).join('');
 }
 async function loadBlockedList(){
   const el=document.getElementById('blocked-list');
   if(!S.blockList.length){el.innerHTML='<p class="text-muted">Engellenen kişi yok.</p>';return;}
   const profiles=await Promise.all(S.blockList.map(id=>getProfile(id)));
-  el.innerHTML=profiles.filter(Boolean).map(p=>`<div class="user-item"><div class="user-avatar-sm" style="background:${userColor(p.id)}"><span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span></div><div style="flex:1;font-size:.85rem">${p.goruntu_adi||p.kullanici_adi} <span style="color:var(--txt2)">@${p.kullanici_adi}</span></div><button class="btn btn-secondary btn-sm" onclick="unblockUser('${p.id}')">🔓 Kaldır</button></div>`).join('');
+  el.innerHTML=profiles.filter(Boolean).map(p=>`<div class="user-item"><div class="user-avatar-sm" style="background:${userColor(p.id)}"><span style="color:#fff">${avatarInitials(p.goruntu_adi||p.kullanici_adi)}</span></div><div style="flex:1;font-size:.85rem">${escHtml(p.goruntu_adi||p.kullanici_adi)} <span style="color:var(--txt2)">@${escHtml(p.kullanici_adi)}</span></div><button class="btn btn-secondary btn-sm" onclick="unblockUser('${p.id}')">🔓 Kaldır</button></div>`).join('');
 }
 async function unmuteUser(uid){
   await sb.from('sessize_almalar').delete().eq('sessizleyen_id',S.user.id).eq('sessizdeki_id',uid);
@@ -6809,7 +6812,7 @@ async function loadPendingMessages(){
     const d=await decryptMessage({...m});
     const div=document.createElement('div');
     div.style.cssText='padding:.8rem;border-bottom:1px solid var(--brd)';
-    div.innerHTML=`<div style="font-size:.8rem;color:var(--txt2);margin-bottom:.3rem">${p?.goruntu_adi||p?.kullanici_adi||'?'} — ${fmtTime(m.olusturma_tarihi)}</div>
+    div.innerHTML=`<div style="font-size:.8rem;color:var(--txt2);margin-bottom:.3rem">${escHtml(p?.goruntu_adi||p?.kullanici_adi||'?')} — ${fmtTime(m.olusturma_tarihi)}</div>
       <div style="font-size:.9rem;margin-bottom:.5rem">${(d||'🔒').replace(/</g,'&lt;')}</div>
       <div style="display:flex;gap:.5rem">
         <button class="btn btn-primary btn-sm" onclick="approveMessage({id:'${m.id}'});this.closest('div').parentElement.remove()">✅ Onayla</button>
