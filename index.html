@@ -7787,7 +7787,7 @@ window.addEventListener('load',function(){ setTimeout(function(){ try{ if(docume
 // ── Konuya göre kalıcı sohbet teması ────────────────────────
 function _tpHex(label){ const c=(POKE_TOPIC_COLORS[label]||{}).card||''; const m=c.match(/#[0-9a-fA-F]{6}/g)||['#7a2bd6','#d0238f']; return [m[0],m[1]||m[0]]; }
 function _tpRgba(hex,a){ const n=parseInt(hex.slice(1),16); return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+a+')'; }
-const PS_FX_TOPICS=['Cinsel','Flört','Tutku','Romantik'];
+const PS_FX_TOPICS=['Cinsel','Flört','Tutku','Romantik','Gece Sohbeti'];
 function _psNormalBtn(){
   const rid=S.currentRoom&&S.currentRoom.id; const act=rid&&_activePokeTopics[rid];
   const label=_psPreviewTopic||(act&&act.label)||null;
