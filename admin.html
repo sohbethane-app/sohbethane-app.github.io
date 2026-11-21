@@ -787,7 +787,7 @@ function filterRooms(){
   const q = document.getElementById('room-search').value.toLowerCase();
   const type = document.getElementById('room-filter-type').value;
   let list = A.allRooms;
-  if(q) list=list.filter(r=>(r.ad||'').toLowerCase().includes(q));
+  if(q) list=list.filter(r=>(r.isim||'').toLowerCase().includes(q));
   if(type) list=list.filter(r=>r.tur===type);
   renderRooms(list);
 }
@@ -800,13 +800,13 @@ function renderRooms(list){
     <thead><tr><th>Oda Adı</th><th>Tür</th><th>Kilit</th><th>Oluşturma</th><th></th></tr></thead>
     <tbody>${list.map(r=>`<tr>
       <td>
-        <div style="font-weight:600">${turIcon[r.tur]||'🏠'} ${esc(r.ad||'(İsimsiz)')}</div>
+        <div style="font-weight:600">${turIcon[r.tur]||'🏠'} ${esc(r.isim||'(İsimsiz)')}</div>
         <div style="font-size:.72rem;color:var(--txt2)">${esc(r.id)}</div>
       </td>
       <td><span style="font-size:.75rem;background:var(--bg3);padding:.2rem .5rem;border-radius:8px">${esc(r.tur)}</span></td>
       <td>${r.sifre?'🔒 Şifreli':'🔓 Açık'}</td>
       <td style="font-size:.8rem">${fmtDate(r.olusturma_tarihi)}</td>
-      <td>${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}','${(r.ad||r.id).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">💬 Mesajlar</button>`:
+      <td>${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}','${(r.isim||r.id).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">💬 Mesajlar</button>`:
         '<span style="font-size:.75rem;color:var(--txt2)">🔐 E2E Şifreli</span>'}</td>
     </tr>`).join('')}</tbody>
   </table></div>`;
@@ -1087,17 +1087,17 @@ function field(label,val){
 async function loadDrawerRooms(uid){
   const el=document.getElementById('drawer-rooms-pane');
   el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
-  const {data:mems}=await sb.from('oda_uyeleri').select('oda_id,rol').eq('kullanici_id',uid);
+  const {data:mems}=await sb.from('oda_uyeleri').select('oda_id').eq('kullanici_id',uid);
   if(!mems?.length){ el.innerHTML='<div class="empty">Üye olduğu oda yok.</div>'; return; }
   const roomIds=mems.map(m=>m.oda_id);
-  const {data:rooms}=await sb.from('odalar').select('id,ad,tur').in('id',roomIds);
+  const {data:rooms}=await sb.from('odalar').select('id,isim,tur').in('id',roomIds);
   const turIcon={dm:'💬',grup:'👥',arsiv:'📁',duvar:'📰'};
   el.innerHTML=(rooms||[]).map(r=>`
     <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem;border-radius:6px;border:1px solid var(--brd);margin-bottom:.4rem">
       <span style="font-size:1rem">${turIcon[r.tur]||'🏠'}</span>
-      <div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.ad||'(İsimsiz)')}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.isim||'(İsimsiz)')}</div>
       <div style="font-size:.72rem;color:var(--txt2)">${esc(r.tur)}</div></div>
-      ${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}',${JSON.stringify(r.ad||r.id)})">💬</button>`:''}
+      ${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}',${JSON.stringify(r.isim||r.id)})">💬</button>`:''}
     </div>`).join('');
 }
 

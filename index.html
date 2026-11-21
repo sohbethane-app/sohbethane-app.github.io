@@ -2796,11 +2796,10 @@ async function doRegister(){
     // Check if first user
     const {data:hasUser} = await sb.rpc('kullanici_var_mi');
     if(hasUser&&inviteCode){
-      const now = new Date().toISOString();
-      const {data:inv,error:ie} = await sb.from('davetler').select('*').eq('kod',inviteCode).single();
-      if(ie||!inv){err.textContent='Geçersiz davet kodu.';return;}
-      if(inv.kullanim>=inv.max_kullanim){err.textContent='Bu davet kodu doldu.';return;}
-      if(inv.bitis_tarihi&&inv.bitis_tarihi<now){err.textContent='Bu davet kodunun süresi doldu.';return;}
+      const {data:davetDurum} = await sb.rpc('davet_durumu',{p_kod:inviteCode});
+      if(davetDurum==='dolu'){err.textContent='Bu davet kodu doldu.';return;}
+      if(davetDurum==='suresi_doldu'){err.textContent='Bu davet kodunun süresi doldu.';return;}
+      if(davetDurum!=='gecerli'){err.textContent='Geçersiz davet kodu.';return;}
     }
     // Kullanıcı adı profiller tablosunda var mı? (hızlı ön kontrol)
     const {data:existCheck} = await sb.from('profiller').select('id').eq('kullanici_adi',username).limit(1);
@@ -6773,11 +6772,10 @@ window.doRegister=async function(){
   try{
     const {data:hasUser}=await sb.rpc('kullanici_var_mi');
     if(hasUser&&inviteCode){
-      const now=new Date().toISOString();
-      const {data:inv,error:ie}=await sb.from('davetler').select('*').eq('kod',inviteCode).single();
-      if(ie||!inv){err.textContent='Geçersiz davet kodu.';return;}
-      if(inv.kullanim>=inv.max_kullanim){err.textContent='Bu davet kodu doldu.';return;}
-      if(inv.bitis_tarihi&&inv.bitis_tarihi<now){err.textContent='Bu davet kodunun süresi doldu.';return;}
+      const {data:davetDurum}=await sb.rpc('davet_durumu',{p_kod:inviteCode});
+      if(davetDurum==='dolu'){err.textContent='Bu davet kodu doldu.';return;}
+      if(davetDurum==='suresi_doldu'){err.textContent='Bu davet kodunun süresi doldu.';return;}
+      if(davetDurum!=='gecerli'){err.textContent='Geçersiz davet kodu.';return;}
     }
     const {data:existCheck2}=await sb.from('profiller').select('id').eq('kullanici_adi',username).limit(1);
     if(existCheck2?.length){document.getElementById('register-err').textContent='Bu kullanıcı adı zaten alınmış.';return;}
