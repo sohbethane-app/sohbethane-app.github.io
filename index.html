@@ -2846,7 +2846,7 @@ async function doRegister(){
     const {sarili,iv:sarlama_iv} = await wrapPrivateKey(kp.privateKey, wrapKey);
     const {ulke:kayitUlke,ip_adresi:kayitIp}=await detectGeoInfo();
     // IP ban check
-    if(kayitIp){const{data:banCheck}=await sb.from('yasakli_ipler').select('id').eq('ip_adresi',kayitIp).limit(1);if(banCheck?.length){err.textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
+    if(kayitIp){const{data:ipBanli}=await sb.rpc('ip_yasakli_mi',{p_ip:kayitIp});if(ipBanli===true){err.textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
     const _profInsert={
       id:S.user.id, kullanici_adi:username, goruntu_adi:goruntu,
       acik_anahtar:pubJwk, sarili_ozel_anahtar:sarili, sarlama_iv,
@@ -6817,7 +6817,7 @@ window.doRegister=async function(){
     const pubJwk=await exportPublicJwk(kp.publicKey);
     const {sarili,iv:sarlama_iv}=await wrapPrivateKey(kp.privateKey,wrapKey);
     const {ulke:kayitUlke2,ip_adresi:kayitIp2}=await detectGeoInfo();
-    if(kayitIp2){const{data:banCheck2}=await sb.from('yasakli_ipler').select('id').eq('ip_adresi',kayitIp2).limit(1);if(banCheck2?.length){document.getElementById('register-err').textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
+    if(kayitIp2){const{data:ipBanli2}=await sb.rpc('ip_yasakli_mi',{p_ip:kayitIp2});if(ipBanli2===true){document.getElementById('register-err').textContent='Bu IP adresi kayıttan yasaklanmıştır.';return;}}
     const _profInsert2={id:S.user.id,kullanici_adi:username,goruntu_adi:goruntu,acik_anahtar:pubJwk,sarili_ozel_anahtar:sarili,sarlama_iv,...(cinsiyet2?{cinsiyet:cinsiyet2}:{}),...(yas2?{yas:yas2}:{}),ulke:ulkeCC2||kayitUlke2||null,...(kayitIp2?{ip_adresi:kayitIp2}:{}),son_giris:new Date().toISOString()};
     let {error:pe}=await sb.from('profiller').insert(_profInsert2);
     if(pe){
