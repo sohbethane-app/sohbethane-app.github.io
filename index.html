@@ -880,6 +880,12 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 @keyframes tpRise{0%{transform:translateY(0) rotate(0);opacity:0}12%{opacity:.5}85%{opacity:.35}100%{transform:translateY(-105vh) rotate(25deg);opacity:0}}
 #topic-chip{flex:0 0 auto;background:linear-gradient(135deg,var(--tp-a,#c2208f),var(--tp-b,#7a2bd6));color:#fff;border:none;border-radius:999px;padding:.3rem .8rem;font-size:.78rem;font-weight:800;cursor:pointer;display:none;box-shadow:0 4px 16px rgba(0,0,0,.35)}
 @media(prefers-reduced-motion:reduce){#topic-fx span{animation:none;opacity:.25;bottom:20%}}
+#profile-side{transition:background .9s ease}
+.ps-quote{font-style:italic;color:#fff;font-size:.95rem;line-height:1.5;margin:.7rem 0;min-height:2.6em;transition:opacity .35s ease;text-align:center}
+.ps-start-h{margin-top:1rem;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--txt2);text-align:left}
+.ps-start{display:grid;gap:.4rem;margin-top:.4rem}
+.ps-start button{text-align:left;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:.55rem .75rem;color:var(--txt);font-size:.82rem;line-height:1.35;cursor:pointer;transition:transform .12s,background .12s,border-color .12s}
+.ps-start button:hover{transform:translateY(-2px);background:rgba(194,32,143,.22);border-color:#ff4fa3}
 </style>
 </head>
 <body>
@@ -7700,9 +7706,11 @@ async function renderProfileSide(room){
   if(p.ulke) rows.push(_ccFlag(p.ulke)+' '+escHtml(_ccName(p.ulke)));
   el.innerHTML='<div class="ps-photo">'+photo+'</div><h3>'+escHtml(name)+'</h3><div class="ps-user">@'+escHtml(p.kullanici_adi||'')+'</div>'
     +(rows.length?'<ul class="ps-rows">'+rows.map(r=>'<li>'+r+'</li>').join('')+'</ul>':'')
-    +((p.bio||p.hakkimda)?'<p class="ps-bio">'+escHtml(p.bio||p.hakkimda)+'</p>':'')
+    +'<div class="ps-quote" id="ps-quote"></div>'
+    +_psStarters(p)
     +'<div class="ps-actions"><button type="button" onclick="qaOpenTunel()">📰<span>'+escHtml(_tUI('Tünel'))+'</span></button><button type="button" onclick="qaOpenIkiliTunel()">🔗<span>'+escHtml(_tUI('İkili'))+'</span></button><button type="button" onclick="toggleBlock()">🚫<span>'+escHtml(_tUI('Engelle'))+'</span></button></div>';
   el.style.display='';
+  _psStartQuotes(el,p);
 }
 
 window.addEventListener('load',function(){ setTimeout(function(){ try{ if(document.getElementById('app-screen')&&getComputedStyle(document.getElementById('app-screen')).display!=='none') renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(e){} },1200); });
@@ -7724,7 +7732,8 @@ function applyRoomTopicTheme(roomId){
   ca.style.setProperty('--tp-a',a); ca.style.setProperty('--tp-b',b);
   ca.style.setProperty('--tp-bg','radial-gradient(700px 420px at 88% 8%,'+_tpRgba(a,.38)+',transparent 62%),radial-gradient(640px 460px at 8% 100%,'+_tpRgba(b,.32)+',transparent 62%),'+base);
   if(!fx){ fx=document.createElement('div'); fx.id='topic-fx'; fx.setAttribute('aria-hidden','true'); ca.insertBefore(fx,ca.firstChild); }
-  const icons=(POKE_TOPIC_EMOJIS[label]||['✨']).slice(0,7);
+  let icons=(POKE_TOPIC_EMOJIS[label]||['✨']).slice(0,7);
+  const _vg=S.profile&&S.profile.cinsiyet; if(_vg==='K') icons=icons.concat(['🌹','💐','🦋']); else if(_vg==='E') icons=icons.concat(['🥂','🍷','🎩']);
   let h=''; for(let i=0;i<16;i++){ const e=icons[i%icons.length]; h+='<span style="left:'+(Math.random()*96).toFixed(1)+'%;font-size:'+(14+Math.random()*22).toFixed(0)+'px;animation-duration:'+(11+Math.random()*14).toFixed(1)+'s;animation-delay:-'+(Math.random()*20).toFixed(1)+'s">'+escHtml(e)+'</span>'; }
   fx.innerHTML=h;
   let chip=document.getElementById('topic-chip');
@@ -7732,6 +7741,60 @@ function applyRoomTopicTheme(roomId){
   chip.textContent=(act.emoji||'')+' '+_tUI(label)+'  ✕'; chip.style.display='inline-block';
 }
 function clearRoomTopic(){ const rid=S.currentRoom&&S.currentRoom.id; if(rid){ delete _activePokeTopics[rid]; _saveActivePokeTopics(); } applyRoomTopicTheme(rid); try{updatePokeQuickBtn();}catch(e){} }
+
+// ── Profil: cümle geçişleri, anahtar kelime teması, cinsiyete göre sohbet başlatıcılar ──
+const PS_KEYWORDS=[
+ ['Romantik',/a[sş]k|sevgi|romantik|kalp|love|amour|amor|liebe|любов|愛|사랑|حب/i],
+ ['Flört',/fl[öo]rt|tan[ıi][sş]|g[üu]l[üu]mse|flirt|coquet|cita|ﻏﺰﻝ/i],
+ ['Tutku',/tutku|ate[sş]|passion|leidenschaft|pasi[oó]n|страсть|情熱|열정|شغف/i],
+ ['Müzik',/m[üu]zik|[sş]ark[ıi]|konser|gitar|music|musik|musique|música|музык|音楽|음악|موسيقى/i],
+ ['Seyahat',/seyahat|gez|yolculuk|tatil|travel|reise|voyage|viaje|viagem|путешест|旅行|여행|سفر/i],
+ ['Spor',/spor|ko[sş]|fitness|futbol|sport|gym|deporte|спорт|运动|운동|رياضة/i],
+ ['Film & Dizi',/film|dizi|sinema|movie|kino|cin[eé]ma|pel[ií]cula|кино|电影|映画|영화|فيلم/i],
+ ['Yediklerim',/yemek|mutfak|lezzet|food|cook|essen|cuisine|comida|еда|美食|料理|요리|طعام/i],
+ ['Doğa & Çevre',/do[gğ]a|deniz|orman|da[gğ]|nature|natur|nature|naturaleza|природ|自然|자연|طبيعة/i],
+ ['Hayvanlar',/kedi|k[öo]pek|hayvan|cat|dog|katze|hund|chat|chien|gato|perro|кошк|собак|猫|犬|고양이|강아지/i],
+ ['Sanat',/sanat|resim|tablo|art\b|kunst|arte|искусств|艺术|アート|예술|فن/i],
+ ['Felsefe',/felsefe|d[üu]şün|philosoph|philosophie|filosof|философ|哲学|철학|فلسفة/i],
+ ['Gece Sohbeti',/gece|night|nacht|nuit|noche|noite|ночь|夜|밤|ليل/i],
+ ['Günlük Hayat',/kahve|g[üu]nl[üu]k|coffee|kaffee|caf[eé]|кофе|咖啡|コーヒー|커피|قهوة/i],
+ ['Özlem',/[öo]zl|hasret|miss you|vermiss|manques|extra[ñn]|скуча|想念|会いたい|보고|اشتياق/i]
+];
+function _psTopicFor(text){ for(const [lab,re] of PS_KEYWORDS){ if(re.test(text)&&POKE_TOPIC_COLORS[lab]) return lab; } return null; }
+function _psSentences(p){ const raw=[p.bio,p.hakkimda].filter(Boolean).join('. '); return raw.split(/(?<=[.!?…])\s+|\n+/).map(x=>x.trim()).filter(x=>x.length>2).slice(0,8); }
+function _psStartQuotes(el,p){
+  clearInterval(window._psTimer);
+  const q=document.getElementById('ps-quote'); if(!q) return;
+  const sents=_psSentences(p); el.style.background=''; 
+  if(!sents.length){ q.style.display='none'; return; }
+  let i=0;
+  const show=function(){
+    const t=sents[i%sents.length];
+    q.style.opacity=0;
+    setTimeout(function(){
+      q.textContent='“'+t+'”'; q.style.opacity=1;
+      const lab=_psTopicFor(t);
+      if(lab){ const [a,b]=_tpHex(lab); el.style.background='linear-gradient(180deg,'+_tpRgba(a,.35)+','+_tpRgba(b,.12)+' 60%,transparent),'+POKE_TOPIC_COLORS[lab].bg; el.dataset.psTopic=lab; }
+      else { el.style.background=''; delete el.dataset.psTopic; }
+      i++;
+    },350);
+  };
+  show();
+  if(sents.length>1) window._psTimer=setInterval(function(){ if(!document.getElementById('ps-quote')){clearInterval(window._psTimer);return;} show(); },4500);
+}
+const PS_STARTERS={
+ forHer:['Seni en çok ne güldürür?','İlk buluşmada beni nereye götürürdün?','Romantik bir akşam senin için nasıl olur?'],
+ forHim:['Seni ilk tanıdığımda en çok ne etkiler?','Bu akşam için hangi şarkıyı önerirsin?','Bir akşam yemeğine nerede buluşalım?']
+};
+function _psStarters(p){
+  const me=(S.profile&&S.profile.cinsiyet)||'', other=p.cinsiyet||'';
+  let list=null;
+  if(me==='K'&&other==='E') list=PS_STARTERS.forHer;
+  else if(me==='E'&&other==='K') list=PS_STARTERS.forHim;
+  else list=PS_STARTERS.forHer.slice(0,1).concat(PS_STARTERS.forHim.slice(1,2));
+  return '<div class="ps-start-h">💬 '+escHtml(_tUI('Sohbet başlatıcılar'))+'</div><div class="ps-start">'+list.map(function(t){return '<button type="button" onclick="_psUse(this)" data-t="'+escHtml(t)+'">'+escHtml(_tUI(t))+'</button>';}).join('')+'</div>';
+}
+function _psUse(b){ const inp=document.getElementById('chat-input'); if(!inp) return; inp.value=_tUI(b.dataset.t); inp.focus(); try{autoResize(inp);}catch(e){} }
 </script>
 </body>
 </html>
