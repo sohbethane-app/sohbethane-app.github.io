@@ -886,6 +886,18 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .ps-start{display:grid;gap:.4rem;margin-top:.4rem}
 .ps-start button{text-align:left;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:.55rem .75rem;color:var(--txt);font-size:.82rem;line-height:1.35;cursor:pointer;transition:transform .12s,background .12s,border-color .12s}
 .ps-start button:hover{transform:translateY(-2px);background:rgba(194,32,143,.22);border-color:#ff4fa3}
+
+/* ===== Okunabilirlik: balonlardaki yazılar ===== */
+.msg-wrap .msg-bubble{color:#fff}
+.msg-wrap.own .msg-bubble [style*="--txt2"],.msg-wrap.own .msg-time,.msg-wrap.own .msg-file-size,.msg-wrap.own .msg-sender{color:rgba(255,255,255,.95)!important;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+.msg-wrap.other .msg-bubble [style*="--txt2"],.msg-wrap.other .msg-time,.msg-wrap.other .msg-file-size{color:rgba(255,255,255,.78)!important}
+.msg-wrap.own .msg-file-dl{background:rgba(0,0,0,.4);color:#fff!important;border-color:rgba(255,255,255,.6);font-weight:700}
+.msg-wrap.own .msg-file-dl:hover{background:rgba(0,0,0,.6)}
+.msg-wrap.other .msg-file-dl{background:rgba(255,255,255,.12);color:#fff!important;border-color:rgba(255,255,255,.35);font-weight:700}
+.msg-wrap.own .msg-reply{background:rgba(0,0,0,.3);color:#fff;border-left-color:#fff}
+.msg-wrap.own .msg-file,.msg-wrap.own .msg-file-name{color:#fff}
+.msg-wrap.own .msg-bubble a{color:#fff;text-decoration:underline}
+#chat-area[data-topic] .msg-wrap.other .msg-bubble{background:rgba(0,0,0,.5)!important}
 </style>
 </head>
 <body>
