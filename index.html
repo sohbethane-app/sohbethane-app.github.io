@@ -677,6 +677,57 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   letter-spacing:.3px
 }
 .unblur-btn:hover{transform:scale(1.04);box-shadow:0 6px 24px rgba(200,0,0,.65)}
+
+/* ===== Modern görünüm (giriş + karşılama) ===== */
+#auth-screen{background:radial-gradient(1200px 700px at 12% -10%,#2b1670 0%,transparent 60%),radial-gradient(900px 600px at 100% 110%,#5b1245 0%,transparent 55%),#080519}
+#photo-strip-bg,#name-bubbles-wrap,.poke-ticker-wrap,.auth-users-showcase,.auth-online-pill{display:none!important}
+.auth-wrap{width:min(1040px,96vw);border-radius:28px;border:1px solid rgba(255,255,255,.1);box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.03) inset;overflow:hidden}
+.auth-left{padding:2.4rem 2.4rem 2rem;gap:1.1rem;justify-content:center;background:linear-gradient(160deg,rgba(124,92,255,.16),rgba(255,80,130,.07) 60%,transparent)}
+.auth-brand-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}
+.auth-brand-row .auth-brand-icon{margin:0!important;width:48px!important;height:48px!important;font-size:1.35rem!important;border-radius:15px!important}
+.auth-brand-row h1{font-size:1.6rem!important;margin:0!important;letter-spacing:-.02em}
+.auth-hero-line{font-size:1.65rem!important;line-height:1.25!important;font-weight:800;letter-spacing:-.02em;color:#fff!important;max-width:15em}
+.portrait-cluster{height:230px;margin:.2rem 0}
+.pc-circle{box-shadow:0 12px 36px rgba(0,0,0,.5),0 0 0 3px rgba(255,255,255,.16)!important}
+.auth-feats{gap:.5rem;margin:0}
+.auth-feat-pill{padding:.4rem .8rem;border-radius:999px;font-size:.76rem;backdrop-filter:blur(8px)}
+.auth-stats{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:.9rem 1rem}
+.auth-stat-num{font-size:1.5rem}
+.auth-right{width:440px;padding:2.6rem 2.6rem;background:rgba(10,6,28,.55)}
+.auth-title{font-size:1.7rem;letter-spacing:-.02em}
+.auth-tabs{border-radius:14px;background:rgba(255,255,255,.05)}
+.auth-tab.active{background:linear-gradient(135deg,#7c5cff,#e8467c);box-shadow:0 6px 22px rgba(124,92,255,.4)}
+#auth-screen .form-group input,#auth-screen .form-group select{border-radius:13px;padding:.85rem 1rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);transition:border-color .2s,box-shadow .2s,background .2s}
+#auth-screen .form-group input:focus,#auth-screen .form-group select:focus{outline:none;border-color:#9b86ff;background:rgba(255,255,255,.08);box-shadow:0 0 0 4px rgba(124,92,255,.22)}
+#auth-screen .btn-primary{background:linear-gradient(135deg,#7c5cff,#e8467c)!important;border:none;box-shadow:0 10px 30px rgba(124,92,255,.38);transition:transform .15s,box-shadow .15s}
+#auth-screen .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(232,70,124,.42)}
+.pw-wrap{position:relative}.pw-wrap input{padding-inline-end:2.8rem!important;width:100%}
+.pw-eye{position:absolute;inset-inline-end:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(220,210,255,.7);font-size:1.05rem;cursor:pointer;padding:.35rem .5rem;border-radius:8px}
+.pw-eye:hover{background:rgba(255,255,255,.08)}
+@media(max-width:640px){.auth-wrap{border-radius:22px}.auth-right{width:100%;padding:2rem 1.4rem}}
+/* Giriş sonrası karşılama */
+.wp{max-width:720px;padding:1.2rem 1.2rem 2.4rem}
+.wp-hero{position:relative;overflow:hidden;border-radius:24px;padding:1.8rem 1.2rem 1.4rem;margin-bottom:.4rem;border:1px solid rgba(255,255,255,.1);background:radial-gradient(500px 220px at 15% 0%,rgba(124,92,255,.45),transparent 70%),radial-gradient(420px 220px at 100% 100%,rgba(232,70,124,.38),transparent 70%),linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.02));box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.wp-ava{width:78px;height:78px;border-radius:50%;margin:0 auto .7rem;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#fff;background:linear-gradient(135deg,#7c5cff,#e8467c);box-shadow:0 0 0 4px rgba(255,255,255,.18),0 12px 34px rgba(124,92,255,.5)}
+.wp-ava img{width:100%;height:100%;object-fit:cover}
+.wp h2{font-size:1.75rem;letter-spacing:-.02em;background:linear-gradient(90deg,#fff,#d6c9ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wp-badge{background:rgba(232,70,124,.14);border-color:rgba(232,70,124,.5);color:#ffb3cc}
+.wp-chip{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);backdrop-filter:blur(6px)}
+.wp-chips{margin-bottom:0}
+.wp-card{border-radius:20px;padding:1.3rem;background:linear-gradient(135deg,rgba(124,92,255,.22),rgba(232,70,124,.14));border-color:rgba(155,134,255,.4);box-shadow:0 10px 30px rgba(0,0,0,.25);transition:transform .15s,border-color .15s}
+.wp-card:hover{transform:translateY(-2px)}
+.wp-q{font-size:1.15rem;font-weight:600}
+.wp-pills{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
+.wp-pill{border-radius:14px;padding:.75rem .9rem;background:rgba(255,255,255,.05);transition:transform .15s,border-color .15s,background .15s}
+.wp-pill:hover{transform:translateY(-2px)}
+.wp-guide{grid-template-columns:1fr 1fr;gap:.55rem}
+.wp-guide div{border-radius:14px;background:rgba(255,255,255,.04);padding:.7rem .85rem}
+.wp-btn{border-radius:999px;padding:.6rem 1.1rem;background:linear-gradient(135deg,#7c5cff,#e8467c);box-shadow:0 8px 22px rgba(124,92,255,.35);transition:transform .15s}
+.wp-btn:hover{transform:translateY(-2px);background:linear-gradient(135deg,#8d70ff,#f0568a)}
+@media(max-width:600px){.wp-pills,.wp-guide{grid-template-columns:1fr}}
+#sidebar-header{background:linear-gradient(90deg,rgba(124,92,255,.16),rgba(232,70,124,.08))}
+.room-item{margin:2px .5rem;border-radius:14px;padding:.7rem .8rem}
+.room-item:hover{background:rgba(255,255,255,.05)}
 </style>
 </head>
 <body>
@@ -711,9 +762,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   <!-- Sol panel — sosyal tanışma vitrin -->
   <div class="auth-left">
     <div class="auth-brand">
-      <div class="auth-brand-icon">💬</div>
-      <h1>SohbetHane</h1>
-      <p id="auth-brand-tagline">Dünyanın her yerinden insanlarla güvenli sohbet et 🌍</p>
+      <div class="auth-brand-row"><div class="auth-brand-icon">💬</div><h1>SohbetHane</h1></div>
+      <p id="auth-brand-tagline" class="auth-hero-line">Dünyanın her yerinden insanlarla güvenli sohbet et 🌍</p>
     </div>
     <!-- Portrait cluster hero — 7 overlapping circles -->
     <div id="portrait-cluster-hero" class="portrait-cluster"></div>
@@ -2052,7 +2102,9 @@ function renderWelcomePanel(){
   const n=_WP_QUESTIONS.length,qi=Math.floor(Date.now()/86400000)%n;
   const pills=[1,2,3,4,5,6].map(o=>(qi+o)%n);
   const t=_tUI;
+  const _av=(document.getElementById('my-avatar')||{}).innerHTML||_wpEsc((name||'?').charAt(0).toUpperCase());
   m.innerHTML=`<div class="wp">
+    <div class="wp-hero"><div class="wp-ava">${_av}</div>
     <h2>${_wpEsc(t('Hoş geldin'))}${name?', '+_wpEsc(name):''} 👋</h2>
     <p class="wp-sub">${_wpEsc(t('Burası yetişkinlere özel, sakin ve güvenli bir sohbet alanı.'))}</p>
     <span class="wp-badge">${_wpEsc(t('+18 · Yetişkinlere özel alan'))}</span>
@@ -2060,7 +2112,7 @@ function renderWelcomePanel(){
       <span class="wp-chip">${_wpEsc(t('🔐 Uçtan uca şifreli'))}</span>
       <span class="wp-chip">${_wpEsc(t('🙈 Sunucu mesajlarını okuyamaz'))}</span>
       <span class="wp-chip">${_wpEsc(t('🤝 Rıza ve saygı esastır'))}</span>
-    </div>
+    </div></div>
     <div class="wp-h">${_wpEsc(t('✨ Günün sorusu'))}</div>
     <div class="wp-card" onclick="_wpCopy(${qi})"><div class="wp-q">${_wpEsc(t(_WP_QUESTIONS[qi]))}</div><div class="wp-hint">${_wpEsc(t('Dokun, kopyala ve bir sohbette paylaş'))}</div></div>
     <div class="wp-h">${_wpEsc(t('💬 Sohbeti başlatacak sorular'))}</div>
@@ -2082,6 +2134,7 @@ function renderWelcomePanel(){
     </div>
   </div>`;
 }
+function _se(t){return String(t==null?'':t).replace(/^[^\p{L}\p{N}]+/u,'');}
 function applyI18n(){
   // RTL for Arabic and Persian
   if(_UI_LANG==='ar'||_UI_LANG==='fa'){document.documentElement.dir='rtl';document.documentElement.lang=_UI_LANG;}
@@ -2099,10 +2152,10 @@ function applyI18n(){
   // Feature vurgusu
   const fEnT=document.getElementById('feat-enc-title');if(fEnT)fEnT.textContent=T('feat.enc.title');
   const fEnD=document.getElementById('feat-enc-desc');if(fEnD)fEnD.textContent=T('feat.enc.desc');
-  const fTr=document.getElementById('feat-translate');if(fTr)fTr.textContent=T('feat.translate');
-  const fGr=document.getElementById('feat-groups');if(fGr)fGr.textContent=T('feat.groups');
-  const fAr=document.getElementById('feat-archive');if(fAr)fAr.textContent=T('feat.archive');
-  const fGl=document.getElementById('feat-global');if(fGl)fGl.textContent=T('feat.global');
+  const fTr=document.getElementById('feat-translate');if(fTr)fTr.textContent=_se(T('feat.translate'));
+  const fGr=document.getElementById('feat-groups');if(fGr)fGr.textContent=_se(T('feat.groups'));
+  const fAr=document.getElementById('feat-archive');if(fAr)fAr.textContent=_se(_tUI('Uçtan Uca Şifre'));
+  const fGl=document.getElementById('feat-global');if(fGl)fGl.textContent=_se(T('feat.global'));
   // Auth box
   q('.auth-logo p','auth.subtitle.top');
   q('#auth-heading .auth-title','auth.welcome');
@@ -2116,7 +2169,7 @@ function applyI18n(){
     if(lbls[0])lbls[0].textContent=T('auth.lbl.user');
     if(lbls[1])lbls[1].textContent=T('auth.lbl.pass');
     const lu=document.getElementById('l-user');if(lu)lu.placeholder=T('auth.ph.user');
-    const btn=lf.querySelector('button');if(btn)btn.textContent=T('auth.btn.login');
+    const btn=lf.querySelector('button.btn-primary');if(btn)btn.textContent=T('auth.btn.login');
   }
   // Register form
   const rf=document.getElementById('register-form');
@@ -2131,7 +2184,7 @@ function applyI18n(){
     const ru=document.getElementById('r-user');if(ru)ru.placeholder=T('auth.ph.user');
     const rn=document.getElementById('r-name');if(rn)rn.placeholder=T('auth.ph.name');
     const ry=document.getElementById('r-yas');if(ry){const _yp=T('auth.ph.yas');ry.placeholder=(_yp&&!_yp.includes('.'))?_yp:'25';}
-    const btn=rf.querySelector('button');if(btn)btn.textContent=T('auth.btn.register');
+    const btn=rf.querySelector('button.btn-primary');if(btn)btn.textContent=T('auth.btn.register');
   }
   // Sidebar tabs
   const stDm=document.getElementById('stab-dm');if(stDm)stDm.innerHTML='<span class="s-tab-icon">💬</span>'+T('nav.chats');
@@ -7382,6 +7435,9 @@ async function openUserTunel(){
   if(ikiliList) ikiliList.classList.remove('show');
   showFeed(uid);
 }
+
+// Şifre göster/gizle düğmeleri
+(function(){try{['l-pass','r-pass'].forEach(function(id){var i=document.getElementById(id);if(!i||i.parentNode.classList.contains('pw-wrap'))return;var w=document.createElement('div');w.className='pw-wrap';i.parentNode.insertBefore(w,i);w.appendChild(i);var b=document.createElement('button');b.type='button';b.className='pw-eye';b.textContent='👁';b.setAttribute('aria-label','Show password');b.onclick=function(){var h=i.type==='password';i.type=h?'text':'password';b.textContent=h?'🙈':'👁';};w.appendChild(b);});}catch(e){}})();
 </script>
 </body>
 </html>
