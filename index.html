@@ -2787,6 +2787,7 @@ async function doRegister(){
   const err = document.getElementById('register-err');
   err.textContent='';
   if(!username||!goruntu||!password){err.textContent='Tüm alanları doldurun.';return;}
+  if(password.length<8){err.textContent='Şifre en az 8 karakter olmalı.';return;}
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
   if(!cinsiyet){err.textContent='Lütfen cinsiyetinizi seçin.';return;}
   if(!yasStr||isNaN(yas)||yas<13||yas>100){err.textContent='Geçerli bir yaş girin (13-100).';return;}
@@ -2873,8 +2874,7 @@ async function doRegister(){
     }
     // Increment invite usage
     if(hasUser && inviteCode){
-      const {data:inv2} = await sb.from('davetler').select('id,kullanim').eq('kod',inviteCode).single();
-      if(inv2) await sb.from('davetler').update({kullanim:inv2.kullanim+1}).eq('id',inv2.id);
+      await sb.rpc('davet_kullan',{p_kod:inviteCode});
     }
     S.profile = await getProfile(S.user.id);
     await startApp();
@@ -5369,14 +5369,12 @@ async function toggleLike(postId,btn){
     if(liked){
       await sb.from('begeniler').delete().eq('gonderi_id',postId).eq('kullanici_id',S.user.id);
       const nv=Math.max(0,cur-1);
-      await sb.from('gonderiler').update({begeni_sayisi:nv}).eq('id',postId);
       btn.dataset.liked='false';
       btn.classList.remove('liked');
       btn.innerHTML=`🤍 <span class="like-count">${nv}</span>`;
     } else {
       await sb.from('begeniler').insert({gonderi_id:postId,kullanici_id:S.user.id});
       const nv=cur+1;
-      await sb.from('gonderiler').update({begeni_sayisi:nv}).eq('id',postId);
       btn.dataset.liked='true';
       btn.classList.add('liked');
       btn.innerHTML=`❤️ <span class="like-count">${nv}</span>`;
@@ -5426,9 +5424,7 @@ async function addComment(postId){
       const countEl=card.querySelector('.comment-count');
       if(countEl) countEl.textContent=(parseInt(countEl.textContent)||0)+1;
     }
-    // Update count in DB
-    const {data:gd}=await sb.from('gonderiler').select('yorum_sayisi').eq('id',postId).single();
-    if(gd) await sb.from('gonderiler').update({yorum_sayisi:(gd.yorum_sayisi||0)+1}).eq('id',postId);
+    // Sayaç veritabanı tetikleyicisiyle güncellenir
     loadComments(postId);
   } catch(e){toast('Yorum gönderilemedi','error');}
   input.disabled=false;
@@ -5438,8 +5434,6 @@ async function addComment(postId){
 async function deleteComment(commentId,postId){
   if(!confirm('Yorumu sil?')) return;
   await sb.from('yorumlar').delete().eq('id',commentId);
-  const {data:gd}=await sb.from('gonderiler').select('yorum_sayisi').eq('id',postId).single();
-  if(gd) await sb.from('gonderiler').update({yorum_sayisi:Math.max(0,(gd.yorum_sayisi||1)-1)}).eq('id',postId);
   const card=document.querySelector(`.post-card[data-post-id="${postId}"]`);
   if(card){
     const countEl=card.querySelector('.comment-count');
@@ -6771,6 +6765,7 @@ window.doRegister=async function(){
   const ulkeCC2=document.getElementById('r-ulke')?.value||'';
   const err=document.getElementById('register-err'); err.textContent='';
   if(!username||!goruntu||!password){err.textContent='Tüm alanları doldurun.';return;}
+  if(password.length<8){err.textContent='Şifre en az 8 karakter olmalı.';return;}
   if(!/^[a-z0-9_]{3,30}$/.test(username)){err.textContent='Kullanıcı adı: 3-30 karakter, harf/rakam/alt çizgi.';return;}
   if(!cinsiyet2){err.textContent='Lütfen cinsiyetinizi seçin.';return;}
   if(!yasStr2||isNaN(yas2)||yas2<13||yas2>100){err.textContent='Geçerli bir yaş girin (13-100).';return;}
@@ -6834,8 +6829,7 @@ window.doRegister=async function(){
       } else { throw pe; }
     }
     if(hasUser&&inviteCode){
-      const {data:inv2}=await sb.from('davetler').select('id,kullanim').eq('kod',inviteCode).single();
-      if(inv2) await sb.from('davetler').update({kullanim:inv2.kullanim+1}).eq('id',inv2.id);
+      await sb.rpc('davet_kullan',{p_kod:inviteCode});
     }
     S.profile=await getProfile(S.user.id);
     localStorage.setItem('wk_'+S.user.id,b64e(wrapKey));
