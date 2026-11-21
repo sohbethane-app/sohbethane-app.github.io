@@ -865,6 +865,21 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   .ps-actions button span{font-size:.68rem;color:var(--txt2)}
   .ps-actions button:hover{transform:translateY(-2px);background:rgba(194,32,143,.25)}
 }
+
+/* ===== Konu temaları ===== */
+#chat-area{position:relative;isolation:isolate;transition:background .6s ease}
+#chat-area[data-topic]{background:var(--tp-bg)!important}
+#chat-area[data-topic] #messages{background:transparent!important}
+#chat-area[data-topic] #chat-header{background:linear-gradient(90deg,rgba(0,0,0,.35),rgba(0,0,0,.15));border-bottom-color:var(--tp-a)}
+#chat-area[data-topic] .msg-wrap.own .msg-bubble{background:linear-gradient(135deg,var(--tp-a),var(--tp-b))!important;box-shadow:0 6px 22px color-mix(in srgb,var(--tp-a) 45%,transparent)!important}
+#chat-area[data-topic] .msg-wrap.other .msg-bubble{border-color:color-mix(in srgb,var(--tp-a) 45%,transparent);background:rgba(0,0,0,.35)!important}
+#chat-area[data-topic] #poke-strip{background:rgba(0,0,0,.35)}
+#chat-area[data-topic] #send-btn{background:linear-gradient(135deg,var(--tp-a),var(--tp-b))!important}
+#topic-fx{position:absolute!important;inset:0;overflow:hidden;pointer-events:none;z-index:-1!important}
+#topic-fx span{position:absolute;bottom:-40px;opacity:0;animation:tpRise linear infinite;filter:drop-shadow(0 0 8px rgba(255,255,255,.35))}
+@keyframes tpRise{0%{transform:translateY(0) rotate(0);opacity:0}12%{opacity:.5}85%{opacity:.35}100%{transform:translateY(-105vh) rotate(25deg);opacity:0}}
+#topic-chip{flex:0 0 auto;background:linear-gradient(135deg,var(--tp-a,#c2208f),var(--tp-b,#7a2bd6));color:#fff;border:none;border-radius:999px;padding:.3rem .8rem;font-size:.78rem;font-weight:800;cursor:pointer;display:none;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+@media(prefers-reduced-motion:reduce){#topic-fx span{animation:none;opacity:.25;bottom:20%}}
 </style>
 </head>
 <body>
@@ -3823,6 +3838,7 @@ async function openRoom(room){
   if(pokeBtn) pokeBtn.style.display = isDM ? '' : 'none';
   try{ renderPokeStrip(isDM); }catch(e){}
   try{ renderProfileSide(room); }catch(e){}
+  try{ applyRoomTopicTheme(room.id); }catch(e){}
   const pokePnl=document.getElementById('poke-panel');
   if(pokePnl) pokePnl.classList.remove('open');
   // Room info button visibility
@@ -6647,7 +6663,7 @@ const POKE_TOPIC_COLORS={
   'Gece Sohbeti':{card:'linear-gradient(135deg,#1e1b4b,#6366f1)',bg:'linear-gradient(135deg,#05051a 0%,#0c0c33 60%,#02020d 100%)'},
   'Duygusal':{card:'linear-gradient(135deg,#c9184a,#ff4d6d)',bg:'linear-gradient(135deg,#2d0a1a 0%,#4a1030 60%,#1a0510 100%)'},
   'Siyaset':{card:'linear-gradient(135deg,#023e8a,#0096c7)',bg:'linear-gradient(135deg,#020a1a 0%,#031f40 60%,#000d1a 100%)'},
-  'Cinsel':{card:'linear-gradient(135deg,#560bad,#f72585)',bg:'linear-gradient(135deg,#1a0020 0%,#2d003a 60%,#0d000d 100%)'},
+  'Cinsel':{card:'linear-gradient(135deg,#9b0a3c,#ff2e63)',bg:'linear-gradient(135deg,#1a0309 0%,#33060f 55%,#0d0204 100%)'},
   'Yediklerim':{card:'linear-gradient(135deg,#c44f00,#f4a261)',bg:'linear-gradient(135deg,#1a0f00 0%,#2a1800 60%,#1a0800 100%)'},
   'Tarih':{card:'linear-gradient(135deg,#7b2d00,#d4a017)',bg:'linear-gradient(135deg,#1a0a00 0%,#2a1500 60%,#0d0800 100%)'},
   'Sanat':{card:'linear-gradient(135deg,#6a0dad,#c77dff)',bg:'linear-gradient(135deg,#0f002a 0%,#1f0040 60%,#08000d 100%)'},
@@ -6773,30 +6789,15 @@ function closePokeSub(){
   if(sub2) sub2.style.display='';
 }
 function triggerPokeBackground(topicLabel,topicEmoji){
-  const msgs=document.getElementById('messages');
-  if(!msgs) return;
-  const colors=POKE_TOPIC_COLORS[topicLabel];
-  if(!colors) return;
-  // Animate chat background
-  msgs.style.transition='background 1.3s ease';
-  msgs.style.background=colors.bg;
-  // Show animated toast
+  const rid=S.currentRoom&&S.currentRoom.id;
+  if(rid){ _activePokeTopics[rid]={label:topicLabel,emoji:topicEmoji||''}; _saveActivePokeTopics(); }
+  applyRoomTopicTheme(rid);
   const t=document.getElementById('poke-bg-toast');
   if(t){
-    t.innerHTML=`<span style="font-size:2.2rem;line-height:1">${topicEmoji||'👉'}</span><span style="font-size:.88rem">${topicLabel} konusu kabul edildi! 🎉</span>`;
+    t.innerHTML='<span style="font-size:2.2rem;line-height:1">'+escHtml(topicEmoji||'👉')+'</span><span style="font-size:.88rem">'+escHtml(_tUI(topicLabel))+' ✓</span>';
     t.classList.add('active');
-    setTimeout(()=>{
-      t.style.animation='pokeToastOut .4s ease forwards';
-      setTimeout(()=>{t.classList.remove('active');t.style.animation='';},400);
-    },2800);
+    setTimeout(()=>{ t.style.animation='pokeToastOut .4s ease forwards'; setTimeout(()=>{t.classList.remove('active');t.style.animation='';},400); },2400);
   }
-  // Auto-revert after 9 seconds
-  clearTimeout(msgs._pokeBgTimer);
-  msgs._pokeBgTimer=setTimeout(()=>{
-    msgs.style.transition='background 2s ease';
-    msgs.style.background='';
-    setTimeout(()=>{msgs.style.transition='';},2000);
-  },9000);
 }
 async function sendPokeConfirm(){
   if(!_pokeSelectedTopic){ toast('Önce bir konu seç','info'); return; }
@@ -7705,6 +7706,32 @@ async function renderProfileSide(room){
 }
 
 window.addEventListener('load',function(){ setTimeout(function(){ try{ if(document.getElementById('app-screen')&&getComputedStyle(document.getElementById('app-screen')).display!=='none') renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(e){} },1200); });
+
+// ── Konuya göre kalıcı sohbet teması ────────────────────────
+function _tpHex(label){ const c=(POKE_TOPIC_COLORS[label]||{}).card||''; const m=c.match(/#[0-9a-fA-F]{6}/g)||['#7a2bd6','#d0238f']; return [m[0],m[1]||m[0]]; }
+function _tpRgba(hex,a){ const n=parseInt(hex.slice(1),16); return 'rgba('+(n>>16)+','+((n>>8)&255)+','+(n&255)+','+a+')'; }
+function applyRoomTopicTheme(roomId){
+  const ca=document.getElementById('chat-area'); if(!ca) return;
+  let fx=document.getElementById('topic-fx');
+  const act=roomId?_activePokeTopics[roomId]:null;
+  const label=act&&act.label;
+  if(!label||!POKE_TOPIC_COLORS[label]){
+    ca.removeAttribute('data-topic'); ca.style.removeProperty('--tp-bg'); ca.style.removeProperty('--tp-a'); ca.style.removeProperty('--tp-b');
+    if(fx) fx.innerHTML=''; const chip=document.getElementById('topic-chip'); if(chip) chip.style.display='none'; return;
+  }
+  const [a,b]=_tpHex(label), base=POKE_TOPIC_COLORS[label].bg;
+  ca.dataset.topic=label;
+  ca.style.setProperty('--tp-a',a); ca.style.setProperty('--tp-b',b);
+  ca.style.setProperty('--tp-bg','radial-gradient(700px 420px at 88% 8%,'+_tpRgba(a,.38)+',transparent 62%),radial-gradient(640px 460px at 8% 100%,'+_tpRgba(b,.32)+',transparent 62%),'+base);
+  if(!fx){ fx=document.createElement('div'); fx.id='topic-fx'; fx.setAttribute('aria-hidden','true'); ca.insertBefore(fx,ca.firstChild); }
+  const icons=(POKE_TOPIC_EMOJIS[label]||['✨']).slice(0,7);
+  let h=''; for(let i=0;i<16;i++){ const e=icons[i%icons.length]; h+='<span style="left:'+(Math.random()*96).toFixed(1)+'%;font-size:'+(14+Math.random()*22).toFixed(0)+'px;animation-duration:'+(11+Math.random()*14).toFixed(1)+'s;animation-delay:-'+(Math.random()*20).toFixed(1)+'s">'+escHtml(e)+'</span>'; }
+  fx.innerHTML=h;
+  let chip=document.getElementById('topic-chip');
+  if(!chip){ chip=document.createElement('button'); chip.id='topic-chip'; chip.type='button'; chip.title='✕'; chip.onclick=function(){ clearRoomTopic(); }; const hd=document.getElementById('chat-header'); if(hd) hd.insertBefore(chip,hd.children[3]||null); }
+  chip.textContent=(act.emoji||'')+' '+_tUI(label)+'  ✕'; chip.style.display='inline-block';
+}
+function clearRoomTopic(){ const rid=S.currentRoom&&S.currentRoom.id; if(rid){ delete _activePokeTopics[rid]; _saveActivePokeTopics(); } applyRoomTopicTheme(rid); try{updatePokeQuickBtn();}catch(e){} }
 </script>
 </body>
 </html>
