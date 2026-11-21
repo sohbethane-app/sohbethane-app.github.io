@@ -819,6 +819,52 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .auth-feat-pill.fp4{display:none}
 .auth-feats{grid-template-columns:repeat(3,max-content)}
 .auth-left{background:linear-gradient(0deg,rgba(12,6,20,.97) 0%,rgba(12,6,20,.9) 34%,rgba(12,6,20,0) 56%),linear-gradient(180deg,rgba(12,6,20,.55) 0%,transparent 22%),url(img/hero.jpg) center top/cover no-repeat!important}
+
+/* ===== v5: üç sütunlu modern sohbet paneli ===== */
+:root{--bg:#12081c;--bg2:#1a0d29;--bg3:#291440;--brd:#3b2159;--acc:#c2208f;--acc2:#ff4fa3;--own:#3a1456}
+#app-screen{background:radial-gradient(900px 500px at 0% 0%,rgba(194,32,143,.18),transparent 60%),radial-gradient(800px 500px at 100% 100%,rgba(122,58,255,.16),transparent 60%),#12081c}
+#chat-header{background:rgba(255,255,255,.04);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08)}
+#chat-header-name{font-weight:800}
+.msg-wrap.own .msg-bubble{background:linear-gradient(135deg,#e0268f,#8a2be2)!important;border-bottom-right-radius:4px!important;box-shadow:0 6px 20px rgba(194,32,143,.35)!important;color:#fff}
+.msg-wrap.other .msg-bubble{background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.08);border-bottom-left-radius:4px!important;backdrop-filter:blur(8px)}
+.msg-bubble{border-radius:18px!important}
+#chat-input-wrap{background:rgba(255,255,255,.05)!important;border-radius:22px!important;border:1px solid rgba(255,255,255,.1)!important}
+#send-btn{background:linear-gradient(135deg,#e0268f,#8a2be2)!important;box-shadow:0 8px 24px rgba(194,32,143,.45)!important}
+#sidebar-header h2{background:linear-gradient(135deg,#ff7ac6,#c7a2ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.room-item{margin:3px .6rem;border-radius:16px;padding:.65rem .75rem}
+.room-item:hover{background:rgba(255,255,255,.06)}
+.room-item.active{background:linear-gradient(135deg,#d0238f,#7a2bd6)!important;border-right:none!important;box-shadow:0 8px 24px rgba(194,32,143,.35)}
+.room-item.active .room-preview,.room-item.active .room-time{color:rgba(255,255,255,.85)!important}
+.unread-badge{background:linear-gradient(135deg,#ff4fa3,#ff7a59)!important;color:#fff!important}
+#user-search{border-radius:14px;background:rgba(255,255,255,.06)}
+#profile-side{display:none}
+@media(min-width:901px){
+  #sidebar{width:392px;display:grid;grid-template-columns:84px 1fr;grid-template-rows:auto auto auto auto auto auto minmax(0,1fr)}
+  #sidebar>*{grid-column:2;min-width:0}
+  #sidebar-header{padding:.8rem .6rem;gap:.25rem}
+  #sidebar-header h2{font-size:.95rem;white-space:nowrap}
+  #sidebar-header .icon-btn{padding:.3rem}
+  #sidebar-tabs{grid-column:1;grid-row:1/-1;flex-direction:column;flex-wrap:nowrap;justify-content:flex-start;gap:.35rem;padding:.8rem .5rem;background:rgba(0,0,0,.25);border-bottom:none;border-right:1px solid rgba(255,255,255,.06)}
+  .s-tab{flex:0 0 auto;width:100%;min-height:64px;border-radius:16px;border-bottom:none;font-size:.66rem;padding:.55rem .2rem}
+  .s-tab-icon{font-size:1.3rem}
+  .s-tab.active{background:linear-gradient(135deg,#d0238f,#7a2bd6);color:#fff;border-bottom-color:transparent;box-shadow:0 8px 22px rgba(194,32,143,.4)}
+  #invite-link-popup{left:92px}
+  #room-list,#user-search-results{min-height:0}
+}
+@media(min-width:1200px){
+  #profile-side{display:block;width:290px;flex-shrink:0;padding:1.4rem 1.1rem;overflow-y:auto;background:rgba(255,255,255,.035);border-left:1px solid rgba(255,255,255,.07);text-align:center}
+  .ps-photo{width:100%;aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:linear-gradient(135deg,#d0238f,#7a2bd6);display:flex;align-items:center;justify-content:center;font-size:4rem;font-weight:800;color:#fff;box-shadow:0 16px 40px rgba(0,0,0,.4)}
+  .ps-photo img{width:100%;height:100%;object-fit:cover}
+  #profile-side h3{margin:.9rem 0 0;font-size:1.25rem;font-weight:800}
+  .ps-user{color:var(--txt2);font-size:.82rem;margin-bottom:.6rem}
+  .ps-rows{list-style:none;padding:0;margin:.5rem 0;text-align:left;display:grid;gap:.45rem}
+  .ps-rows li{background:rgba(255,255,255,.05);border-radius:12px;padding:.55rem .8rem;font-size:.86rem}
+  .ps-bio{color:var(--txt2);font-size:.84rem;line-height:1.5;text-align:left;margin:.6rem 0}
+  .ps-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:1rem}
+  .ps-actions button{display:flex;flex-direction:column;align-items:center;gap:.25rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:.7rem .2rem;color:var(--txt);font-size:1.2rem;cursor:pointer;transition:transform .12s,background .12s}
+  .ps-actions button span{font-size:.68rem;color:var(--txt2)}
+  .ps-actions button:hover{transform:translateY(-2px);background:rgba(194,32,143,.25)}
+}
 </style>
 </head>
 <body>
@@ -3776,6 +3822,7 @@ async function openRoom(room){
   const pokeBtn=document.getElementById('poke-btn');
   if(pokeBtn) pokeBtn.style.display = isDM ? '' : 'none';
   try{ renderPokeStrip(isDM); }catch(e){}
+  try{ renderProfileSide(room); }catch(e){}
   const pokePnl=document.getElementById('poke-panel');
   if(pokePnl) pokePnl.classList.remove('open');
   // Room info button visibility
@@ -7634,6 +7681,28 @@ document.addEventListener('click',function(e){
   if(panel&&!panel.classList.contains('open')) togglePokePanel();
   openPokeSub(t.emoji,t.label);
 });
+
+// ── Sağ profil paneli (geniş ekran, DM) ─────────────────────
+function _ccFlag(cc){ if(!cc||cc.length!==2) return '🌍'; try{ return String.fromCodePoint(...cc.toUpperCase().split('').map(c=>127397+c.charCodeAt(0))); }catch(e){ return '🌍'; } }
+async function renderProfileSide(room){
+  const app=document.getElementById('app-screen'); if(!app) return;
+  let el=document.getElementById('profile-side');
+  if(!el){ el=document.createElement('aside'); el.id='profile-side'; app.appendChild(el); }
+  if(!room||room.tur!=='dm'||!room._otherUserId){ el.style.display='none'; return; }
+  const uid=room._otherUserId;
+  let p=null; try{ p=await getProfile(uid); }catch(e){}
+  if(!p||!S.currentRoom||S.currentRoom.id!==room.id) return;
+  const name=p.goruntu_adi||p.kullanici_adi||'?';
+  const photo=p.avatar_url&&/^(https:|data:image\/)/.test(p.avatar_url)?'<img src="'+escHtml(p.avatar_url)+'" alt="">':'<span>'+escHtml(name.charAt(0).toUpperCase())+'</span>';
+  const rows=[];
+  if(p.yas) rows.push('🎂 '+escHtml(p.yas+' '+_tUI('yaşında')));
+  if(p.ulke) rows.push(_ccFlag(p.ulke)+' '+escHtml(_ccName(p.ulke)));
+  el.innerHTML='<div class="ps-photo">'+photo+'</div><h3>'+escHtml(name)+'</h3><div class="ps-user">@'+escHtml(p.kullanici_adi||'')+'</div>'
+    +(rows.length?'<ul class="ps-rows">'+rows.map(r=>'<li>'+r+'</li>').join('')+'</ul>':'')
+    +((p.bio||p.hakkimda)?'<p class="ps-bio">'+escHtml(p.bio||p.hakkimda)+'</p>':'')
+    +'<div class="ps-actions"><button type="button" onclick="qaOpenTunel()">📰<span>'+escHtml(_tUI('Tünel'))+'</span></button><button type="button" onclick="qaOpenIkiliTunel()">🔗<span>'+escHtml(_tUI('İkili'))+'</span></button><button type="button" onclick="toggleBlock()">🚫<span>'+escHtml(_tUI('Engelle'))+'</span></button></div>';
+  el.style.display='';
+}
 </script>
 </body>
 </html>
