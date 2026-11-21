@@ -736,6 +736,10 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .nl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.5rem}
 .nl-grid button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;padding:.6rem .5rem;font-size:.88rem;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
 .nl-grid button:hover{transform:translateY(-2px);border-color:#9b86ff;background:rgba(124,92,255,.25)}
+.poke-btn-row{display:flex;gap:.4rem;flex-wrap:wrap}
+.poke-decline-btn{background:rgba(255,255,255,.07);color:var(--txt2);border:1px solid var(--brd);border-radius:10px;padding:.4rem .8rem;font-size:.78rem;cursor:pointer;transition:.18s}
+.poke-decline-btn:hover{background:rgba(255,255,255,.14);color:var(--txt)}
+.poke-decline-btn:disabled{opacity:.5;cursor:default}
 </style>
 </head>
 <body>
@@ -3587,7 +3591,7 @@ async function renderRoomList(rooms){
       if(r._lastMsg.mesaj_tipi==='dosya'){const _mt=r._lastMsg.dosya_tipi||'';const _fn=r._lastMsg.dosya_adi||'';const _isImg=_mt.startsWith('image/')||/\.(jpe?g|png|gif|webp|bmp|svg|heic)$/i.test(_fn);preview=_isImg?'📷 Resim':'📎 Dosya';}
       else if(r._lastMsg.mesaj_tipi==='ses') preview='🎤 Ses mesajı';
       else if(r._lastMsg.mesaj_tipi==='poke') preview='🫵 Konu talebi';
-      else if(r._lastMsg.mesaj_tipi==='poke_yanit') preview='✅ Talebi kabul etti';
+      else if(r._lastMsg.mesaj_tipi==='poke_yanit') preview=_tUI('✅ Talebi kabul etti');
       else if(r._lastMsg.silindi) preview='Bu mesaj silindi.';
       else preview='🔒 Şifreli mesaj';
     }
@@ -3877,11 +3881,11 @@ function renderPokeCard(m){
     if(d.emoji) emoji=d.emoji;
     if(d.label) label=d.label;
   }catch(e){}
-  const acceptBtn=(!own)?`<button class="poke-accept-btn" data-id="${m.id}" onclick="acceptPoke('${m.id}')">Kabul Et ✓</button>`:'<span style="font-size:.72rem;color:var(--txt2)">Yanıt bekleniyor…</span>';
+  const acceptBtn=(!own)?`<div class="poke-btn-row"><button class="poke-accept-btn" data-id="${m.id}" onclick="acceptPoke('${m.id}')">${escHtml(_tUI('Kabul Et ✓'))}</button><button class="poke-decline-btn" data-id="${m.id}" onclick="declinePoke('${m.id}')">${escHtml(_tUI('Şimdi değil 🙏'))}</button></div>`:`<span style="font-size:.72rem;color:var(--txt2)">${escHtml(_tUI('Yanıt bekleniyor…'))}</span>`;
   return `<div class="poke-card">
-    <div class="poke-card-header">🫵 DÜRT — Konu Talebi</div>
-    <div class="poke-card-topic">${emoji} ${label}</div>
-    <div class="poke-card-sub">${own?'Bu konuda sohbet açmak istiyorsun':'Bu konuda seninle sohbet etmek istiyor'}</div>
+    <div class="poke-card-header">🫵 ${escHtml(_tUI('DÜRT — Konu Talebi'))}</div>
+    <div class="poke-card-topic">${escHtml(emoji)} ${escHtml(_tUI(label))}</div>
+    <div class="poke-card-sub">${escHtml(_tUI(own?'Bu konuda sohbet açmak istiyorsun':'Bu konuda seninle sohbet etmek istiyor'))}</div>
     ${acceptBtn}
   </div>`;
 }
@@ -3890,11 +3894,12 @@ function renderPokeReplyCard(m){
   try{
     const d=JSON.parse(m._text||'{}');
     if(d.topic) topic=d.topic;
+    if(d.declined) return `<div class="poke-reply-card"><div class="poke-reply-header">🙏 ${escHtml(_tUI('Şimdi değil'))}</div><div style="font-size:.74rem;color:var(--txt2)">${escHtml(_tUI('Sorun değil, başka zaman 💜'))}</div></div>`;
   }catch(e){}
   return `<div class="poke-reply-card">
-    <div class="poke-reply-header">✅ Kabul Edildi</div>
-    <div class="poke-reply-topic">${topic}</div>
-    <div style="font-size:.7rem;color:var(--txt2)">Haydi konuşalım! 🎉</div>
+    <div class="poke-reply-header">✅ ${escHtml(_tUI('Kabul Edildi'))}</div>
+    <div class="poke-reply-topic">${escHtml(topic)}</div>
+    <div style="font-size:.7rem;color:var(--txt2)">${escHtml(_tUI('Haydi konuşalım! 🎉'))}</div>
   </div>`;
 }
 function renderFileContent(m){
@@ -6384,7 +6389,9 @@ function applyWallpaper(id){
 // EMOJI PANEL
 // ============================================================
 const EMOJI_CATS = {
-  '🫦':['💋','😘','😍','🥰','😏','😈','🤭','🥵','🔥','❤️‍🔥','🫦','👄','💄','👅','💅','💃','🕺','🌹','🥀','🌷','🌸','🌺','🌼','💐','🍓','🍒','🍑','🍌','🍆','🌶️','🥒','🍫','🧁','🍷','🥂','🍾','🫀','💘','💝','💖','💗','💓','💞','💕','❣️','💔','👫','💏','💑','🫶','🤗','🧡','💛','💜','🩷','🏩','🛁','🛏️','🕯️','🌙','✨','💫','🌠','🌌','🌃','🎭','🪞','🩱','👙','🩲','🌊','💦','🫧','🪢','⛓️','🔐','🔑','🗝️','🎩','👑','💎','🥃','🍸','🍹','🎶','🎵','🎷','😻','💌','🦋','🌈','🦩','🦚','🌟','⭐','🪩','🌴','🏝️','🌅','🌄'],
+  '🫦':['💋','😘','😍','🥰','😏','😈','🤭','🥵','🔥','❤️‍🔥','🫦','👄','👅','💄','💅','💃','🕺','🌹','🥀','🌷','🌸','🌺','🍓','🍒','🍑','🍌','🍆','🌶️','🍫','🍯','🧁','🍷','🥂','🍾','🥃','🍸','💘','💝','💖','💗','💓','💞','💕','💔','💏','💑','🫶','🤗','🏩','🛁','🛏️','🕯️','🌙','✨','💫','🌠','🌃','🪞','🩱','👙','🩲','👠','🌊','💦','🫧','🪢','⛓️','🔐','🔑','🗝️','🎩','👑','💎','😋','🤤','😮‍💨','🫠','🥴','😳','🙈','🫣','😜','🪶','🧊','🔞'],
+  '😈':['😉','😏','😈','😜','🤭','🫣','🙈','😳','🥴','🤤','😋','😍','🥵','🥶','😮‍💨','🫠','🤩','😻','🙊','😼','👀','👁️‍🗨️','💋','🫦','👅','🤌','🫰','👉','👌','🤏','🫳','💪','🍑','🍆','🍒','🍓','🍌','🥒','🌶️','💦','🍯','🧴','🪄','🎲','🃏','🎯','🪩','🎭','🎀','🧸','🪽'],
+  '🌹':['🌹','🥀','💐','🌷','🌸','🕯️','🍷','🥂','🌙','🌃','🌅','🌠','✨','🎶','🎻','🎷','💌','💍','💎','🎁','🧸','🫂','🤍','💜','🩷','❤️','💕','💞','💓','💗','💖','💝','💘','💑','💏','🫶','🛁','🛏️','🏖️','🌊','🦢','🕊️','🍫','🍓','🍰','🛋️','🎬','📖','☕','🔥'],
   '😊':['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😶‍🌫️','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','😵‍💫','🤯','🤠','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👾','🤖','🎃','🗿','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🫠','🫤','🫡','🫢','🫣','🫥','🥸'],
   '❤️':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','💘','💝','💖','💗','💓','💞','💕','💟','❣️','🫀','😘','😍','🥰','🤩','💋','👄','🫦','😻','💑','👫','👬','👭','💏','🫶','🤗','🌹','🌺','🌸','💐','🌷','🏩','💒','💍','🎀','💄','👙','🩱','🩲','🩳','👗','👘','👚','🩴','👠','👡','💅','🛁','🛏️','🕯️','🌙','✨','💫','🌃','🥂','🍾','🍷','🍓','🍒','🍑','🫐','🥭','🍌','🍫','🍬','🧁','🎂','🌻','🌼','🌺','🏵️','🎁','💝','🎀','🌶️','🥵','💦','🫧','🌊','🔥','⛓️','🪢','🦋','🕊️'],
   '🔥':['🔥','💯','✨','💫','⚡','💥','🌈','🎯','👑','💎','🏆','🥇','🌟','⭐','🌙','☀️','🎵','🎶','🚀','🛸','💰','💸','🤑','📱','💻','🎮','🕹️','🎲','🎁','🎀','🎊','🎉','🎈','🔔','💡','🔮','🪄','🧿','🌠','🌌','🪐','💠','🫧','🪩','🎭','🎪','🎨','🏅','🎖️','🌐','🔑','🗝️','📸','🎬','🔵','🟢','🟡','🟠','🔴','⬛','🌀','♾️'],
@@ -6434,6 +6441,13 @@ function toggleEmoji(){
 }
 /* ===== DÜRT / POKE ===== */
 const POKE_TOPICS=[
+  {emoji:'😉',label:'Flört'},
+  {emoji:'🌹',label:'Romantik'},
+  {emoji:'❤️‍🔥',label:'Tutku'},
+  {emoji:'😜',label:'Oyuncu'},
+  {emoji:'🎭',label:'Fantezi'},
+  {emoji:'🥺',label:'Özlem'},
+  {emoji:'🌃',label:'Gece Sohbeti'},
   {emoji:'💔',label:'Duygusal'},
   {emoji:'🗳️',label:'Siyaset'},
   {emoji:'🔥',label:'Cinsel'},
@@ -6460,9 +6474,16 @@ const POKE_TOPICS=[
   {emoji:'💡',label:'Düşünce & Fikir'}
 ];
 const POKE_TOPIC_EMOJIS={
+  'Flört':['😉','😏','😘','😍','🥰','😋','😜','🤭','😳','🙈','💋','💌','🌹','💘','🍷','🥂','🫦','😈','✨','💫','🌙','🎭','🪩','💃','🕺','🫶','💞','🍓','🍒','🍫','🍬','🌸','🦋','🎀','🕯️','🧸','👀','🫣','😇','🥹'],
+  'Romantik':['❤️','💕','💞','💓','💗','💖','💝','💘','💑','💏','🫶','🌹','🥀','🌷','💐','🕯️','🍷','🥂','🌙','✨','🌅','🌃','🎶','💌','💍','🎁','🧸','🫂','🤍','💜','🩷','🌠','🏖️','🛁','🛏️','🎻','🕊️','🦢','🌊','🍫'],
+  'Tutku':['🔥','❤️‍🔥','🥵','😈','🫦','💋','👅','🌶️','🍑','🍆','💦','🌋','⚡','💥','🧨','🖤','⛓️','🪢','🔑','🍒','🍓','🩲','👙','🩱','🌡️','💃','🕺','🛏️','🌙','🕯️','😏','🤤','😮‍💨','🫠','🐍','🦁','🐺','🏍️','🥃','🍷'],
+  'Oyuncu':['😜','😝','🤪','😏','😈','🙈','🤭','🫣','🎲','🃏','🎯','🎮','🪄','🎭','🎪','🍭','🍬','🧁','🎀','🪩','🏹','💘','🧩','🎈','🎊','🦄','🐱','🍑','🍒','🍓','🧸','👀','🤞','🎁','🪁','🎠','🎡','🎢','🥳','😹'],
+  'Fantezi':['🎭','🪞','🕯️','🩱','🎩','👑','💎','🧜‍♀️','🧛','🧚','🦹','🦸','🧞','🐉','🦄','🌌','🌙','🔮','🪄','🗝️','🔐','⛓️','🪢','🎀','🥀','🌹','🖤','🎬','📖','💭','😈','🦋','🪽','🌠','🏰','🗡️','🍎','🐍','🦊','🐺'],
+  'Özlem':['🥺','😔','🫂','💌','📩','📱','📞','🌙','⭐','💔','❤️‍🩹','🤍','🥹','😢','🕰️','⏳','🌧️','🌃','🚉','✈️','🌹','🧸','🫶','🤗','💞','💓','🫀','🕊️','🍂','🌅','📷','🎧','🎶','🌠','💭','🥀','☕','🧣','🔥','💋'],
+  'Gece Sohbeti':['🌙','🌃','🌌','⭐','🕯️','🍷','🥂','☕','🛋️','🛏️','📱','💬','🎧','🎶','😴','🥱','🦉','🌠','🛁','🧸','✨','💭','🤫','🍫','🌜','🌛','🌝','🔮','🫶','😏','🥃','🍸','🎷','🎹','📖','🧣','🕰️','🌑','💤','😌'],
   'Duygusal':['💔','🥺','😭','😢','🥹','❤️‍🩹','💗','💓','💞','💝','🫀','🌹','🕯️','😔','🤍','😞','💌','🫂','😩','🥀','🌸','😿','🫶','🌈','🦋','✨','🌙','⭐','🤗','🙈','😘','💋','🍷','🌷','💐','🌺','🎭','🎵','🎶','☁️','🌊','🌅','💏','👫','👩‍❤️‍👨','💑','🥰','😻','💟','🙏','🌠','🎆','🎇','🎑','🧡','💛','💚','💙','💜','🖤','🤎','🤍','🫧','🫦','😍','🤩','😇','🥳','🌻','🌼','🍓','🍑','🧸','🎀','🎁','🎊','🎈','💫','✨','🌟','🌛','🌜','🌝','🌙','💃','🕺','🪩','😌','🥲','🌃','🌌','🌄','💞','💓','💗','💕','💘','❤️‍🔥','😶‍🌫️','🤧','😪','🫠','😮‍💨','😑','😐','🫡','🤐','😬','😯','😦','😧','😮','😲','🙁','☹️','😣','😖','😫','😤','😠','😡','🤬','😈','👿','💢','💥','💦','💨','💫','🌀','🎠','🎡','🎢','🎪','🎭','🤹','🎋','🎍','🌙','🌌','🌠','💫','⭐','🌟','✨','💥','🔥','❄️','🌊','🏔️','🏝️','🌴','🌿','🌱','🍃','🍂','🍁','🌾','🌼','💐','🌷','🪷'],
   'Siyaset':['🗳️','🏛️','⚖️','🌐','📜','🏳️','🏴','🗺️','🤝','✊','🎙️','📢','📣','🔊','📰','📋','🧾','🔍','💬','⚡','🌍','🌎','🌏','👁️','🔐','🗝️','👑','🎖️','🪙','💰','🤺','⚔️','🛡️','🔴','🔵','⚪','🟢','🟡','🟠','🟣','🏁','🚩','⛳','🕊️','🌿','🏅','🧩','🔎','🖋️','📝','📌','📍','🗓️','📅','🕰️','⌛','⏳','🔔','📯','🎺','🏹','🗡️','⚜️','🪬','🌟','💡','🔑','📊','📈','📉','🌱','🌾','☮️','🫶','🏦','🏢','🏗️','⚙️','🔧','🪛','🧲','🔬','🧬','🧪','⚗️','🌡️','🔋','🌍','🚀','🛸','🗺️','🏠','🏡','🚂','🚆','✈️','⛽','🚦','🗺️','🧭','🌐','🏆','🎯','📸','📷','🎥','📺','📻','💻','📱','📡','🖥️','🖨️','⌨️','🖱️','📠','☎️','📞','🔭','🧫','🌡️','⚗️','💊','🏥','🏫','🏬','🏪','🏩','🏨','🏦','🎠','🎡','🎢','🎪','🎭','🎬','🎞️','📽️','🎟️','🎫','🃏','🀄','🎲','♟️'],
-  'Cinsel':['🔥','💋','😈','👅','🫦','😏','🌶️','🍑','🍆','🥵','💦','🌡️','🧨','⛓️','🪢','🔐','🔑','🛁','🛏️','🌙','🕯️','💃','🕺','👙','🩲','🩱','🫀','💘','❤️‍🔥','🍓','🍒','🫐','🥭','🍌','🍫','🧁','🥂','🍾','🪩','🎭','🎪','😋','😜','😝','🤤','🥴','😮','😲','🙈','🙉','🙊','🌹','🌷','🌸','🌺','🌻','💐','🥀','🧲','🪸','🦋','🐍','🦄','🐉','🦚','🦜','💎','👠','👡','💄','🪞','🛀','🫧','🧖','💆','💅','🏊','🤽','🧘','💪','🌊','🏖️','🌅','🏝️','🌴','🍹','🥃','🍸','🍺','🍻','🥂','✨','💫','⭐','🌟','🎶','🎵','🌃','🌙','🌌','🌹','🌷','🍓','🍒','🍑','🥭','🍇','🫒','🥑','🫐','🍋','🍊','🍎','🍏','🥝','🍍','🥥','🌴','🌿','🌱','🌾','🍀','🍃','🍂','🍁','🔮','🪬','🧿','📿','🎁','🎀','🎊','🎉','🎈','💝','💖','💗','💓','💞','💕','❤️‍🩹','🫀','🧡','💛','💚','💙','💜','🤍','🤎','🖤','🫧','🪩','🎠','🎡','🎢','🎪'],
+  'Cinsel':['🔥','💋','😈','👅','🫦','😏','🌶️','🍑','🍆','🥵','💦','🌡️','🧨','⛓️','🪢','🔑','🛁','🛏️','🌙','🕯️','💃','🕺','👙','🩲','🩱','🫀','💘','❤️‍🔥','🍓','🍒','🍌','🥭','🍫','🥂','🍾','😋','🤤','😮‍💨','🫠','🙈','👠','💄','🪞','🍷','🥃','🐍','🖤','🌹','🎀','👀','🫣','😜','🤭','🔞','💎','👑','🧴','🪶','🧊','🍯','💅'],
   'Yediklerim':['🍽️','🍔','🍕','🌮','🍜','🍣','🍱','🥗','🥘','🫕','🍲','🍛','🥩','🍗','🥓','🌭','🥪','🥙','🌯','🫔','🥚','🍳','🧇','🥞','🧆','🍟','🧀','🫒','🥑','🥦','🌽','🥕','🍅','🧅','🧄','🥜','🌰','🍇','🍓','🍎','🍊','🍋','🫐','🍑','🍒','🍰','🎂','🧁','🍩','🍪','🍫','🍬','🍭','☕','🧋','🍵','🥛','🧃','🍺','🥂','🍷','🫖','🫗','🥐','🥖','🫓','🥨','🧈','🥯','🍿','🧂','🍯','🧊','🍶','🥤','🍮','🍡','🥧','🍢','🍧','🍨','🍦','🥄','🍴','🫙','🍱','🥟','🧆','🥠','🍤','🦐','🦑','🦀','🦞','🦪','🍣','🍤','🍙','🍚','🍘','🍥','🥮','🍡','🍢','🧊','🫙','🧋','🥤','🍹','🍸','🥃','🍾','🎂','🍰','🧁','🍩','🍪','🍫','🍬','🍭','🍮','🍯','🧃','🥛','☕','🫖','🍵','🍶','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧉','🍾','🫗','🥃','🥤'],
   'Tarih':['📜','🏛️','⚔️','🛡️','🗺️','🏺','🔱','👑','🦁','🌍','🎭','📚','🦅','⚓','⚙️','🏰','🗼','🕍','⛩️','🕌','🌋','🗻','🏔️','🌊','🌅','🌄','🪐','⭐','💫','🔭','⚗️','🧪','🧬','📖','🖋️','🔍','🪬','⚜️','🪖','🏹','🗡️','🪃','🥁','🪘','📯','📣','🧭','🧩','🐉','🦕','🦖','🐘','🦁','🐅','🦅','🦉','🪆','🎪','🎑','🎋','🎍','🎐','🏮','🪅','🧧','🕯️','🪔','⛪','🛕','🕋','🧿','📿','🌿','🍀','🌱','🌾','🌊','🏖️','🌴','🌵','🌺','🌻','🌸','🌼','🌷','🌹','🍁','🍂','🍃','🌙','☀️','🌟','💫','✨','🦒','🐘','🦏','🦛','🐪','🐫','🐴','🦌','🦬','🐃','🐂','🐄','🐖','🐏','🐑','🦙','🐐','🦘','🦡','🦦','🦥','🐓','🦃','🦤','🦚','🦜','🦩','🦢','🦆','🐔','🐧','🐦','🕊️','🦅','🦆','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪲','🪳','🦟','🦗','🪰','🐢','🐍','🦎','🦕','🦖','🐊'],
   'Sanat':['🎨','🖌️','🖼️','🖋️','✏️','🎭','🎬','📽️','🎞️','🎪','🎵','🎶','🎷','🎸','🎹','🎺','🎻','🪗','🥁','🎤','🎧','🎼','🎫','🎟️','📸','📷','🎥','💡','🌈','✨','💫','⭐','🌟','🌸','🌺','🌻','🌹','🍀','🦋','🕊️','🦚','🦜','🦩','🪸','🎀','🎁','🎈','🎊','🎉','🎆','🎇','🖼️','🗿','🪆','🤹','🪄','🎩','🪅','🎑','🎋','🎍','🌙','☀️','🌊','🏔️','🌋','🌴','🌿','🌱','🌾','🍄','🌼','💐','🌷','🪷','🌸','🌺','🌻','🌹','🍃','🍂','🍁','🍀','🌵','🎋','🎍','🌅','🌄','🌠','🌌','🌙','⭐','💫','✨','🖊️','🖍️','📐','📏','📌','📍','📝','🗒️','📋','📊','📈','📉','🗂️','📁','📂','💾','💿','📀','🎞️','📽️','📹','📸','📷','🎥','📻','📺','🖥️','💻','📱','🎮','🕹️','👾','🤖','🔬','🔭','🧬','⚗️','🧪','🧫','🌡️','🔮','🪬','🧿','📿','🎭','🃏','🀄','🎲','♟️','🎯','🎳','🎱','🎰','🎠','🎡','🎢','🎪','🎭'],
@@ -6486,6 +6507,13 @@ const POKE_TOPIC_EMOJIS={
   'Düşünce & Fikir':['💡','🧠','💭','🔍','🔎','📖','✍️','🖋️','📝','🗒️','📊','📈','📉','🤔','🧐','🌀','⚖️','♾️','🔮','🪬','🌌','🔭','🧬','⚗️','🧪','🤯','💥','⚡','✨','💫','⭐','🌟','🌈','🌊','🏔️','🌋','🦋','🕊️','🌿','🍀','🌱','☮️','☯️','🌍','🌎','🌏','🤝','🫶','❤️','🧡','💛','💚','💙','💜','🗝️','🔑','🗺️','🧩','🎯','🏆','🌙','☀️','🌅','🌄','🌠','🌌','🎆','🎇','🌸','🌺','🌻','🌼','🌷','🌹','💐','🌿','🌱','🌾','🍀','🍃','🍂','🍁','🌴','🌵','🎋','🎍','🌲','🌳','🐉','🦄','🦋','🕊️','🦅','🐚','🌊','🏖️','🌅','🌄','🌠','🪄','🎩','🎭','🎪','🤹','🪆','🎎','🥁','🪘','📯','📣','🔔','🔕','💬','💭','🗨️','🗯️','📢','📡','🌐','🔵','🟡','🔴','⚪','🟢','🟠','🟣','⬛','🔲','🔳','⬜','🔷','🔶','🔹','🔸','🔻','🔺','💠','🔘','🔲','🔳','🌀','🎑','🎋','🎍','🎏','🎐']
 };
 const POKE_TOPIC_COLORS={
+  'Flört':{card:'linear-gradient(135deg,#d6336c,#ff8fab)',bg:'linear-gradient(135deg,#2a0a18 0%,#4a1230 60%,#14050c 100%)'},
+  'Romantik':{card:'linear-gradient(135deg,#9d174d,#f472b6)',bg:'linear-gradient(135deg,#2a0a1e 0%,#40102c 60%,#12050d 100%)'},
+  'Tutku':{card:'linear-gradient(135deg,#7f1d1d,#f43f5e)',bg:'linear-gradient(135deg,#240606 0%,#40080f 60%,#100304 100%)'},
+  'Oyuncu':{card:'linear-gradient(135deg,#7c3aed,#f472b6)',bg:'linear-gradient(135deg,#180a2e 0%,#2b0f48 60%,#0a0414 100%)'},
+  'Fantezi':{card:'linear-gradient(135deg,#4c1d95,#c026d3)',bg:'linear-gradient(135deg,#150a2a 0%,#2a0f3d 60%,#09040f 100%)'},
+  'Özlem':{card:'linear-gradient(135deg,#1e3a8a,#818cf8)',bg:'linear-gradient(135deg,#070d2a 0%,#0f1a45 60%,#03061a 100%)'},
+  'Gece Sohbeti':{card:'linear-gradient(135deg,#1e1b4b,#6366f1)',bg:'linear-gradient(135deg,#05051a 0%,#0c0c33 60%,#02020d 100%)'},
   'Duygusal':{card:'linear-gradient(135deg,#c9184a,#ff4d6d)',bg:'linear-gradient(135deg,#2d0a1a 0%,#4a1030 60%,#1a0510 100%)'},
   'Siyaset':{card:'linear-gradient(135deg,#023e8a,#0096c7)',bg:'linear-gradient(135deg,#020a1a 0%,#031f40 60%,#000d1a 100%)'},
   'Cinsel':{card:'linear-gradient(135deg,#560bad,#f72585)',bg:'linear-gradient(135deg,#1a0020 0%,#2d003a 60%,#0d000d 100%)'},
@@ -6511,6 +6539,7 @@ const POKE_TOPIC_COLORS={
   'Doğa & Çevre':{card:'linear-gradient(135deg,#1b4332,#40916c)',bg:'linear-gradient(135deg,#051a0f 0%,#0f2a1a 60%,#020d06 100%)'},
   'Düşünce & Fikir':{card:'linear-gradient(135deg,#023e8a,#4361ee)',bg:'linear-gradient(135deg,#020a1a 0%,#060a2a 60%,#010308 100%)'}
 };
+Object.keys(POKE_TOPIC_EMOJIS).forEach(function(k){POKE_TOPIC_EMOJIS[k]=Array.from(new Set(POKE_TOPIC_EMOJIS[k]));});
 let _pokeSelectedTopic=null, _pokeSelectedEmoji=null;
 let _activePokeTopics={};
 try{ const saved=localStorage.getItem('sh_poke_active_topics'); if(saved) _activePokeTopics=JSON.parse(saved); }catch(e){}
@@ -6572,7 +6601,7 @@ function initPokePanel(){
   POKE_TOPICS.forEach(t=>{
     const btn=document.createElement('button');
     btn.className='poke-topic-btn';
-    btn.innerHTML=`${t.emoji} ${t.label}`;
+    btn.textContent=t.emoji+' '+_tUI(t.label);
     btn.onclick=()=>openPokeSub(t.emoji,t.label);
     list.appendChild(btn);
   });
@@ -6715,9 +6744,30 @@ async function sendPoke(emoji,label){
     toast((e?.message||'Dürt gönderilemedi'),'error');
   }
 }
+async function declinePoke(msgId){
+  document.querySelectorAll('.poke-accept-btn[data-id="'+msgId+'"],.poke-decline-btn[data-id="'+msgId+'"]').forEach(b=>{b.disabled=true;});
+  if(!S.currentRoom||!S.user) return;
+  const room=S.currentRoom;
+  const plaintext=JSON.stringify({declined:true,msgId});
+  try{
+    const op=await getProfile(room._otherUserId);
+    if(!op?.acik_anahtar) throw new Error('Karşı tarafın anahtarı bulunamadı.');
+    const ephPair=await generateKeyPair();
+    const ephPubJwk=await exportPublicJwk(ephPair.publicKey);
+    const recipPub=await importPublicJwk(op.acik_anahtar);
+    const sendPub=await importPublicJwk(S.profile.acik_anahtar);
+    const recipKey=await deriveSharedKey(ephPair.privateKey,recipPub);
+    const sendKey=await deriveSharedKey(ephPair.privateKey,sendPub);
+    const {enc:ea,iv:ia}=await aesEncrypt(recipKey,plaintext);
+    const {enc:es,iv:is}=await aesEncrypt(sendKey,plaintext);
+    const {error}=await sb.from('mesajlar').insert({oda_id:room.id,gonderen_id:S.user.id,mesaj_tipi:'poke_yanit',enc_alici:ea,iv_alici:ia,enc_gonderen:es,iv_gonderen:is,eph_anahtar:ephPubJwk});
+    if(error) throw error;
+  }catch(e){ toast(e?.message||'Gönderilemedi','error'); }
+}
 async function acceptPoke(msgId){
   const btn=document.querySelector(`.poke-accept-btn[data-id="${msgId}"]`);
-  if(btn){ btn.disabled=true; btn.textContent='✅ Kabul Edildi'; }
+  if(btn){ btn.disabled=true; btn.textContent='✅ '+_tUI('Kabul Edildi'); }
+  document.querySelectorAll('.poke-decline-btn[data-id="'+msgId+'"]').forEach(b=>{b.disabled=true;});
   if(!S.currentRoom||!S.user) return;
   const room=S.currentRoom;
   // Find original poke to echo topic
