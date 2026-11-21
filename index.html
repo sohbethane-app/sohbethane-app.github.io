@@ -2225,7 +2225,7 @@ function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]|
 // Sözlükler sitenin kendi dosyalarında durur; üçüncü taraf çeviri servisi kullanılmaz.
 // Anahtar: Türkçe kaynak metin. Kullanıcı içeriği (mesaj, gönderi, isim) asla çevrilmez.
 // ============================================================
-const _I18N_VER='2';
+const _I18N_VER='20261122c';
 const _UI_DICT={};
 let _I18N_CAPTURED=false;const _I18N_TEXT=[],_I18N_ATTR=[];
 const _I18N_ATTRS=['placeholder','title','aria-label','alt'];
@@ -7997,7 +7997,9 @@ function _psOpenAll(){
 
 (function(){ const _r=_psRefreshStarters; window._psRefreshStarters=_psRefreshStarters=function(x){ const v=_r.apply(this,arguments); try{_psThemeProfile();}catch(e){} try{_psNormalBtn();}catch(e){} return v; }; })();
 
-(function(){ const _a=applyI18n; applyI18n=function(){ const v=_a.apply(this,arguments); try{ const pb=document.getElementById('poke-btn'); if(pb){ pb.textContent='👉 '+_tUI('Dürt'); pb.title=_tUI('Özel konu için dürt'); } }catch(e){} try{ if(typeof renderPokeStrip==='function'&&S&&S.currentRoom) renderPokeStrip(S.currentRoom.tur==='dm'); }catch(e){} return v; }; })();
+(function(){ const _a=applyI18n; applyI18n=function(){ const v=_a.apply(this,arguments); try{ const pb=document.getElementById('poke-btn'); if(pb){ pb.textContent='👉 '+_tUI('Dürt'); pb.title=_tUI('Özel konu için dürt'); } }catch(e){} try{ if(typeof renderPokeStrip==='function'&&document.getElementById('poke-strip')&&S&&S.user) renderPokeStrip(!!(S.currentRoom&&S.currentRoom.tur==='dm')); }catch(e){} return v; }; })();
+
+setInterval(function(){ try{ const el=document.getElementById('poke-strip'); const app=document.getElementById('app-screen'); if(el&&app&&getComputedStyle(app).display!=='none'&&S&&S.user&&!el.querySelector('.pks-chip')) renderPokeStrip(!!(S.currentRoom&&S.currentRoom.tur==='dm')); }catch(e){} },2500);
 </script>
 </body>
 </html>
