@@ -7711,6 +7711,7 @@ async function renderProfileSide(room){
     +'<div class="ps-actions"><button type="button" onclick="qaOpenTunel()">📰<span>'+escHtml(_tUI('Tünel'))+'</span></button><button type="button" onclick="qaOpenIkiliTunel()">🔗<span>'+escHtml(_tUI('İkili'))+'</span></button><button type="button" onclick="toggleBlock()">🚫<span>'+escHtml(_tUI('Engelle'))+'</span></button></div>';
   el.style.display='';
   _psStartQuotes(el,p);
+  _psTranslateStarters();
 }
 
 window.addEventListener('load',function(){ setTimeout(function(){ try{ if(document.getElementById('app-screen')&&getComputedStyle(document.getElementById('app-screen')).display!=='none') renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(e){} },1200); });
@@ -7725,7 +7726,7 @@ function applyRoomTopicTheme(roomId){
   const label=act&&act.label;
   if(!label||!POKE_TOPIC_COLORS[label]){
     ca.removeAttribute('data-topic'); ca.style.removeProperty('--tp-bg'); ca.style.removeProperty('--tp-a'); ca.style.removeProperty('--tp-b');
-    if(fx) fx.innerHTML=''; const chip=document.getElementById('topic-chip'); if(chip) chip.style.display='none'; return;
+    if(fx) fx.innerHTML=''; const chip=document.getElementById('topic-chip'); if(chip) chip.style.display='none'; _psRefreshStarters(); return;
   }
   const [a,b]=_tpHex(label), base=POKE_TOPIC_COLORS[label].bg;
   ca.dataset.topic=label;
@@ -7738,7 +7739,7 @@ function applyRoomTopicTheme(roomId){
   fx.innerHTML=h;
   let chip=document.getElementById('topic-chip');
   if(!chip){ chip=document.createElement('button'); chip.id='topic-chip'; chip.type='button'; chip.title='✕'; chip.onclick=function(){ clearRoomTopic(); }; const hd=document.getElementById('chat-header'); if(hd) hd.insertBefore(chip,hd.children[3]||null); }
-  chip.textContent=(act.emoji||'')+' '+_tUI(label)+'  ✕'; chip.style.display='inline-block';
+  chip.textContent=(act.emoji||'')+' '+_tUI(label)+'  ✕'; chip.style.display='inline-block'; _psRefreshStarters();
 }
 function clearRoomTopic(){ const rid=S.currentRoom&&S.currentRoom.id; if(rid){ delete _activePokeTopics[rid]; _saveActivePokeTopics(); } applyRoomTopicTheme(rid); try{updatePokeQuickBtn();}catch(e){} }
 
@@ -7783,18 +7784,47 @@ function _psStartQuotes(el,p){
   if(sents.length>1) window._psTimer=setInterval(function(){ if(!document.getElementById('ps-quote')){clearInterval(window._psTimer);return;} show(); },4500);
 }
 const PS_STARTERS={
- forHer:['Seni en çok ne güldürür?','İlk buluşmada beni nereye götürürdün?','Romantik bir akşam senin için nasıl olur?'],
- forHim:['Seni ilk tanıdığımda en çok ne etkiler?','Bu akşam için hangi şarkıyı önerirsin?','Bir akşam yemeğine nerede buluşalım?']
+ _:{forHer:['Seni en çok ne güldürür?','İlk buluşmada beni nereye götürürdün?','Romantik bir akşam senin için nasıl olur?'],forHim:['Seni ilk tanıdığımda en çok ne etkiler?','Bu akşam için hangi şarkıyı önerirsin?','Bir akşam yemeğine nerede buluşalım?']},
+ 'Flört':{forHer:['Sence aramızdaki kimya nasıl?','Seni bir kelimeyle anlatsan ne derdin?','Bana ilk mesajda ne yazardın?'],forHim:['Gülüşün çok güzel, seni ne mutlu eder?','Sana bir kahve ısmarlasam hangisini seçerdin?','İlk izlenimim: ilginç birisin. Doğru mu?']},
+ 'Cinsel':{forHer:['Seni ne heyecanlandırır, açıkça söyler misin?','Önce sınırlarını ve hoşlandıklarını konuşalım mı?','Bir akşam seni nasıl şımartmamı isterdin?'],forHim:['Seni ne heyecanlandırır, anlatır mısın?','Hayal ettiğin bir akşam nasıl geçer?','Önce sınırlarını konuşalım mı?']},
+ 'Romantik':{forHer:['Gün batımında yürüyüş mü, mum ışığında yemek mi?','Sana en romantik gelen jest nedir?','Mektup mu, sürpriz mi?'],forHim:['Seninle gün batımını izlemek isterdim, sen ne dersin?','Yaşadığın en romantik an hangisiydi?','Birlikte hangi şarkıyı dinleyelim?']},
+ 'Tutku':{forHer:['Seni en çok ne heyecanlandırır?','Hayatta en tutkuyla yaptığın şey ne?','Sıcak bir sohbete hazır mısın?'],forHim:['Seni neye tutkuyla bağlı hissettirir?','Dans etmeyi sever misin?','Sıcak bir sohbete var mısın?']},
+ 'Özlem':{forHer:['Bugün aklımdaydın.','En çok hangi anı özlüyorsun?','Seni özlediğim anları anlatayım mı?'],forHim:['Bugün aklımdaydın.','En çok hangi anı özlüyorsun?','Seni özlediğim anları anlatayım mı?']},
+ 'Gece Sohbeti':{forHer:['Uyuyamadım, sen ne yapıyorsun?','Gece yarısı için bir şarkı seç.','En sevdiğin gece itirafın ne?'],forHim:['Uyuyamadım, sen ne yapıyorsun?','Gece yarısı için bir şarkı seç.','En sevdiğin gece itirafın ne?']},
+ 'Oyuncu':{forHer:['İki doğru bir yalan oynayalım mı?','Bana bir soru sor, dürüst cevaplayayım.','Cesaret mi, doğruluk mu?'],forHim:['İki doğru bir yalan oynayalım mı?','Bana bir soru sor, dürüst cevaplayayım.','Cesaret mi, doğruluk mu?']}
 };
+const _psTrCache={};
 function _psStarters(p){
   const me=(S.profile&&S.profile.cinsiyet)||'', other=p.cinsiyet||'';
-  let list=null;
-  if(me==='K'&&other==='E') list=PS_STARTERS.forHer;
-  else if(me==='E'&&other==='K') list=PS_STARTERS.forHim;
-  else list=PS_STARTERS.forHer.slice(0,1).concat(PS_STARTERS.forHim.slice(1,2));
-  return '<div class="ps-start-h">💬 '+escHtml(_tUI('Sohbet başlatıcılar'))+'</div><div class="ps-start">'+list.map(function(t){return '<button type="button" onclick="_psUse(this)" data-t="'+escHtml(t)+'">'+escHtml(_tUI(t))+'</button>';}).join('')+'</div>';
+  const act=S.currentRoom&&_activePokeTopics[S.currentRoom.id];
+  const set=(act&&PS_STARTERS[act.label])||PS_STARTERS._;
+  let list;
+  if(me==='K'&&other==='E') list=set.forHer;
+  else if(me==='E'&&other==='K') list=set.forHim;
+  else list=[set.forHer[0],set.forHim[1],set.forHer[2]];
+  const title=act&&PS_STARTERS[act.label]?(act.emoji||'💬')+' '+_tUI(act.label):'💬 '+_tUI('Sohbet başlatıcılar');
+  return '<div class="ps-start-h" id="ps-start-h">'+escHtml(title)+'</div><div class="ps-start" id="ps-start">'+list.map(function(t){return '<button type="button" onclick="_psUse(this)" data-t="'+escHtml(t)+'">'+escHtml(_tUI(t))+'</button>';}).join('')+'</div>';
 }
-function _psUse(b){ const inp=document.getElementById('chat-input'); if(!inp) return; inp.value=_tUI(b.dataset.t); inp.focus(); try{autoResize(inp);}catch(e){} }
+function _psTranslateStarters(){
+  if(typeof _UI_LANG==='undefined'||_UI_LANG==='tr') return;
+  document.querySelectorAll('#ps-start button').forEach(function(b){
+    const t=b.dataset.t; if(_tUI(t)!==t) return;
+    const k=_UI_LANG+'|'+t;
+    if(_psTrCache[k]){ b.textContent=_psTrCache[k]; return; }
+    myMemoryTranslate(t,'tr',_UI_LANG).then(function(o){ if(o){ _psTrCache[k]=o; b.textContent=o; } }).catch(function(){});
+  });
+}
+function _psRefreshStarters(){
+  try{
+    const rm=S.currentRoom; if(!rm||rm.tur!=='dm') return;
+    const p=S.profiles[rm._otherUserId]; if(!p) return;
+    const h=document.getElementById('ps-start-h'), l=document.getElementById('ps-start'); if(!h||!l) return;
+    const tmp=document.createElement('div'); tmp.innerHTML=_psStarters(p);
+    h.replaceWith(tmp.children[0]); document.getElementById('ps-start').replaceWith(tmp.children[0]);
+    _psTranslateStarters();
+  }catch(e){}
+}
+function _psUse(b){ const inp=document.getElementById('chat-input'); if(!inp) return; inp.value=b.textContent; inp.focus(); try{autoResize(inp);}catch(e){} }
 </script>
 </body>
 </html>
