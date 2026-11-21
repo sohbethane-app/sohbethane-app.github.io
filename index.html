@@ -898,6 +898,13 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .msg-wrap.own .msg-file,.msg-wrap.own .msg-file-name{color:#fff}
 .msg-wrap.own .msg-bubble a{color:#fff;text-decoration:underline}
 #chat-area[data-topic] .msg-wrap.other .msg-bubble{background:rgba(0,0,0,.5)!important}
+.ps-start-h{display:flex;align-items:center;justify-content:space-between}
+#ps-shuffle{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:.15rem .5rem;font-size:.8rem;cursor:pointer;color:#fff}
+#ps-shuffle:hover{background:rgba(255,79,163,.3)}
+.poke-card-header,.poke-card-topic{color:#fff!important}
+.poke-card-sub{color:rgba(255,255,255,.92)!important}
+.msg-wrap.own .poke-card-header{text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.msg-wrap.own .poke-card{background:rgba(0,0,0,.28)!important;border-color:rgba(255,255,255,.35)!important}
 </style>
 </head>
 <body>
@@ -3856,6 +3863,7 @@ async function openRoom(room){
   if(pokeBtn) pokeBtn.style.display = isDM ? '' : 'none';
   try{ renderPokeStrip(isDM); }catch(e){}
   try{ renderProfileSide(room); }catch(e){}
+  _psPreviewTopic=null;
   try{ applyRoomTopicTheme(room.id); }catch(e){}
   const pokePnl=document.getElementById('poke-panel');
   if(pokePnl) pokePnl.classList.remove('open');
@@ -7695,6 +7703,7 @@ document.addEventListener('click',function(e){
   const b=e.target.closest&&e.target.closest('#poke-strip button'); if(!b) return;
   if(b.dataset.more){ _pokeStripMore=!_pokeStripMore; renderPokeStrip(true); return; }
   const t=POKE_TOPICS.find(function(x){return x.label===b.dataset.l;}); if(!t) return;
+  _psPreviewTopic=t.label; _psRefreshStarters(true);
   if(!S.currentRoom||S.currentRoom.tur!=='dm'){ toast(_tUI('Dürtmek için önce birebir bir sohbet aç 💬'),'info'); return; }
   const panel=document.getElementById('poke-panel');
   if(panel&&!panel.classList.contains('open')) togglePokePanel();
@@ -7795,27 +7804,20 @@ function _psStartQuotes(el,p){
   show();
   if(sents.length>1) window._psTimer=setInterval(function(){ if(!document.getElementById('ps-quote')){clearInterval(window._psTimer);return;} show(); },4500);
 }
-const PS_STARTERS={
- _:{forHer:['Seni en çok ne güldürür?','İlk buluşmada beni nereye götürürdün?','Romantik bir akşam senin için nasıl olur?'],forHim:['Seni ilk tanıdığımda en çok ne etkiler?','Bu akşam için hangi şarkıyı önerirsin?','Bir akşam yemeğine nerede buluşalım?']},
- 'Flört':{forHer:['Sence aramızdaki kimya nasıl?','Seni bir kelimeyle anlatsan ne derdin?','Bana ilk mesajda ne yazardın?'],forHim:['Gülüşün çok güzel, seni ne mutlu eder?','Sana bir kahve ısmarlasam hangisini seçerdin?','İlk izlenimim: ilginç birisin. Doğru mu?']},
- 'Cinsel':{forHer:['Seni ne heyecanlandırır, açıkça söyler misin?','Önce sınırlarını ve hoşlandıklarını konuşalım mı?','Bir akşam seni nasıl şımartmamı isterdin?'],forHim:['Seni ne heyecanlandırır, anlatır mısın?','Hayal ettiğin bir akşam nasıl geçer?','Önce sınırlarını konuşalım mı?']},
- 'Romantik':{forHer:['Gün batımında yürüyüş mü, mum ışığında yemek mi?','Sana en romantik gelen jest nedir?','Mektup mu, sürpriz mi?'],forHim:['Seninle gün batımını izlemek isterdim, sen ne dersin?','Yaşadığın en romantik an hangisiydi?','Birlikte hangi şarkıyı dinleyelim?']},
- 'Tutku':{forHer:['Seni en çok ne heyecanlandırır?','Hayatta en tutkuyla yaptığın şey ne?','Sıcak bir sohbete hazır mısın?'],forHim:['Seni neye tutkuyla bağlı hissettirir?','Dans etmeyi sever misin?','Sıcak bir sohbete var mısın?']},
- 'Özlem':{forHer:['Bugün aklımdaydın.','En çok hangi anı özlüyorsun?','Seni özlediğim anları anlatayım mı?'],forHim:['Bugün aklımdaydın.','En çok hangi anı özlüyorsun?','Seni özlediğim anları anlatayım mı?']},
- 'Gece Sohbeti':{forHer:['Uyuyamadım, sen ne yapıyorsun?','Gece yarısı için bir şarkı seç.','En sevdiğin gece itirafın ne?'],forHim:['Uyuyamadım, sen ne yapıyorsun?','Gece yarısı için bir şarkı seç.','En sevdiğin gece itirafın ne?']},
- 'Oyuncu':{forHer:['İki doğru bir yalan oynayalım mı?','Bana bir soru sor, dürüst cevaplayayım.','Cesaret mi, doğruluk mu?'],forHim:['İki doğru bir yalan oynayalım mı?','Bana bir soru sor, dürüst cevaplayayım.','Cesaret mi, doğruluk mu?']}
-};
+const PS_POOLS={"Genel": ["Merhaba, bugün günün nasıl geçti?", "Seni biraz tanımak isterim, kendinden bahseder misin?", "Hafta sonu için bir planın var mı?", "En sevdiğin yemek nedir?", "En son izlediğin film neydi?", "Hayalindeki tatil nerede olurdu?", "Sabah insanı mısın, gece insanı mı?", "Seni en çok ne mutlu eder?", "Bugün seni gülümseten bir şey oldu mu?", "Bu aralar hangi şarkıyı döngüye aldın?", "Çocukken ne olmak isterdin?", "Kahve mi, çay mı?", "Hayatta en çok neye değer verirsin?", "Son zamanlarda öğrendiğin ilginç bir şey var mı?", "Bir günlüğüne istediğin yerde olabilsen neresi olurdu?", "Seni tanıyan biri seni nasıl anlatır?", "En sevdiğin mevsim hangisi, neden?", "Yeni biriyle tanışırken ilk neye dikkat edersin?", "Bu aralar nelere takılmış durumdasın?", "Bana hafif bir sır verir misin? 🙂"], "Günlük Hayat": ["Günün nasıl geçiyor, yoğun musun?", "Bugün ne yedin?", "Sabah rutinin nasıl?", "İşte ya da okulda bugün nasıl gidiyor?", "Akşam için bir planın var mı?", "Bu hafta seni en çok yoran şey ne?", "Bugün kendine küçük bir ödül verdin mi?", "Evde mi, dışarıda mısın?", "Kahveni nasıl içersin?", "Bugün hava orada nasıl?", "Günün en güzel anı hangisiydi?", "Bu hafta sonu ne yapmayı düşünüyorsun?", "Telefonda en çok hangi uygulamada vakit geçiriyorsun?", "Rutinini değiştirsen ilk neyi değiştirirsin?", "Yeni bir alışkanlık edinmek için ne denerdin?", "Günün hangi saati sana en iyi gelir?", "Bugün bir şeyi erteledin mi, itiraf et 🙂", "Evde en sevdiğin köşe neresi?", "Alışveriş yapmayı sever misin?", "Bugün sana iyi gelen bir şey var mı?"], "Duygusal": ["Bugün kendini nasıl hissediyorsun, dürüstçe?", "Seni en çok ne üzer?", "Sana iyi gelen şeyler neler?", "Son zamanlarda seni duygulandıran bir an oldu mu?", "Zor günlerde kime yaslanırsın?", "Kendini ne zaman huzurlu hissediyorsun?", "Birinin sana söylediği en iyi söz neydi?", "Ağlamak sana iyi gelir mi?", "Geçmişten bırakmak istediğin bir şey var mı?", "Seni en çok neyin eksikliği zorlar?", "Biriyle konuşmak mı, yalnız kalmak mı iyi gelir?", "Mutluluğun tanımı sende ne?", "Bugün sana sarılsam ne söylerdin?", "En son ne zaman içten güldün?", "Kalbinde hâlâ taşıdığın bir anı var mı?", "Güven senin için ne demek?", "Kırıldığında ne yaparsın?", "Seni anlayan biri olmak isterim, anlatmak ister misin?", "En güzel hatıran hangisi?", "Bugün kendine bir iyilik yaptın mı?"], "Dini İnanç": ["İnancın hayatında nasıl bir yer tutuyor?", "Senin için huzur veren bir ritüel var mı?", "En sevdiğin bayram ya da kutlama hangisi?", "Manevi anlamda seni en çok ne besler?", "Çocukken inanç hakkında en çok ne öğrendin?", "Dua ya da meditasyon senin için ne ifade ediyor?", "En çok sevdiğin kutsal mekân neresi?", "Farklı inançlara bakışın nasıl?", "Sana ilham veren bir söz ya da öğreti var mı?", "Hoşgörü senin için ne anlama geliyor?", "İnanç ve şüphe hakkında ne düşünüyorsun?", "Hayatının en manevi anı hangisiydi?", "Ramazan ya da oruç gibi dönemlere bakışın nasıl?", "Seni sakinleştiren bir ayet, dua veya şarkı var mı?", "Ailenin inanç gelenekleri nasıldı?", "İyilik yapmayı nasıl tanımlarsın?", "Kader sence ne kadar belirleyici?", "Bir yolculukla ilgili manevi bir anın var mı?", "Doğa sana ilahi bir şey hissettirir mi?", "İnançlarımız farklı olsa da konuşmayı sever misin?"], "Felsefe": ["Sence hayatın anlamı ne?", "Özgür irade var mı, yoksa her şey yazgı mı?", "Mutluluk mu, anlam mı: hangisini seçersin?", "Zaman sence gerçek mi?", "İyi insan olmak ne demek?", "Bir düşünür seçsen kim olurdu?", "Bilmek mutlu eder mi, yoksa bilmemek mi?", "Ölümü düşünmek seni nasıl etkiler?", "Gerçek sence tek mi, kişiye göre mi?", "Aşk bir seçim mi, yoksa bir kader mi?", "Bir insan değişir mi, gerçekten?", "Bir şeyi bilmediğini bilmek nedir?", "Hayat bir oyun olsaydı kuralı ne olurdu?", "Yalan söylemek hiç haklı olur mu?", "Sence bilinç nedir?", "Evren seni dinliyor olsaydı ne söylerdin?", "Sana göre özgürlük ne demek?", "Geçmiş mi, gelecek mi, şimdi mi?", "Bir düşünce deneyi sorsam cevaplar mısın?", "Son soru: neden varız?"], "Flört": ["Profilin dikkatimi çekti, seni merak ettim.", "Seni gülümseten ilk şey nedir?", "Sence ilk mesajda en çekici olan şey ne?", "Kimyayı mesajla anlayabilir miyiz sence?", "Bana kendini üç emojiyle anlat 😉", "İlk buluşmada seni en çok ne etkiler?", "Flörtte kendini nasıl biri olarak görüyorsun?", "Sana kahve ısmarlasam hangisini seçerdin?", "Bir iltifat alsan en çok neyle mutlu olurdun?", "Gizli bir yeteneğin var mı?", "İlk izlenimini söyler misin?", "İki doğru bir yalan: hadi başla.", "Seni en çok hangi tarz insan çeker?", "Mesajlaşmayı mı yoksa sesli konuşmayı mı seversin?", "En sevdiğin ve en kötü pick-up cümlesi hangisi?", "Karizma sence nedir?", "Bir akşam sana bir şey ısmarlasam ne olurdu?", "İlk adımı atan mısın, bekleyen mi?", "Sence aramızdaki kimya nasıl?", "Bence güzel bir sohbetimiz olacak, ne dersin?"], "Cinsel": ["Seni en çok ne heyecanlandırır, anlatır mısın?", "Önce sınırlarını ve hoşlandıklarını konuşalım mı?", "Bir akşam nasıl şımartılmak isterdin?", "Dokunuşta en çok neyi seversin?", "Aklında bir fantezi var mı, paylaşmak ister misin?", "Yavaş mı, tutkulu mu: tarzın hangisi?", "Bir gece için kusursuz atmosfer nasıl olurdu?", "Seni neler gerer, neler rahatlatır?", "Nelerden hiç hoşlanmazsın? Bilmek isterim.", "Müzik, ışık, koku: hangisi seni daha çok etkiler?", "İlk temas nasıl olsun isterdin?", "Seni etkileyen bir bakış nasıl olur?", "Rolleri değiştirmeyi sever misin?", "Mesajla mı, sesli mi konuşmak seni daha rahat ettirir?", "En unutulmaz tutkulu anın hangisiydi?", "Rıza senin için ne ifade eder?", "Bir akşam benden ne beklerdin?", "Ne kadar hızlı ilerlemek istersin? Acelem yok.", "Birlikte neyi denemek isterdin?", "Güven sence nasıl kurulur?"], "Romantik": ["Gün batımında yürüyüş mü, mum ışığında yemek mi?", "Sana en romantik gelen jest nedir?", "Mektup mu, sürpriz mi?", "Yağmurda birlikte yürümek ister miydin?", "Birlikte hangi şarkıyı dinleyelim?", "İdeal ilk buluşma nasıl geçer?", "Aşkı bir kelimeyle anlat.", "En sevdiğin romantik film hangisi?", "Çiçek mi, el yazısı not mu?", "Bir akşamın tüm planını sen yapsan ne yapardın?", "Sevgiyi nasıl gösterirsin?", "Hayalindeki romantik kaçamak nerede?", "Bir şarkılık dans edelim mi?", "Seni en çok ne duygulandırır?", "Yıldızlar altında bir gece ister miydin?", "Sence ilk görüşte aşk var mı?", "Birlikte bir şehir seçsek neresi olurdu?", "Sabah kahvesini kiminle içmek istersin?", "Sana yazılan en güzel cümle neydi?", "Küçük şeylerin romantizmine inanır mısın?"], "Tutku": ["Hayatta en tutkuyla yaptığın şey ne?", "Seni ateşleyen şey nedir?", "Sıcak bir sohbete hazır mısın?", "Tutku senin için ne demek?", "Dans etmeyi sever misin?", "Yaptığın en çılgın şey ne?", "Heyecan mı arar, huzur mu?", "Seni cesaretlendiren şey ne?", "Hız mı, yavaşlık mı?", "Bir gece için macera planı yapsak?", "Kendini en canlı hissettiğin an hangisi?", "Tutkuyla sevdiğin bir müzik var mı?", "Kalbin en hızlı ne zaman atar?", "Risk almayı sever misin?", "Gözlerin ne söylüyor, ben ne okuyorum?", "Kırmızı mı, siyah mı?", "En son bir şeye bu kadar kapıldığın an neydi?", "Ateş mi, deniz mi?", "Bana tutkularını anlat.", "İçindeki en cesur taraf ne?"], "Özlem": ["Bugün aklımdaydın.", "En çok hangi anı özlüyorsun?", "Seni özlediğim anları anlatayım mı?", "Uzaklık seni nasıl etkiler?", "Şu an yanımda olsan ne yapardık?", "Özlemek sence güzel mi, acı mı?", "En çok özlediğin yer neresi?", "Özlediğin bir koku ya da ses var mı?", "Sesini duymayı özledim.", "Eski bir anını paylaşır mısın?", "Hangi şarkı seni geçmişe götürür?", "Seni en çok kim özler sence?", "Mesafeler aşılır mı sence?", "Bugün sana bir mektup yazsam?", "Özlem hissettiğinde ne yaparsın?", "En son kimi özledin?", "Çocukluğundan en çok neyi özlüyorsun?", "Bir gün buluşsak ilk ne yapardık?", "Sana kısa bir şiir yazsam?", "Uzakta olsak da aynı yıldıza bakıyoruz, biliyor muydun?"], "Gece Sohbeti": ["Uyuyamadım, sen ne yapıyorsun?", "Gece yarısı için bir şarkı seç.", "En sevdiğin gece itirafın ne?", "Gece mi, sabah mı?", "Şu an neredesin, neler görüyorsun?", "Gece düşünceleri bende yoğun, sende?", "Gece yarısı atıştırmalığın ne?", "Yıldızlara bakmayı sever misin?", "Gece yürüyüşü mü, gece sineması mı?", "En uzun uykusuz gecen hangisiydi?", "Bu gece hangi sorunun cevabını merak ediyorsun?", "Karanlıkta korktuğun bir şey var mı?", "Gece sana nasıl bir ruh hâli verir?", "Bir bardak çayla gece sohbetine var mısın?", "Rüyalarını hatırlar mısın?", "Geceleri en çok ne dinlersin?", "Gece sessizliği mi, şehir ışıkları mı?", "Bu gece için bir film önerir misin?", "Gece yarısı itirafı zamanı: bana bir şey söyle.", "Güne nasıl veda edersin?"], "Oyuncu": ["İki doğru bir yalan oynayalım mı?", "Cesaret mi, doğruluk mu?", "Bana bir soru sor, dürüstçe cevaplayayım.", "Gününü üç emojiyle anlat.", "Süper gücün ne olsun?", "Bir şarkıyla ruh hâlini anlat.", "Hangi çizgi film karakteri gibisin?", "Issız bir adaya üç şey götürsen ne alırdın?", "Tahmin oyunu: ben ne iş yapıyorum?", "Pizza mı, sushi mi?", "Kelime zinciri başlatayım mı?", "Bana bir bilmece sor.", "Sence ben nasıl biriyim, tahmin et.", "Hayvan olsan ne olurdun?", "Rastgele bir sayı söyle, sana bir soru seçeyim.", "Garip bir yeteneğin var mı?", "Bir şaka yap, güleyim.", "Sana en komik gelen anın hangisi?", "Sırayla hikâye yazalım: bir cümle sen, bir cümle ben.", "Bu hafta yaptığın en çılgınca şey neydi?"]};
 const _psTrCache={};
-function _psStarters(p){
-  const me=(S.profile&&S.profile.cinsiyet)||'', other=p.cinsiyet||'';
-  const act=S.currentRoom&&_activePokeTopics[S.currentRoom.id];
-  const set=(act&&PS_STARTERS[act.label])||PS_STARTERS._;
-  let list;
-  if(me==='K'&&other==='E') list=set.forHer;
-  else if(me==='E'&&other==='K') list=set.forHim;
-  else list=[set.forHer[0],set.forHim[1],set.forHer[2]];
-  const title=act&&PS_STARTERS[act.label]?(act.emoji||'💬')+' '+_tUI(act.label):'💬 '+_tUI('Sohbet başlatıcılar');
-  return '<div class="ps-start-h" id="ps-start-h">'+escHtml(title)+'</div><div class="ps-start" id="ps-start">'+list.map(function(t){return '<button type="button" onclick="_psUse(this)" data-t="'+escHtml(t)+'">'+escHtml(_tUI(t))+'</button>';}).join('')+'</div>';
+let _psPreviewTopic=null, _psPick=null;
+function _psShuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function _psStarters(p,reshuffle){
+  const rid=S.currentRoom&&S.currentRoom.id;
+  const act=rid&&_activePokeTopics[rid];
+  const label=_psPreviewTopic||(act&&act.label)||null;
+  const pool=(label&&PS_POOLS[label])||PS_POOLS['Genel'];
+  const key=rid+'|'+(label||'');
+  if(reshuffle||!_psPick||_psPick.key!==key) _psPick={key:key,list:_psShuffle(pool).slice(0,4)};
+  const byL={}; POKE_TOPICS.forEach(t=>byL[t.label]=t.emoji);
+  const title=(label&&PS_POOLS[label]?(byL[label]||'💬')+' '+_tUI(label):'💬 '+_tUI('Sohbet başlatıcılar'));
+  return '<div class="ps-start-h" id="ps-start-h"><span>'+escHtml(title)+'</span><button type="button" id="ps-shuffle" onclick="_psRefreshStarters(true)" title="↻">🔄</button></div><div class="ps-start" id="ps-start">'+_psPick.list.map(function(t){return '<button type="button" onclick="_psUse(this)" data-t="'+escHtml(t)+'">'+escHtml(_tUI(t))+'</button>';}).join('')+'</div>';
 }
 function _psTranslateStarters(){
   if(typeof _UI_LANG==='undefined'||_UI_LANG==='tr') return;
@@ -7826,12 +7828,12 @@ function _psTranslateStarters(){
     myMemoryTranslate(t,'tr',_UI_LANG).then(function(o){ if(o){ _psTrCache[k]=o; b.textContent=o; } }).catch(function(){});
   });
 }
-function _psRefreshStarters(){
+function _psRefreshStarters(reshuffle){
   try{
     const rm=S.currentRoom; if(!rm||rm.tur!=='dm') return;
     const p=S.profiles[rm._otherUserId]; if(!p) return;
     const h=document.getElementById('ps-start-h'), l=document.getElementById('ps-start'); if(!h||!l) return;
-    const tmp=document.createElement('div'); tmp.innerHTML=_psStarters(p);
+    const tmp=document.createElement('div'); tmp.innerHTML=_psStarters(p,reshuffle===true);
     h.replaceWith(tmp.children[0]); document.getElementById('ps-start').replaceWith(tmp.children[0]);
     _psTranslateStarters();
   }catch(e){}
