@@ -248,9 +248,6 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
       <div class="nav-item" onclick="showSection('banned')" id="nav-banned">
         <span>🚫</span> Banlı IP'ler
       </div>
-      <div class="nav-item" onclick="showSection('archive')" id="nav-archive">
-        <span>📜</span> Arşiv
-      </div>
     </div>
 
     <!-- MAIN CONTENT -->
@@ -379,18 +376,6 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
         <div id="banned-list" class="loading-state"><span class="spinner"></span></div>
       </div>
 
-      <!-- ARCHIVE -->
-      <div id="section-archive" style="display:none">
-        <div class="section-header">
-          <h2>📜 Arşiv Mesajlar</h2>
-          <span class="subtitle">admin_arsiv tablosu</span>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
-          <input id="archive-search" placeholder="Kullanıcı adı ara..." style="max-width:260px" oninput="loadArchive()">
-          <button class="btn btn-secondary btn-sm" onclick="loadArchive()">↺ Yenile</button>
-        </div>
-        <div id="archive-list" class="loading-state"><span class="spinner"></span></div>
-      </div>
 
     </div><!-- /content -->
   </div><!-- /main-layout -->
@@ -539,7 +524,7 @@ async function loadComplaintBadge(){
 }
 
 // ─── NAVIGATION ──────────────────────────────────────────────
-const SECTIONS = ['dashboard','users','online','newusers','rooms','messages','friends','complaints','banned','archive'];
+const SECTIONS = ['dashboard','users','online','newusers','rooms','messages','friends','complaints','banned'];
 
 function showSection(name){
   SECTIONS.forEach(s=>{
@@ -553,8 +538,7 @@ function showSection(name){
     rooms:()=>loadRooms(),
     friends:()=>loadFriends(),
     complaints:()=>loadComplaints(),
-    banned:()=>loadBanned(),
-    archive:()=>loadArchive()
+    banned:()=>loadBanned()
   };
   if(loaders[name]) loaders[name]();
 }
@@ -996,31 +980,6 @@ async function unbanIp(id, ip){
   await sb.from('yasakli_ipler').delete().eq('id',id);
   toast('IP yasağı kaldırıldı','success');
   loadBanned();
-}
-
-// ─── ARCHIVE ─────────────────────────────────────────────────
-async function loadArchive(){
-  const el=document.getElementById('archive-list');
-  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
-  const ara=(document.getElementById('archive-search')?.value||'').trim();
-  let q=sb.from('admin_arsiv')
-    .select('id,oda_id,oda_tur,metin,olusturma_tarihi,gonderen:gonderen_id(kullanici_adi,goruntu_adi),alici:alici_id(kullanici_adi,goruntu_adi)')
-    .order('olusturma_tarihi',{ascending:false}).limit(100);
-  const {data,error}=await q;
-  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
-  if(!data?.length){ el.innerHTML='<div class="empty">Arşiv boş.</div>'; return; }
-  let list=data;
-  if(ara) list=list.filter(r=>(r.gonderen?.kullanici_adi||'').includes(ara)||(r.alici?.kullanici_adi||'').includes(ara));
-  el.innerHTML=`<div class="table-wrap"><table>
-    <thead><tr><th>Gönderen</th><th>Alıcı/Oda</th><th>Mesaj</th><th>Tur</th><th>Tarih</th></tr></thead>
-    <tbody>${list.map(r=>`<tr>
-      <td style="font-size:.82rem"><b>${esc(r.gonderen?.goruntu_adi||r.gonderen?.kullanici_adi||'?')}</b></td>
-      <td style="font-size:.82rem">${r.oda_tur==='dm'?esc(r.alici?.goruntu_adi||r.alici?.kullanici_adi||'?'):'Grup'}</td>
-      <td style="max-width:240px;word-break:break-word;font-size:.8rem">${esc((r.metin||'').slice(0,150))}</td>
-      <td style="font-size:.75rem"><span style="background:var(--bg3);padding:.1rem .4rem;border-radius:6px">${esc(r.oda_tur||'')}</span></td>
-      <td style="font-size:.78rem;white-space:nowrap">${fmtDate(r.olusturma_tarihi)}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
 }
 
 // ─── USER DRAWER ─────────────────────────────────────────────

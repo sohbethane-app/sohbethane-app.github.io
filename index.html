@@ -1287,7 +1287,6 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-aktif" onclick="adminSubTab('aktif')">🟢 Aktifler</button>
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-yeni" onclick="adminSubTab('yeni')">📲 Yeni Üyeler</button>
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-ziyaret" onclick="adminSubTab('ziyaret')">🌍 Ziyaretçiler</button>
-        <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-arsiv" onclick="adminSubTab('arsiv')">📜 Arşiv</button>
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-sikayet" onclick="adminSubTab('sikayet')">🚩 Şikayetler</button>
         <button class="btn btn-secondary btn-sm admin-sub-tab" id="asub-ceviri" onclick="adminSubTab('ceviri')">🌐 Çeviri</button>
       </div>
@@ -1317,13 +1316,6 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
           <button class="btn btn-secondary btn-sm" onclick="loadAdminZiyaretciler()">Yenile</button>
         </div>
         <div id="admin-ziyaret-table"></div>
-      </div>
-      <div id="admin-arsiv-panel" style="display:none">
-        <div style="margin-bottom:.5rem;display:flex;gap:.4rem;align-items:center">
-          <input id="arsiv-ara" placeholder="Kullanıcı adı ara..." style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;color:var(--txt);font-size:.85rem" oninput="loadAdminArsiv()">
-          <button class="btn btn-secondary btn-sm" onclick="loadAdminArsiv()">Yenile</button>
-        </div>
-        <div id="admin-arsiv-table"></div>
       </div>
       <div id="admin-sikayet-panel" style="display:none">
         <div style="margin-bottom:.5rem;display:flex;justify-content:flex-end">
@@ -3987,10 +3979,6 @@ async function sendTextMessage(text, overrideRoom){
     // Broadcast to room channel so other party gets instant notification (bypasses RLS)
     // Include msg_id so receiver can fetch the exact message instead of just latest
     try{const bc=S.bcChannels?.[room.id];if(bc)bc.send({type:'broadcast',event:'msg',payload:{from:S.user.id,oda_id:room.id,msg_id:ins?.id}});}catch(_){}
-    // Admin arşivi — plaintext kaydı
-    const arsivRow={oda_id:room.id,gonderen_id:S.user.id,oda_tur:room.tur,metin:text};
-    if(room.tur==='dm') arsivRow.alici_id=room._otherUserId;
-    sb.from('admin_arsiv').insert(arsivRow).then(()=>{}).catch(()=>{});
     cancelReply();
     if(S.tekGorun) toggleTekGorun();
   } catch(e){
@@ -5733,7 +5721,7 @@ async function loadAdminUsers(){
   </tbody></table>`;
 }
 function adminSubTab(tab){
-  ['users','aktif','yeni','ziyaret','arsiv','sikayet','ceviri'].forEach(t=>{
+  ['users','aktif','yeni','ziyaret','sikayet','ceviri'].forEach(t=>{
     const panel=document.getElementById('admin-'+t+'-panel');
     if(panel) panel.style.display=t===tab?'block':'none';
     const btn=document.getElementById('asub-'+t);
@@ -5742,7 +5730,6 @@ function adminSubTab(tab){
   if(tab==='aktif') loadAdminAktif();
   if(tab==='yeni') loadAdminYeniUyeler();
   if(tab==='ziyaret') loadAdminZiyaretciler();
-  if(tab==='arsiv') loadAdminArsiv();
   if(tab==='sikayet') loadAdminSikayetler();
   if(tab==='ceviri') initAdminCeviriPanel();
 }
@@ -5760,27 +5747,6 @@ function initAdminCeviriPanel(){
     sel.innerHTML=LANGS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
     sel.value=i===0?(_myLang||'tr'):(_targetLang||'en');
   });
-}
-async function loadAdminArsiv(){
-  const el=document.getElementById('admin-arsiv-table');
-  el.innerHTML='<p class="text-muted">Yükleniyor...</p>';
-  const ara=(document.getElementById('arsiv-ara')?.value||'').trim();
-  let query=sb.from('admin_arsiv')
-    .select('id,oda_id,oda_tur,metin,olusturma_tarihi,gonderen:gonderen_id(kullanici_adi,goruntu_adi),alici:alici_id(kullanici_adi,goruntu_adi)')
-    .order('olusturma_tarihi',{ascending:false}).limit(100);
-  if(ara) query=query.ilike('gonderen.kullanici_adi','%'+ara+'%');
-  const {data,error}=await query;
-  if(error){el.innerHTML='<p class="text-muted">Hata: sadece yönetici görebilir.</p>';return;}
-  if(!data?.length){el.innerHTML='<p class="text-muted">Henüz arşiv yok.</p>';return;}
-  el.innerHTML=`<table class="admin-table"><thead><tr><th>Gönderen</th><th>Alıcı/Oda</th><th>Mesaj</th><th>Tarih</th></tr></thead><tbody>
-    ${data.map(r=>{
-      const g=r.gonderen?.goruntu_adi||r.gonderen?.kullanici_adi||'?';
-      const al=r.oda_tur==='dm'?(r.alici?.goruntu_adi||r.alici?.kullanici_adi||'?'):'Grup';
-      const metin=escHtml((r.metin||'').slice(0,120))+(r.metin?.length>120?'…':'');
-      const tarih=r.olusturma_tarihi?new Date(r.olusturma_tarihi).toLocaleString('tr-TR'):'-';
-      return `<tr><td>${escHtml(g)}</td><td>${escHtml(al)}<br><span style="font-size:.7rem;color:var(--txt2)">${r.oda_tur||''}</span></td><td style="max-width:220px;word-break:break-word">${metin}</td><td style="font-size:.75rem;white-space:nowrap">${tarih}</td></tr>`;
-    }).join('')}
-  </tbody></table>`;
 }
 async function loadAdminSikayetler(){
   const el=document.getElementById('admin-sikayet-table');
