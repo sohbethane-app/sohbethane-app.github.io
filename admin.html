@@ -597,11 +597,14 @@ async function loadDashboard(){
 }
 
 // ─── USERS ───────────────────────────────────────────────────
+async function _mergeIps(rows){ try{ if(!rows||!rows.length) return rows; const {data}=await sb.from('profil_ip').select('id,ip_adresi').in('id',rows.map(function(r){return r.id;})); const m={}; (data||[]).forEach(function(x){m[x.id]=x.ip_adresi;}); rows.forEach(function(r){ r.ip_adresi=m[r.id]||null; }); }catch(e){} return rows; }
+async function _ipOf(uid){ try{ const {data}=await sb.from('profil_ip').select('ip_adresi').eq('id',uid).maybeSingle(); return data&&data.ip_adresi||null; }catch(e){ return null; } }
 async function loadUsers(){
   document.getElementById('users-list').innerHTML='<div class="loading-state"><span class="spinner"></span> Yükleniyor...</div>';
   const {data,error} = await sb.from('profiller').select('*').order('kayit_tarihi',{ascending:false});
   if(error){ document.getElementById('users-list').innerHTML='<div class="alert alert-danger">Hata: '+esc(error.message)+'</div>'; return; }
   A.allUsers = data||[];
+  await _mergeIps(A.allUsers);
   renderUsers(A.allUsers);
 }
 
@@ -693,9 +696,10 @@ async function _refreshOnlineSection(){
     return;
   }
   const {data,error}=await sb.from('profiller')
-    .select('id,kullanici_adi,goruntu_adi,ulke,cinsiyet,ip_adresi')
+    .select('id,kullanici_adi,goruntu_adi,ulke,cinsiyet')
     .in('id',uids);
   if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  await _mergeIps(data);
   const profiles=(data||[]).map(p=>({...p,...(_adminOnlineState[p.id]||{})}));
   el.innerHTML=`<div class="alert alert-info" style="margin-bottom:1rem">Şu an çevrimiçi: <b>${profiles.length} kullanıcı</b></div>
   <div class="table-wrap"><table>
@@ -741,6 +745,7 @@ async function loadNewUsers(){
   const {data,error} = await sb.from('profiller').select('*').gte('kayit_tarihi',cutoff).order('kayit_tarihi',{ascending:false});
   if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
   if(!data?.length){ el.innerHTML='<div class="empty">Son 30 günde yeni üye yok.</div>'; return; }
+  await _mergeIps(data);
   el.innerHTML=`<div class="alert alert-info" style="margin-bottom:1rem">Son 30 günde kayıt: <b>${data.length} üye</b></div>
   <div class="table-wrap"><table>
     <thead><tr><th>Kullanıcı</th><th>Ülke/IP</th><th>Kayıt Tarihi</th><th>Durum</th><th></th></tr></thead>
@@ -993,6 +998,7 @@ async function openDrawer(uid){
   // Profil verisini yükle
   const {data:p}=await sb.from('profiller').select('*').eq('id',uid).single();
   if(!p){ toast('Kullanıcı bulunamadı','error'); return; }
+  p.ip_adresi=await _ipOf(uid);
 
   document.getElementById('drawer-avatar').textContent=initials(p.goruntu_adi||p.kullanici_adi);
   document.getElementById('drawer-avatar').style.background=['#6C63FF','#FF6584','#3fb950','#d29922'][(p.kullanici_adi||'').charCodeAt(0)%4];
@@ -1105,7 +1111,7 @@ async function toggleAdmin(uid, makeAdmin){
 async function setBan(uid, ban){
   if(ban && !confirm('Bu kullanıcıyı askıya almak istiyor musunuz? IP de yasaklanacak.')) return;
   if(ban){
-    const {data:prof}=await sb.from('profiller').select('ip_adresi').eq('id',uid).single();
+    const prof={ip_adresi:await _ipOf(uid)};
     if(prof?.ip_adresi){
       await sb.from('yasakli_ipler').upsert({ip_adresi:prof.ip_adresi,sebep:'Admin tarafından askıya alındı'},{onConflict:'ip_adresi'});
     }
@@ -1118,7 +1124,7 @@ async function setBan(uid, ban){
 
 async function deleteUser(uid, name){
   if(!confirm(`"${name}" kullanıcısını kalıcı olarak sil?\n\nIP adresi de yasaklanacak. Bu işlem GERİ ALINMAZ.`)) return;
-  const {data:prof}=await sb.from('profiller').select('ip_adresi').eq('id',uid).single();
+  const prof={ip_adresi:await _ipOf(uid)};
   if(prof?.ip_adresi){
     await sb.from('yasakli_ipler').upsert({ip_adresi:prof.ip_adresi,sebep:'Hesap silindi'},{onConflict:'ip_adresi'});
   }

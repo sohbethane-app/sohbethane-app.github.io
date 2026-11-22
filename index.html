@@ -2935,6 +2935,9 @@ function userColor(uid){ const h = uid ? parseInt(uid.slice(0,6),16)%360 : 180; 
 // Detect country + IP via ipapi.co (free, no key, 1000/day)
 // AbortSignal.timeout() Chrome<103/Safari<16 desteklemez — AbortController kullanıyoruz
 async function _geoFetch(url,ms){ const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),ms||5000); try{ const r=await fetch(url,{signal:ctrl.signal}); return r&&r.ok?r:null; } finally{ clearTimeout(tid); } }
+async function _mergeIps(rows){ try{ if(!rows||!rows.length) return rows; const {data}=await sb.from('profil_ip').select('id,ip_adresi').in('id',rows.map(function(r){return r.id;})); const m={}; (data||[]).forEach(function(x){m[x.id]=x.ip_adresi;}); rows.forEach(function(r){ r.ip_adresi=m[r.id]||null; }); }catch(e){} return rows; }
+async function _ipOf(uid){ try{ const {data}=await sb.from('profil_ip').select('ip_adresi').eq('id',uid).maybeSingle(); return data&&data.ip_adresi||null; }catch(e){ return null; } }
+async function _saveMyIp(ip){ if(!ip||!S||!S.user) return; try{ await sb.from('profil_ip').upsert({id:S.user.id,ip_adresi:ip,guncelleme:new Date().toISOString()}); }catch(e){} }
 async function detectGeoInfo(){
   // 1) ipapi.co
   try{ const r=await _geoFetch('https://ipapi.co/json/'); if(r){ const d=await r.json(); if(!d?.error&&d?.country_name) return {ulke:d.country_name, ip_adresi:d.ip||null}; } }catch(_){}
@@ -3167,8 +3170,8 @@ async function doLogin(){
     detectGeoInfo().then(({ulke,ip_adresi})=>{
       const upd={son_giris:new Date().toISOString()};
       if(ulke) upd.ulke=ulke;
-      if(ip_adresi) upd.ip_adresi=ip_adresi;
       sb.from('profiller').update(upd).eq('id',S.user.id).then(()=>{}).catch(()=>{});
+      if(ip_adresi) _saveMyIp(ip_adresi);
     });
     S.profile = prof;
     S.privateKey = await unwrapPrivateKey(prof.sarili_ozel_anahtar, prof.sarlama_iv, wrapKey);
@@ -3268,7 +3271,7 @@ async function doRegister(){
         if(cinsiyet)_optUpd.cinsiyet=cinsiyet;
         if(yas)_optUpd.yas=yas;
         if(ulkeCC||kayitUlke)_optUpd.ulke=ulkeCC||kayitUlke;
-        if(kayitIp)_optUpd.ip_adresi=kayitIp;
+        if(kayitIp) _saveMyIp(kayitIp);
         if(Object.keys(_optUpd).length) try{await sb.from('profiller').update(_optUpd).eq('id',S.user.id);}catch(_e){}
       } else { throw pe; }
     }
@@ -6271,9 +6274,10 @@ async function loadAdminYeniUyeler(){
   el.innerHTML='<p class="text-muted">Yükleniyor…</p>';
   const since=new Date(Date.now()-30*24*3600*1000).toISOString();
   const {data,error}=await sb.from('profiller')
-    .select('id,kullanici_adi,goruntu_adi,ulke,ip_adresi,son_giris,yonetici,banli,cinsiyet,yas')
+    .select('id,kullanici_adi,goruntu_adi,ulke,son_giris,yonetici,banli,cinsiyet,yas')
     .gte('son_giris',since)
     .order('son_giris',{ascending:false}).limit(100);
+  if(data) await _mergeIps(data);
   if(error){ el.innerHTML='<p class="text-muted">Hata: yönetici erişimi gerekli.</p>'; return; }
   if(!data?.length){ el.innerHTML='<p class="text-muted">Son 30 günde yeni üye yok.</p>'; return; }
   el.innerHTML=`<table class="admin-table"><thead><tr>
@@ -6493,7 +6497,8 @@ async function setBan(uid,ban){
   if(ban&&!confirm('Bu kullanıcıyı askıya almak istediğinize emin misiniz?\n\nIP adresi de yasaklanacak ve tekrar kayıt olamayacak.')) return;
   // Banlıysa IP adresini önce al
   if(ban){
-    const{data:prof}=await sb.from('profiller').select('ip_adresi,kullanici_adi').eq('id',uid).single();
+    const{data:_pk}=await sb.from('profiller').select('kullanici_adi').eq('id',uid).single();
+    const prof={kullanici_adi:_pk&&_pk.kullanici_adi,ip_adresi:await _ipOf(uid)};
     await sb.from('profiller').update({banli:true}).eq('id',uid);
     if(prof?.ip_adresi){
       await sb.from('yasakli_ipler').insert({ip_adresi:prof.ip_adresi,sebep:`Askıya alınan kullanıcı: @${prof?.kullanici_adi||uid}`,tarih:new Date().toISOString()}).catch(()=>{});
@@ -6510,7 +6515,8 @@ async function setBan(uid,ban){
 async function deleteUser(uid){
   if(!confirm('Bu kullanıcıyı kalıcı olarak sil ve IP adresini yasakla?')) return;
   // Fetch IP before deleting
-  const{data:prof}=await sb.from('profiller').select('ip_adresi,kullanici_adi').eq('id',uid).single();
+  const{data:_pk2}=await sb.from('profiller').select('kullanici_adi').eq('id',uid).single();
+  const prof={kullanici_adi:_pk2&&_pk2.kullanici_adi,ip_adresi:await _ipOf(uid)};
   await sb.from('profiller').delete().eq('id',uid);
   // Ban IP so they can't re-register
   if(prof?.ip_adresi){
@@ -7305,7 +7311,7 @@ window.doRegister=async function(){
         if(cinsiyet2)_optUpd2.cinsiyet=cinsiyet2;
         if(yas2)_optUpd2.yas=yas2;
         if(ulkeCC2||kayitUlke2)_optUpd2.ulke=ulkeCC2||kayitUlke2;
-        if(kayitIp2)_optUpd2.ip_adresi=kayitIp2;
+        if(kayitIp2) _saveMyIp(kayitIp2);
         if(Object.keys(_optUpd2).length) try{await sb.from('profiller').update(_optUpd2).eq('id',S.user.id);}catch(_e2){}
       } else { throw pe; }
     }
