@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net https://translate.googleapis.com https://ipapi.co;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net https://translate.googleapis.com https://ipapi.co https://ipwho.is https://www.cloudflare.com;">
 <meta name="referrer" content="no-referrer">
 <title>SohbetHane – Uçtan Uca Şifreli +18 Sohbet</title>
 <meta name="description" content="SohbetHane: uçtan uca şifreli, +18 yetişkin sohbet uygulaması. Dünyanın her yerinden insanlarla özel sohbet, otomatik çeviri, konuya göre sohbet ortamı. Ücretsiz."><meta name="robots" content="index,follow,max-image-preview:large"><meta name="rating" content="adult">
@@ -2934,18 +2934,15 @@ function avatarInitials(name){ return (name||'?').split(' ').map(w=>w[0]).join('
 function userColor(uid){ const h = uid ? parseInt(uid.slice(0,6),16)%360 : 180; return `hsl(${h},40%,35%)`; }
 // Detect country + IP via ipapi.co (free, no key, 1000/day)
 // AbortSignal.timeout() Chrome<103/Safari<16 desteklemez — AbortController kullanıyoruz
+async function _geoFetch(url,ms){ const ctrl=new AbortController(); const tid=setTimeout(()=>ctrl.abort(),ms||5000); try{ const r=await fetch(url,{signal:ctrl.signal}); return r&&r.ok?r:null; } finally{ clearTimeout(tid); } }
 async function detectGeoInfo(){
-  try{
-    const ctrl=new AbortController();
-    const tid=setTimeout(()=>ctrl.abort(),5000);
-    let res;
-    try{ res=await fetch('https://ipapi.co/json/',{signal:ctrl.signal}); }
-    finally{ clearTimeout(tid); }
-    if(!res||!res.ok) return {};
-    const d=await res.json();
-    if(d?.error||!d?.country_name) return {};
-    return {ulke:d.country_name||null, ip_adresi:d.ip||null};
-  }catch(_){return {};}
+  // 1) ipapi.co
+  try{ const r=await _geoFetch('https://ipapi.co/json/'); if(r){ const d=await r.json(); if(!d?.error&&d?.country_name) return {ulke:d.country_name, ip_adresi:d.ip||null}; } }catch(_){}
+  // 2) ipwho.is
+  try{ const r=await _geoFetch('https://ipwho.is/'); if(r){ const d=await r.json(); if(d&&d.success!==false&&d.country) return {ulke:d.country, ip_adresi:d.ip||null}; } }catch(_){}
+  // 3) Cloudflare trace
+  try{ const r=await _geoFetch('https://www.cloudflare.com/cdn-cgi/trace'); if(r){ const t=await r.text(); const ip=(t.match(/^ip=(.+)$/m)||[])[1]; const loc=(t.match(/^loc=(.+)$/m)||[])[1]; let name=loc; try{ name=new Intl.DisplayNames(['tr'],{type:'region'}).of(loc)||loc; }catch(e){} if(ip||loc) return {ulke:name||null, ip_adresi:ip||null}; } }catch(_){}
+  return {};
 }
 // Legacy alias
 async function detectCountry(){ return (await detectGeoInfo()).ulke||null; }
