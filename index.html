@@ -1698,7 +1698,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 // ============================================================
 // I18N — Dil paketi ve çeviri sistemi
 // ============================================================
-const UI_LANGS=[['tr','Türkçe'],['en','English'],['id','Bahasa Indonesia'],['ar','العربية'],['de','Deutsch'],['fr','Français'],['es','Español'],['ru','Русский'],['zh','中文'],['ja','日本語'],['ko','한국어'],['pt','Português']];
+const UI_LANGS=[['tr','Türkçe'],['en','English'],['id','Bahasa Indonesia'],['ar','العربية'],['de','Deutsch'],['fr','Français'],['es','Español'],['ru','Русский'],['zh','中文'],['ja','日本語'],['ko','한국어'],['pt','Português'],['am','አማርኛ'],['om','Afaan Oromoo'],['ti','ትግርኛ']];
 const UI_LANG_CODES=UI_LANGS.map(x=>x[0]);
 function _uiLangStored(){try{const v=localStorage.getItem('sh_ui_lang');return UI_LANG_CODES.includes(v)?v:null;}catch(e){return null;}}
 let _UI_LANG=(()=>{try{const q=new URLSearchParams(location.search).get('lang');if(q==='reset'){try{localStorage.removeItem('sh_ui_lang');}catch(e){}}else if(q&&UI_LANG_CODES.includes(q)){return q;}}catch(e){}const st=_uiLangStored();if(st)return st;const list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'];for(const x of list){const l=String(x).toLowerCase().split('-')[0];if(UI_LANG_CODES.includes(l))return l;}return 'en';})();
@@ -2222,13 +2222,16 @@ ms:{'feat.enc.title':'Chat disulitkan hujung ke hujung','feat.enc.desc':'Pelayan
 uk:{'feat.enc.title':'Наскрізно зашифрований чат','feat.enc.desc':'Сервер не може прочитати жодної літери — лише ви та інша людина бачите.','feat.translate':'🌐 Автоматичний переклад','feat.groups':'👥 Групи та особисті повідомлення','feat.archive':'🕵️ Таємний архів','feat.global':'🌍 125 країн'},
 pl:{'feat.enc.title':'Chat zaszyfrowany end-to-end','feat.enc.desc':'Serwer nie może przeczytać ani jednej litery — widzą tylko ty i druga osoba.','feat.translate':'🌐 Automatyczne tłumaczenie','feat.groups':'👥 Grupy & prywatne DM','feat.archive':'🕵️ Tajne archiwum','feat.global':'🌍 125 krajów'},
 };for(const l in _FW){if(I18N[l])Object.assign(I18N[l],_FW[l]);}}
+I18N.am={'auth.tagline1':'መልእክቶችዎ የእርስዎ ብቻ ናቸው።','auth.tagline2':'አገልጋዩ አንድ ፊደል እንኳን ማየት አይችልም።','auth.badge.zero':'ምንም የውሂብ ምዝገባ የለም','auth.badge.translate':'ራስ-ሰር ትርጉም','auth.preview.1':'ሰላም! መተግበሪያው እንዴት ነው? 👋','auth.preview.2':'በጣም ጥሩ — ሙሉ በሙሉ የተመሰጠረ! 🔐','auth.preview.3':'በእርግጥ ማንም ሊያነበው አይችልም?','auth.preview.4':'አገልጋዩም እንኳን አይችልም፣ ቃል እገባለሁ ✓','auth.preview.lock':'🔒 ይህ ውይይት ከጫፍ እስከ ጫፍ የተመሰጠረ ነው','auth.subtitle.top':'ከጫፍ እስከ ጫፍ የተመሰጠረ መልእክት','auth.welcome':'እንኳን ደህና መጡ 👋','auth.subtitle':'ይግቡ ወይም አዲስ መለያ ይፍጠሩ','auth.tab.login':'ግባ','auth.tab.register':'ተመዝገብ','auth.lbl.user':'የተጠቃሚ ስም','auth.lbl.pass':'የይለፍ ቃል','auth.lbl.name':'የሚታይ ስም','auth.lbl.invite':'የግብዣ ኮድ','auth.ph.user':'የተጠቃሚ ስም','auth.ph.name':'ሙሉ ስምዎ','auth.ph.invite':'XXXX-XXXX  (አማራጭ፣ ካለዎት ያስገቡ)','auth.btn.login':'✦ ግባ','auth.btn.register':'✦ ተመዝገብ','nav.chats':'ውይይቶች','nav.groups':'ቡድኖች','nav.archives':'ማህደሮች','nav.timeline':'የጊዜ መስመር','nav.feed':'🌐 የSohbetHane ፍሰት','nav.mine':'📰 የእኔ የጊዜ መስመር','nav.pair':'🔗 አጣምር','nav.new':'አዲስ ውይይት','nav.invite':'ጋብዝ','nav.settings':'ቅንብሮች','nav.search':'ተጠቃሚዎችን ፈልግ... (@የተጠቃሚ ስም)','chat.empty':'ውይይት ይምረጡ','room.empty.dm':'እስካሁን ውይይት የለም','room.empty.grup':'እስካሁን ቡድን የለም። ከታች ይፍጠሩ።','room.empty.arsiv':'እስካሁን ማህደር የለም። ከታች ይፍጠሩ።','auth.tagline.social':'ከመላው ዓለም ሰዎች ጋር በደህንነት ይወያዩ 🌍','auth.stat.members':'👥 አባላት','auth.stat.countries':'🌍 አገሮች','auth.stat.active':'አሁን መስመር ላይ','auth.invite.toggle':'🔑 የግብዣ ኮድ አለኝ →','feat.enc.title':'ከጫፍ እስከ ጫፍ የተመሰጠረ ውይይት','feat.enc.desc':'አገልጋዩ አንድ ፊደል እንኳን ማንበብ አይችልም — እርስዎና ሌላኛው ሰው ብቻ ያያሉ።','feat.translate':'🌐 ራስ-ሰር ትርጉም','feat.groups':'👥 ቡድኖች እና የግል መልእክት','feat.archive':'🕵️ ሚስጥራዊ ማህደር','feat.global':'🌍 125 አገሮች'};
+I18N.om={'auth.tagline1':'Ergaawwan keessan kan keessan qofa.','auth.tagline2':'Sarvarichi mallattoo tokko illee arguu hin danda\'u.','auth.badge.zero':'Galmeen daataa hin jiru','auth.badge.translate':'Hiikkaa ofumaan','auth.preview.1':'Akkam! Appiin akkam? 👋','auth.preview.2':'Baay\'ee gaarii — guutummaatti icciitiin cufameera! 🔐','auth.preview.3':'Dhuguma, namni tokko iyyuu dubbisuu hin danda\'u?','auth.preview.4':'Sarvariin illee hin danda\'u, abdachuu nan danda\'a ✓','auth.preview.lock':'🔒 Haasaan kun fuula-tokkoo hanga fuula-tokkootti icciitiin cufameera','auth.subtitle.top':'Ergaa fuula-tokkoo hanga fuula-tokkootti icciitiin cufame','auth.welcome':'Baga nagaan dhufte 👋','auth.subtitle':'Seeni ykn akka haaraa banaa','auth.tab.login':'Seeni','auth.tab.register':'Galmaa\'i','auth.lbl.user':'Maqaa fayyadamaa','auth.lbl.pass':'Jecha icciitii','auth.lbl.name':'Maqaa mul\'atu','auth.lbl.invite':'Koodii affeerraa','auth.ph.user':'maqaa fayyadamaa','auth.ph.name':'Maqaa keessan guutuu','auth.ph.invite':'XXXX-XXXX  (filannoo, yoo qabaattan galchaa)','auth.btn.login':'✦ Seeni','auth.btn.register':'✦ Galmaa\'i','nav.chats':'Haasaawwan','nav.groups':'Garee','nav.archives':'Kuusaawwan','nav.timeline':'Ssa\'aatii','nav.feed':'🌐 Maxxansa SohbetHane','nav.mine':'📰 Sa\'aatii koo','nav.pair':'🔗 Wal-qabsiisi','nav.new':'Haasaa haaraa','nav.invite':'Affeeri','nav.settings':'Qindaa\'ina','nav.search':'Fayyadamtoota barbaadi... (@maqaa)','chat.empty':'Haasaa filadhu','room.empty.dm':'Ammaaf haasaan hin jiru','room.empty.grup':'Ammaaf garee hin jiru. Gadi kuusaa.','room.empty.arsiv':'Ammaaf kuusaan hin jiru. Gadi kuusaa.','auth.tagline.social':'Namoota biyya hundaa waliin nageenyaan haasa\'aa 🌍','auth.stat.members':'👥 Miseensota','auth.stat.countries':'🌍 Biyyoota','auth.stat.active':'Amma toora irra','auth.invite.toggle':'🔑 Koodii affeerraa qaba →','feat.enc.title':'Haasaa fuula-tokkoo hanga fuula-tokkootti icciitiin cufame','feat.enc.desc':'Sarvarichi mallattoo tokko illee dubbisuu hin danda\'u — isin fi nama kaan qofa ni argu.','feat.translate':'🌐 Hiikkaa ofumaan','feat.groups':'👥 Garee fi ergaa dhuunfaa','feat.archive':'🕵️ Kuusaa icciitii','feat.global':'🌍 Biyyoota 125'};
+I18N.ti={'auth.tagline1':'መልእኽትታትካ ናትካ ጥራይ እዮም።','auth.tagline2':'እቲ ሰርቨር ሓደ ፊደል እኳ ክርእይ ኣይክእልን።','auth.badge.zero':'ዝኾነ ናይ ዳታ ምዝገባ የለን','auth.badge.translate':'ባዕላዊ ትርጉም','auth.preview.1':'ሰላም! እቲ ኣፕ ከመይ ኣሎ? 👋','auth.preview.2':'ብጣዕሚ ጽቡቕ — ብምሉእ ዝተሰውረ! 🔐','auth.preview.3':'ብሓቂ ሓደ እኳ ከንብቦ ኣይክእልን?','auth.preview.4':'እቲ ሰርቨር እኳ ኣይክእልን፣ ተስፋ እህብ ✓','auth.preview.lock':'🔒 እዚ ዕላል ካብ ጫፍ ክሳብ ጫፍ ዝተሰወረ እዩ','auth.subtitle.top':'ካብ ጫፍ ክሳብ ጫፍ ዝተሰወረ መልእኽቲ','auth.welcome':'እንኳዕ ደሓን መጻእካ 👋','auth.subtitle':'እተው ወይ ሓድሽ ሕሳብ ክፈት','auth.tab.login':'እተው','auth.tab.register':'ተመዝገብ','auth.lbl.user':'ስም ተጠቃሚ','auth.lbl.pass':'ቃል ሕሉፍ','auth.lbl.name':'ዝርአ ስም','auth.lbl.invite':'ኮድ ዕድመ','auth.ph.user':'ስም ተጠቃሚ','auth.ph.name':'ምሉእ ስምካ','auth.ph.invite':'XXXX-XXXX  (ኣማራጺ፣ እንተሃልዩኩም ኣእትዉ)','auth.btn.login':'✦ እተው','auth.btn.register':'✦ ተመዝገብ','nav.chats':'ዕላላት','nav.groups':'ጉጅለታት','nav.archives':'ማህደራት','nav.timeline':'መስመር ግዜ','nav.feed':'🌐 ፍሰት SohbetHane','nav.mine':'📰 መስመር ግዜይ','nav.pair':'🔗 ኣጣምር','nav.new':'ሓድሽ ዕላል','nav.invite':'ዕደም','nav.settings':'ምቕናዓት','nav.search':'ተጠቀምቲ ድለ... (@ስም)','chat.empty':'ዕላል ምረጽ','room.empty.dm':'ክሳብ ሕጂ ዕላል የለን','room.empty.grup':'ክሳብ ሕጂ ጉጅለ የለን። ኣብ ታሕቲ ፍጠር።','room.empty.arsiv':'ክሳብ ሕጂ ማህደር የለን። ኣብ ታሕቲ ፍጠር።','auth.tagline.social':'ምስ ዓለምለኻዊ ሰባት ብውሑስ ተዛረቡ 🌍','auth.stat.members':'👥 ኣባላት','auth.stat.countries':'🌍 ሃገራት','auth.stat.active':'ሕጂ ኣብ መስመር','auth.invite.toggle':'🔑 ኮድ ዕድመ ኣለኒ →','feat.enc.title':'ካብ ጫፍ ክሳብ ጫፍ ዝተሰወረ ዕላል','feat.enc.desc':'እቲ ሰርቨር ሓደ ፊደል እኳ ከንብብ ኣይክእልን — ንስኻን እቲ ካልእን ጥራይ ትርእዩ።','feat.translate':'🌐 ባዕላዊ ትርጉም','feat.groups':'👥 ጉጅለታትን ውልቃዊ መልእኽትን','feat.archive':'🕵️ ምስጢራዊ ዓራዊት','feat.global':'🌍 125 ሃገራት'};
 function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]||k;}
 // ============================================================
 // ARAYÜZ DİLİ — sözlük (i18n/<dil>.json), uygulama, seçici
 // Sözlükler sitenin kendi dosyalarında durur; üçüncü taraf çeviri servisi kullanılmaz.
 // Anahtar: Türkçe kaynak metin. Kullanıcı içeriği (mesaj, gönderi, isim) asla çevrilmez.
 // ============================================================
-const _I18N_VER='20261122f';
+const _I18N_VER='20261123a';
 const _UI_DICT={};
 let _I18N_CAPTURED=false;const _I18N_TEXT=[],_I18N_ATTR=[];
 const _I18N_ATTRS=['placeholder','title','aria-label','alt'];
@@ -2247,7 +2250,8 @@ function _i18nCapture(){
 }
 async function _i18nLoadDict(lang){
   if(lang==='tr'||_UI_DICT[lang])return;
-  try{const r=await fetch('i18n/'+lang+'.json?v='+_I18N_VER);_UI_DICT[lang]=r.ok?await r.json():{};}
+  try{const r=await fetch('i18n/'+lang+'.json?v='+_I18N_VER);_UI_DICT[lang]=r.ok?await r.json():{};
+    if(lang==='am'||lang==='om'||lang==='ti'){ try{ const e=await fetch('i18n/en.json?v='+_I18N_VER); const ed=e.ok?await e.json():{}; _UI_DICT[lang]=Object.assign({},ed,_UI_DICT[lang]); }catch(x){} }}
   catch(e){_UI_DICT[lang]={};}
 }
 function _i18nApply(){
@@ -2866,6 +2870,9 @@ const S = {
 // TRANSLATION CONSTANTS & STATE
 // ============================================================
 const LANGS = [
+  {code:'am',name:'አማርኛ',flag:'🇪🇹'},
+  {code:'om',name:'Afaan Oromoo',flag:'🇪🇹'},
+  {code:'ti',name:'ትግርኛ',flag:'🇪🇹'},
   {code:'tr',name:'Türkçe',flag:'🇹🇷'},
   {code:'en',name:'English',flag:'🇬🇧'},
   {code:'de',name:'Deutsch',flag:'🇩🇪'},
