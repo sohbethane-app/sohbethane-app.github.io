@@ -935,6 +935,9 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 #chat-area{position:relative}
 #normal-back{position:absolute;top:122px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(20,10,35,.82);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:.4rem 1rem;font-size:.82rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)}
 #normal-back:hover{background:rgba(194,32,143,.7)}
+.room-seen{font-size:.68rem;color:var(--txt2);margin-top:2px;white-space:nowrap}.room-seen.on{color:#3fb950;font-weight:700}
+.ps-dot{position:absolute;right:12px;top:12px;width:16px;height:16px;border-radius:50%;background:#3fb950;border:3px solid #fff;box-shadow:0 0 12px rgba(63,185,80,.9)}.ps-dot.ghost{background:#f59e0b;box-shadow:0 0 12px rgba(245,158,11,.9)}
+.ps-presence{font-size:.8rem;color:var(--txt2);margin:-.3rem 0 .6rem}.ps-presence.online{color:#3fb950;font-weight:700}.ps-presence.ghost{color:#f59e0b;font-weight:700}
 </style>
 </head>
 <body>
@@ -2225,7 +2228,7 @@ function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]|
 // Sözlükler sitenin kendi dosyalarında durur; üçüncü taraf çeviri servisi kullanılmaz.
 // Anahtar: Türkçe kaynak metin. Kullanıcı içeriği (mesaj, gönderi, isim) asla çevrilmez.
 // ============================================================
-const _I18N_VER='20261122d';
+const _I18N_VER='20261122e';
 const _UI_DICT={};
 let _I18N_CAPTURED=false;const _I18N_TEXT=[],_I18N_ATTR=[];
 const _I18N_ATTRS=['placeholder','title','aria-label','alt'];
@@ -3090,7 +3093,7 @@ async function getProfile(uid){
   return data;
 }
 async function getAllProfiles(){
-  const {data} = await sb.from('profiller').select('id,kullanici_adi,goruntu_adi,avatar_url,acik_anahtar,yonetici,son_gorulme');
+  const {data} = await sb.from('profiller').select('id,kullanici_adi,goruntu_adi,avatar_url,acik_anahtar,yonetici,son_gorulme,aktif_gizli');
   if(data) data.forEach(p=>S.profiles[p.id]=p);
   return data||[];
 }
@@ -6147,9 +6150,33 @@ async function updateSonAktif(){
   const now=new Date().toISOString();
   _presenceChannel.track({gizli:isGizli,son_aktif:now}).catch(()=>{});
   // Also update DB (ignore error if column doesn't exist)
-  sb.from('profiller').update({son_gorulme:now}).eq('id',S.user.id).then(()=>{}).catch(()=>{});
+  sb.from('profiller').update({son_gorulme:now,aktif_gizli:isGizli}).eq('id',S.user.id).then(()=>{}).catch(()=>{});
 }
 
+const _seenFetchAt={};
+function _refreshSeen(uid){
+  const n=Date.now(); if(_seenFetchAt[uid]&&n-_seenFetchAt[uid]<45000) return; _seenFetchAt[uid]=n;
+  Promise.resolve(sb.from('profiller').select('son_gorulme,aktif_gizli').eq('id',uid).maybeSingle()).then(function(r){
+    if(r&&r.data){ const p=S.profiles[uid]||(S.profiles[uid]={id:uid}); p.son_gorulme=r.data.son_gorulme; p.aktif_gizli=r.data.aktif_gizli; try{ renderOnlineDots(); }catch(e){} }
+  }).catch(function(){});
+}
+// state: online | ghost (yalnız yönetici görür) | offline (süre ile) | hidden
+function _presInfo(uid){
+  const isAdmin=!!(S.profile&&S.profile.yonetici);
+  const all=_onlineUsersAll.has(uid), vis=_onlineUsers.has(uid);
+  if(all&&vis) return {state:'online'};
+  if(all&&!vis) return isAdmin?{state:'ghost'}:{state:'hidden'};
+  const p=S.profiles[uid]||{}; const ls=_lastSeenMap[uid]||p.son_gorulme;
+  if(p.aktif_gizli&&!isAdmin) return {state:'hidden'};
+  if(!ls) return {state:'hidden'};
+  return {state:'offline',ago:fmtAgo(ls),ghost:!!p.aktif_gizli&&isAdmin};
+}
+function _presText(info){
+  if(info.state==='online') return _tUI('Çevrimiçi');
+  if(info.state==='ghost') return '👻 '+_tUI('Çevrimiçi')+' ('+_tUI('gizli')+')';
+  if(info.state==='offline') return _tUI('Son görülme')+': '+info.ago+(info.ghost?' 👻':'');
+  return '';
+}
 function renderOnlineDots(){
   // Update all DM room items
   document.querySelectorAll('.room-item[data-type="dm"]').forEach(el=>{
@@ -6157,12 +6184,17 @@ function renderOnlineDots(){
     if(!uid) return;
     const dot=el.querySelector('.online-dot');
     if(!dot) return;
-    const isAdmin=S.profile?.yonetici;
-    const isOnline=isAdmin?_onlineUsersAll.has(uid):_onlineUsers.has(uid);
-    const isInvisible=_onlineUsersAll.has(uid)&&!_onlineUsers.has(uid);
+    const info=_presInfo(uid);
+    const isOnline=info.state==='online'||info.state==='ghost';
     dot.style.display=isOnline?'':'none';
-    dot.classList.toggle('invisible',!!(isAdmin&&isInvisible));
+    dot.classList.toggle('invisible',info.state==='ghost');
+    let sn=el.querySelector('.room-seen');
+    if(!sn){ sn=document.createElement('div'); sn.className='room-seen'; const pv=el.querySelector('.room-preview'); if(pv&&pv.parentElement) pv.parentElement.appendChild(sn); }
+    sn.textContent=info.state==='offline'?info.ago:(isOnline?'● '+_tUI('Çevrimiçi'):'');
+    sn.classList.toggle('on',isOnline);
+    if(info.state==='offline'||info.state==='hidden') _refreshSeen(uid);
   });
+  try{ _psPresence(); }catch(e){}
   // Update current chat header if open
   if(S.currentRoom?.tur==='dm'&&S.currentRoom?._otherUserId){
     updateChatHeaderPresence(S.currentRoom._otherUserId);
@@ -6172,24 +6204,20 @@ function renderOnlineDots(){
 function updateChatHeaderPresence(otherUserId){
   const subEl=document.getElementById('chat-header-sub');
   if(!subEl) return;
-  const isAdmin=S.profile?.yonetici;
-  const isOnline=isAdmin?_onlineUsersAll.has(otherUserId):_onlineUsers.has(otherUserId);
-  const isInvisible=_onlineUsersAll.has(otherUserId)&&!_onlineUsers.has(otherUserId);
-  if(isOnline&&!(isInvisible&&!isAdmin)){
-    const badge=isAdmin&&isInvisible?'<span class="badge-invisible"></span> 👻':'<span class="badge-online"></span>';
-    subEl.innerHTML=`${badge} <span class="presence-online">Çevrimiçi</span>`;
-  } else {
-    const ls=_lastSeenMap[otherUserId];
-    const ago=ls?fmtAgo(ls):null;
-    if(ago) subEl.innerHTML=`<span class="presence-lastseen">Son görülme: ${ago}</span>`;
-    else subEl.textContent='Birebir sohbet';
-  }
+  const info=_presInfo(otherUserId);
+  if(info.state==='online') subEl.innerHTML='<span class="badge-online"></span> <span class="presence-online">'+escHtml(_tUI('Çevrimiçi'))+'</span>';
+  else if(info.state==='ghost') subEl.innerHTML='<span class="badge-invisible"></span> <span class="presence-online">'+escHtml(_presText(info))+'</span>';
+  else if(info.state==='offline') subEl.innerHTML='<span class="presence-lastseen">'+escHtml(_presText(info))+'</span>';
+  else subEl.textContent=_tUI('Birebir sohbet');
+  if(info.state==='offline'||info.state==='hidden') _refreshSeen(otherUserId);
+  try{ _psPresence(); }catch(e){}
 }
 
 function setGizliMod(val){
   if(val) localStorage.setItem('sh_gizli_mod','1');
   else localStorage.removeItem('sh_gizli_mod');
   if(_presenceChannel) _presenceChannel.track({gizli:val,son_aktif:new Date().toISOString()}).catch(()=>{});
+  try{ sb.from('profiller').update({aktif_gizli:!!val}).eq('id',S.user.id).then(()=>{}).catch(()=>{}); }catch(e){}
   toast(val?'Gizli mod açık — diğerleri seni göremez 👻':'Gizli mod kapatıldı — çevrimiçi görünüyorsun','info');
 }
 
@@ -7824,6 +7852,18 @@ async function renderProfileSide(room){
   _psStartQuotes(el,p);
   _psTranslateStarters();
   _psThemeProfile();
+  _psPresence();
+}
+
+function _psPresence(){
+  const el=document.getElementById('profile-side'); if(!el||el.style.display==='none') return;
+  const uid=S.currentRoom&&S.currentRoom._otherUserId; if(!uid||S.currentRoom.tur!=='dm') return;
+  const info=_presInfo(uid);
+  const ph=el.querySelector('.ps-photo'); if(!ph) return;
+  let dot=ph.querySelector('.ps-dot'); if(!dot){ dot=document.createElement('span'); dot.className='ps-dot'; ph.appendChild(dot); }
+  dot.style.display=(info.state==='online'||info.state==='ghost')?'block':'none'; dot.classList.toggle('ghost',info.state==='ghost');
+  let tx=el.querySelector('.ps-presence'); if(!tx){ tx=document.createElement('div'); tx.className='ps-presence'; const u=el.querySelector('.ps-user'); if(u) u.after(tx); }
+  tx.textContent=_presText(info); tx.className='ps-presence '+info.state;
 }
 
 window.addEventListener('load',function(){ setTimeout(function(){ try{ if(document.getElementById('app-screen')&&getComputedStyle(document.getElementById('app-screen')).display!=='none') renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(e){} },1200); });
@@ -8000,6 +8040,8 @@ function _psOpenAll(){
 (function(){ const _a=applyI18n; applyI18n=function(){ const v=_a.apply(this,arguments); try{ const pb=document.getElementById('poke-btn'); if(pb){ pb.textContent='👉 '+_tUI('Dürt'); pb.title=_tUI('Özel konu için dürt'); } const pt=document.getElementById('poke-panel-title'); if(pt) pt.textContent='👉 '+_tUI('Özel Konu Talebi — Dürt'); const pf=document.getElementById('poke-send-final-btn'); if(pf) pf.textContent='👉 '+_tUI('Dürt Et'); }catch(e){} try{ if(typeof renderPokeStrip==='function'&&document.getElementById('poke-strip')&&S&&S.user) renderPokeStrip(!!(S.currentRoom&&S.currentRoom.tur==='dm')); }catch(e){} return v; }; })();
 
 setInterval(function(){ try{ const el=document.getElementById('poke-strip'); const app=document.getElementById('app-screen'); if(el&&app&&getComputedStyle(app).display!=='none'&&S&&S.user&&!el.querySelector('.pks-chip')) renderPokeStrip(!!(S.currentRoom&&S.currentRoom.tur==='dm')); }catch(e){} },2500);
+
+setInterval(function(){ try{ renderOnlineDots(); }catch(e){} },60000);
 </script>
 </body>
 </html>
