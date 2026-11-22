@@ -1701,7 +1701,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 const UI_LANGS=[['tr','Türkçe'],['en','English'],['id','Bahasa Indonesia'],['ar','العربية'],['de','Deutsch'],['fr','Français'],['es','Español'],['ru','Русский'],['zh','中文'],['ja','日本語'],['ko','한국어'],['pt','Português']];
 const UI_LANG_CODES=UI_LANGS.map(x=>x[0]);
 function _uiLangStored(){try{const v=localStorage.getItem('sh_ui_lang');return UI_LANG_CODES.includes(v)?v:null;}catch(e){return null;}}
-let _UI_LANG=(()=>{try{const q=new URLSearchParams(location.search).get('lang');if(q&&UI_LANG_CODES.includes(q)){try{localStorage.setItem('sh_ui_lang',q);}catch(e){}return q;}}catch(e){}const st=_uiLangStored();if(st)return st;const list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'];for(const x of list){const l=String(x).toLowerCase().split('-')[0];if(UI_LANG_CODES.includes(l))return l;}return 'en';})();
+let _UI_LANG=(()=>{try{const q=new URLSearchParams(location.search).get('lang');if(q==='reset'){try{localStorage.removeItem('sh_ui_lang');}catch(e){}}else if(q&&UI_LANG_CODES.includes(q)){return q;}}catch(e){}const st=_uiLangStored();if(st)return st;const list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'];for(const x of list){const l=String(x).toLowerCase().split('-')[0];if(UI_LANG_CODES.includes(l))return l;}return 'en';})();
 const I18N={
 tr:{
   'auth.tagline1':'Mesajlarınız yalnızca size aittir.',
@@ -2228,7 +2228,7 @@ function T(k){return(I18N[_UI_LANG]||{})[k]||(I18N.en||{})[k]||(I18N.tr||{})[k]|
 // Sözlükler sitenin kendi dosyalarında durur; üçüncü taraf çeviri servisi kullanılmaz.
 // Anahtar: Türkçe kaynak metin. Kullanıcı içeriği (mesaj, gönderi, isim) asla çevrilmez.
 // ============================================================
-const _I18N_VER='20261122e';
+const _I18N_VER='20261122f';
 const _UI_DICT={};
 let _I18N_CAPTURED=false;const _I18N_TEXT=[],_I18N_ATTR=[];
 const _I18N_ATTRS=['placeholder','title','aria-label','alt'];
