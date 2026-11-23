@@ -947,6 +947,13 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 @keyframes onPulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.85)}50%{box-shadow:0 0 0 7px rgba(63,185,80,0)}}
 .room-seen.on{display:inline-block;color:#fff!important;background:#1f9d3a;font-weight:800;font-size:.7rem;padding:.12rem .5rem;border-radius:999px;letter-spacing:.02em}
 .room-item.active .room-seen.on{background:#fff;color:#0a7d2c!important}
+
+/* Büyük medya (varsayılan) — "Küçült" ile eski boyuta döner */
+body:not(.media-small) .msg-wrap:has(.msg-img-wrap,.msg-video-preview){max-width:min(92%,900px)!important}
+body:not(.media-small) .msg-img-wrap{display:block}
+body:not(.media-small) .msg-img-preview{max-width:min(82vw,820px);max-height:75vh;width:auto;height:auto;object-fit:contain}
+body:not(.media-small) .msg-video-preview{width:min(82vw,880px);max-width:100%;max-height:75vh;height:auto}
+#media-size-btn.small{background:rgba(255,255,255,.12);border-radius:10px}
 </style>
 </head>
 <body>
@@ -1102,6 +1109,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <div id="chat-header-sub"></div>
       </div>
       <button class="icon-btn" title="Arama" onclick="openSearch()">🔍</button>
+      <button class="icon-btn" id="media-size-btn" title="Resim/GIF/video boyutu" onclick="toggleMediaSize()">🗕 Küçült</button>
       <button class="icon-btn ps-tgl" id="ps-toggle-btn" title="Profil panelini aç/kapat" onclick="togglePS()">👤</button>
       <button class="icon-btn" id="room-info-btn" title="Oda Bilgisi" onclick="openRoomInfo()" style="display:none">ℹ️</button>
       <button class="icon-btn" id="clear-chat-btn" title="Sohbet geçmişini sil" onclick="openClearMenu(event)">🧹</button>
@@ -8087,6 +8095,11 @@ document.addEventListener('click',function(e){
 
 // ── Sağ profil paneli (geniş ekran, DM) ─────────────────────
 function _ccFlag(cc){ if(!cc||cc.length!==2) return '🌍'; try{ return String.fromCodePoint(...cc.toUpperCase().split('').map(c=>127397+c.charCodeAt(0))); }catch(e){ return '🌍'; } }
+
+function _mediaSmall(){ try{ return localStorage.getItem('sh_media_small')==='1'; }catch(e){ return false; } }
+function _applyMediaSize(){ const sm=_mediaSmall(); document.body.classList.toggle('media-small',sm); const b=document.getElementById('media-size-btn'); if(b){ b.textContent=sm?'🗖 Büyüt':'🗕 Küçült'; b.style.fontSize='.78rem'; b.classList.toggle('small',sm); b.title=sm?'Medyayı büyüt (sohbeti kaplasın)':'Medyayı küçült'; } }
+function toggleMediaSize(){ try{ localStorage.setItem('sh_media_small',_mediaSmall()?'0':'1'); }catch(e){} _applyMediaSize(); const c=document.getElementById('messages'); if(c&&!_mediaSmall()) c.scrollTop=c.scrollHeight; toast(_mediaSmall()?'Medya küçük':'Medya büyük','success'); }
+document.addEventListener('DOMContentLoaded',_applyMediaSize); _applyMediaSize();
 function _psWanted(){ try{ return localStorage.getItem('sh_ps_open')==='1'; }catch(e){ return false; } }
 function togglePS(){
   const on=!_psWanted(); try{ localStorage.setItem('sh_ps_open',on?'1':'0'); }catch(e){}
