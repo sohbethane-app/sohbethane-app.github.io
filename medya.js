@@ -21,7 +21,7 @@ const AI_DEFS={
 };
 
 const ST={tab:'lib',folders:[],folderId:null,items:[],urls:{},sent:new Set(),q:'',showSent:false,
-  src:'giphy',res:[],sel:new Set(),page:0,busy:false,lastQuery:''};
+  src:'giphy',srcs:new Set(['giphy']),pg:{},pinTokMap:{},notes:[],res:[],sel:new Set(),page:0,busy:false,lastQuery:''};
 
 // ───────── arayüz ─────────
 function css(){
@@ -359,11 +359,33 @@ const SRC={
   soz:{ad:'Veciz söz (yapay zekâ yazar)',tur:'soz',ai:true},
   emoji_ai:{ad:'Emoji kombinasyonu (yapay zekâ)',tur:'emoji',ai:true}
 };
+function srcChips(){
+  const media=Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site');
+  const all=media.every(k=>ST.srcs.has(k));
+  const chip=(k,t,on,fn)=>`<label style="cursor:pointer;border:1px solid ${on?'#58a6ff':'#30363d'};background:${on?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap"><input type="checkbox" style="display:none" ${on?'checked':''} onchange="${fn}">${t}</label>`;
+  return chip('all','✅ Tümü (resim/GIF/video)',all,"MY.srcAll()")+Object.entries(SRC).map(([k,v])=>chip(k,v.ad,ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
+}
+function srcRefresh(){
+  const w=$('my-srcs'); if(w) w.innerHTML=srcChips();
+  const site=ST.srcs.has('site'); const tq=$('my-tq'); if(tq) tq.placeholder=site?'Site adresi (örn. https://ornek.com/galeri)':'Anahtar kelime (örn. beyaz çiçek)';
+  ST.src=[...ST.srcs][0]||'giphy';
+}
+MY.srcToggle=function(k){
+  if(ST.srcs.has(k)) { ST.srcs.delete(k); if(!ST.srcs.size) ST.srcs.add(k); }
+  else { if(k==='site') ST.srcs=new Set(['site']); else { ST.srcs.delete('site'); ST.srcs.add(k); } }
+  srcRefresh();
+};
+MY.srcAll=function(){
+  const media=Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site');
+  const c=cfg(); const usable=media.filter(k=>!SRC[k].key||c[SRC[k].key]);
+  const list=usable.length?usable:media;
+  ST.srcs=new Set(list.every(k=>ST.srcs.has(k))?['giphy']:list); srcRefresh();
+};
 function renderTopla(){
   const body=$('my-body');
   const fopts=ST.folders.map(f=>`<option value="${f.id}" ${f.id===ST.folderId?'selected':''}>${esc(f.ad)}</option>`).join('');
   body.innerHTML=`<div class="my-row">
-      <select id="my-src" onchange="MY.setSrc(this.value)">${Object.entries(SRC).map(([k,v])=>`<option value="${k}" ${k===ST.src?'selected':''}>${v.ad}</option>`).join('')}</select>
+      <div id="my-srcs" style="display:flex;flex-wrap:wrap;gap:.35rem;width:100%">${srcChips()}</div>
       <input class="grow" id="my-tq" placeholder="Anahtar kelime (örn. beyaz çiçek)" onkeydown="if(event.key==='Enter')MY.collect(true)">
       <button class="btn btn-primary btn-sm" onclick="MY.collect(true)">🔎 Ara</button>
     </div>
@@ -378,7 +400,7 @@ function renderTopla(){
     <div id="my-res"><div class="my-muted">Bir kaynak seç, anahtar kelime yaz ve ara. Sonuçlardan beğendiklerini işaretleyip klasöre kaydet.</div></div>`;
   if(ST.res.length) drawRes(ST.more);
 }
-MY.setSrc=function(v){ ST.src=v; const tq=$('my-tq'); if(tq) tq.placeholder=v==='site'?'Site adresi (örn. https://ornek.com/galeri)':'Anahtar kelime (örn. beyaz çiçek)'; ST.res=[]; ST.sel=new Set(); ST.page=0; $('my-res').innerHTML='<div class="my-muted">Anahtar kelime yazıp ara.</div>'; };
+MY.setSrc=function(v){ ST.srcs=new Set([v]); srcRefresh(); };
 async function jget(url,headers){
   const r=await NJ(url,{headers:headers||{}});
   if(!r.ok) throw new Error('Servis hatası '+r.status+(r.data&&(r.data.error||r.data.message)?': '+(r.data.error?.message||r.data.error||r.data.message):''));
@@ -465,9 +487,9 @@ async function searchSrc(src,q,page){
   }
   if(src==='pinterest'||src==='pinterest_gif'){
     const gif=src==='pinterest_gif';
-    const d=await jget(`https://serpapi.com/search.json?engine=pinterest&q=${encodeURIComponent(q+(gif?' gif':''))}${page&&ST.pinTok?'&next_page_token='+encodeURIComponent(ST.pinTok):''}&api_key=${encodeURIComponent(k)}`);
+    const d=await jget(`https://serpapi.com/search.json?engine=pinterest&q=${encodeURIComponent(q+(gif?' gif':''))}${page&&ST.pinTokMap[src]?'&next_page_token='+encodeURIComponent(ST.pinTokMap[src]):''}&api_key=${encodeURIComponent(k)}`);
     if(d.error) throw new Error(d.error);
-    ST.pinTok=d.serpapi_pagination?.next_page_token||null;
+    ST.pinTokMap[src]=d.serpapi_pagination?.next_page_token||null;
     return (d.pins||[]).filter(x=>x.original&&(!gif||/\.gif(\?|$)/i.test(x.original))).map((x,i)=>({id:'pi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||x.description||q,kaynak:'pinterest'}));
   }
   if(src==='emoji') return emojiSearch(q);
@@ -477,15 +499,29 @@ async function searchSrc(src,q,page){
 MY.collect=async function(reset){
   if(ST.busy) return;
   const q=($('my-tq')?.value||'').trim();
-  if(!q){ toast(ST.src==='site'?'Site adresi yaz':'Anahtar kelime yaz','error'); return; }
-  if(reset){ ST.res=[]; ST.sel=new Set(); ST.page=0; ST.lastQuery=q; ST.pinTok=null; }
+  const list=[...ST.srcs];
+  if(!q){ toast(list[0]==='site'?'Site adresi yaz':'Anahtar kelime yaz','error'); return; }
+  if(reset){ ST.res=[]; ST.sel=new Set(); ST.pg={}; ST.pinTokMap={}; ST.notes=[]; ST.lastQuery=q; ST.doneSrc=new Set(); }
   ST.busy=true; $('my-res').innerHTML='<div class="my-muted">Aranıyor…</div>';
-  try{
-    const r=await searchSrc(ST.src,ST.lastQuery||q,ST.page);
-    ST.res=ST.res.concat(r); ST.page++;
-    ST.more=r.length>=8&&!(ST.src==='emoji'||ST.src==='soz'||ST.src==='emoji_ai')&&ST.src!=='site'&&!((ST.src==='pinterest'||ST.src==='pinterest_gif')&&!ST.pinTok);
-    if(!ST.res.length) $('my-res').innerHTML='<div class="my-muted">Sonuç bulunamadı.</div>'; else drawRes(ST.more);
-  }catch(e){ $('my-res').innerHTML='<div style="color:#f85149">'+esc(e.message||e)+'</div>'; }
+  const todo=list.filter(k=>!(ST.doneSrc&&ST.doneSrc.has(k)));
+  const out=await Promise.allSettled(todo.map(k=>searchSrc(k,ST.lastQuery||q,ST.pg[k]||0)));
+  const lists=[]; let more=false;
+  out.forEach((o,i)=>{
+    const k=todo[i];
+    if(o.status==='fulfilled'){
+      ST.pg[k]=(ST.pg[k]||0)+1; const r=o.value.map(x=>({...x,id:k+':'+x.id,src:k}));
+      lists.push(r);
+      const single=(k==='emoji'||k==='soz'||k==='emoji_ai'||k==='site');
+      const pin=(k==='pinterest'||k==='pinterest_gif')&&!ST.pinTokMap[k];
+      if(single||pin||r.length<8) ST.doneSrc.add(k); else more=true;
+    } else { ST.doneSrc.add(k); ST.notes.push(SRC[k].ad+': '+(o.reason?.message||o.reason)); }
+  });
+  // kaynakları dönüşümlü karıştır, aynı adresi tekrar ekleme
+  const seen=new Set(ST.res.map(x=>x.url||x.metin)); const mixed=[]; const mx=Math.max(0,...lists.map(l=>l.length));
+  for(let i=0;i<mx;i++) lists.forEach(l=>{ const x=l[i]; if(x){ const key=x.url||x.metin; if(!seen.has(key)){ seen.add(key); mixed.push(x); } } });
+  ST.res=ST.res.concat(mixed); ST.more=more;
+  const note=ST.notes.length?'<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+ST.notes.map(esc).join('<br>')+'</div>':'';
+  if(!ST.res.length) $('my-res').innerHTML=note+'<div class="my-muted">Sonuç bulunamadı.</div>'; else drawRes(ST.more);
   ST.busy=false;
 };
 function drawRes(more){
@@ -497,6 +533,7 @@ function drawRes(more){
     else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" alt=""></div>`;
     return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div></div>`;
   }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
+  if(ST.notes&&ST.notes.length) wrap.insertAdjacentHTML('afterbegin','<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+ST.notes.map(esc).join('<br>')+'</div>');
   hydrateThumbs(wrap);
 }
 MY.toggleSel=function(i){ if(ST.sel.has(i)) ST.sel.delete(i); else ST.sel.add(i); drawRes(ST.more); };
