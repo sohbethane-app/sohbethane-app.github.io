@@ -2416,8 +2416,8 @@ function applyI18n(){
   q('.auth-logo p','auth.subtitle.top');
   q('#auth-heading .auth-title','auth.welcome');
   q('#auth-heading .auth-subtitle','auth.subtitle');
-  q('.auth-tab.active','auth.tab.login');
-  q('.auth-tab:not(.active)','auth.tab.register');
+  q('.auth-tab:nth-child(1)','auth.tab.login');
+  q('.auth-tab:nth-child(2)','auth.tab.register');
   // Login form
   const lf=document.getElementById('login-form');
   if(lf){
