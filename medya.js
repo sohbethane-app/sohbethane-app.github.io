@@ -75,6 +75,7 @@ function css(){
 .my-sug{background:var(--bg2,#161b22);border:1px solid var(--brd,#30363d);border-radius:10px;padding:.7rem;margin-bottom:.6rem}
 .my-muted{color:var(--txt2,#8b949e);font-size:.8rem}
 
+.my-chk{position:absolute;top:.35rem;left:.35rem;z-index:3;background:rgba(0,0,0,.6);border-radius:6px;padding:.1rem .25rem;display:flex}.my-chk input{width:18px;height:18px;cursor:pointer}
 #ai-inline{display:none;padding:.45rem .6rem;border-top:1px solid rgba(255,255,255,.1);background:rgba(10,10,25,.92);max-height:38vh;overflow:auto}
 .ai-in-h{display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem}.ai-in-h b{flex:1;font-size:.82rem}.ai-in-h select{background:var(--bg3,#161b22);color:inherit;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:.15rem .3rem;font-size:.78rem}
 .ai-in-row{display:flex;gap:.4rem;align-items:center;margin:.25rem 0;font-size:.85rem}.ai-in-t{flex:1;white-space:pre-wrap}.ai-in-row.err{color:#f85149;font-size:.76rem}
@@ -250,14 +251,22 @@ async function drawGrid(){
   if(!items.length){ g.innerHTML='<div class="my-muted">Bu görünümde öğe yok.</div>'; return; }
   await signUrls(items);
   const fopts=ST.folders.map(f=>`<option value="${f.id}">${esc(f.ad)}</option>`).join('');
-  g.innerHTML='<div class="my-grid">'+items.map(it=>{
+  if(!ST.lsel) ST.lsel=new Set();
+  const vis=new Set(items.map(i=>i.id)); [...ST.lsel].forEach(id=>{ if(!vis.has(id)) ST.lsel.delete(id); });
+  const nsel=ST.lsel.size;
+  const bar=`<div class="my-row" style="position:sticky;top:0;z-index:5;background:var(--bg2,#0d1117);padding:.3rem 0">
+      <button class="btn btn-secondary btn-sm" onclick="MY.lSelAll()">${nsel&&nsel===items.length?'Seçimi bırak':'☑ Tümünü seç ('+items.length+')'}</button>
+      <button class="btn btn-danger btn-sm" ${nsel?'':'disabled'} onclick="MY.lDelSel()">🗑 Seçilenleri sil (${nsel})</button>
+      <select class="btn btn-secondary btn-sm" ${nsel?'':'disabled'} onchange="MY.lMoveSel(this.value)"><option value="">Seçilenleri taşı…</option>${fopts}</select>
+    </div>`;
+  g.innerHTML=bar+'<div class="my-grid">'+items.map(it=>{
     const u=ST.urls[it.dosya_yolu]||'';
     let prev;
     if(it.tur==='video') prev=`<div class="my-prev"><video src="${esc(u)}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()"></video></div>`;
     else if(it.tur==='gif'||it.tur==='resim') prev=`<div class="my-prev"><img loading="lazy" src="${esc(u)}" alt=""></div>`;
     else prev=`<div class="my-prev txt">${esc(it.metin||'')}</div>`;
     const sent=ST.sent.has(it.id)?'<span class="my-badge">✓ gönderildi</span>':'';
-    return `<div class="my-card">${sent}${prev}
+    return `<div class="my-card ${ST.lsel.has(it.id)?'sel':''}"><label class="my-chk" onclick="event.stopPropagation()"><input type="checkbox" ${ST.lsel.has(it.id)?'checked':''} onchange="MY.lToggle('${it.id}')"></label>${sent}${prev}
       <div class="my-meta" title="${esc(it.etiket)}">${esc(it.tur)} · ${esc(it.etiket||'—')}</div>
       <div class="my-act">
         <button class="btn btn-primary btn-sm" onclick="MY.send('${it.id}')">💬 Gönder</button>
@@ -267,7 +276,28 @@ async function drawGrid(){
       </div></div>`;
   }).join('')+'</div>';
 }
-MY.pickFolder=async function(id){ ST.folderId=id; ST.q=''; await renderLib(); };
+MY.lToggle=function(id){ if(!ST.lsel) ST.lsel=new Set(); if(ST.lsel.has(id)) ST.lsel.delete(id); else ST.lsel.add(id); drawGrid(); };
+MY.lSelAll=function(){ if(!ST.lsel) ST.lsel=new Set(); let items=ST.items; if(S.currentRoom&&!ST.showSent) items=items.filter(i=>!ST.sent.has(i.id)); if(ST.lsel.size&&ST.lsel.size===items.length) ST.lsel=new Set(); else ST.lsel=new Set(items.map(i=>i.id)); drawGrid(); };
+MY.lDelSel=async function(){
+  const ids=[...(ST.lsel||[])]; if(!ids.length) return;
+  if(!confirm(ids.length+' öğe KALICI olarak silinsin mi? Geri alınamaz.')) return;
+  const its=ST.items.filter(i=>ids.includes(i.id));
+  const paths=its.map(i=>i.dosya_yolu).filter(Boolean);
+  try{
+    for(let i=0;i<paths.length;i+=100){ await sb.storage.from(BUCKET).remove(paths.slice(i,i+100)); }
+    for(let i=0;i<ids.length;i+=100){ const {error}=await sb.from('medya_ogeler').delete().in('id',ids.slice(i,i+100)); if(error) throw error; }
+    ST.items=ST.items.filter(i=>!ids.includes(i.id)); ST.lsel=new Set();
+    toast(ids.length+' öğe silindi','success'); drawGrid();
+  }catch(e){ toast('Silinemedi: '+(e.message||e),'error'); }
+};
+MY.lMoveSel=async function(fid){
+  const ids=[...(ST.lsel||[])]; if(!ids.length||!fid) return;
+  try{
+    for(let i=0;i<ids.length;i+=100){ const {error}=await sb.from('medya_ogeler').update({klasor_id:fid}).in('id',ids.slice(i,i+100)); if(error) throw error; }
+    ST.lsel=new Set(); toast(ids.length+' öğe taşındı ✓','success'); renderLib();
+  }catch(e){ toast('Taşınamadı: '+(e.message||e),'error'); }
+};
+MY.pickFolder=async function(id){ ST.lsel=new Set(); ST.folderId=id; ST.q=''; await renderLib(); };
 MY.search=async function(){ ST.q=($('my-q').value||'').trim(); await renderLib(); };
 MY.toggleSent=function(v){ ST.showSent=!!v; drawGrid(); };
 MY.newFolder=async function(){
