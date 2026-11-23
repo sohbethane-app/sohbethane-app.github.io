@@ -428,7 +428,11 @@ function renderTopla(){
       <button class="btn btn-primary btn-sm" onclick="MY.sendRes()">💬 Seçilenleri sohbete gönder</button>
       <button class="btn btn-success btn-sm" onclick="MY.saveSel()">💾 Yalnızca kaydet</button>
       <label class="my-muted" style="display:flex;gap:.3rem;align-items:center"><input type="checkbox" id="my-alsosave" checked> Gönderirken kütüphaneye de kaydet</label>
-      <button class="btn btn-secondary btn-sm" onclick="MY.selAll()">Tümünü seç</button></div>
+      <button class="btn btn-secondary btn-sm" onclick="MY.selAll()">Tümünü seç / bırak</button>
+      <button class="btn btn-secondary btn-sm" onclick="MY.selType('gif')">Yalnız GIF'leri seç</button>
+      <button class="btn btn-secondary btn-sm" onclick="MY.selType('resim')">Yalnız resimleri seç</button>
+      <button class="btn btn-secondary btn-sm" onclick="MY.loadAll()" title="Tüm sayfaları getirir (en fazla 8 sayfa)">⏬ Hepsini getir</button>
+      <button class="btn btn-success btn-sm" onclick="MY.saveAll()" title="Ekrandaki tüm sonuçları seçip kütüphaneye kaydeder">💾 Hepsini kaydet</button></div>
     <div class="my-row"><span class="my-muted">Kendi dosyaların:</span>
       <input type="file" id="my-file" multiple accept="image/*,video/*" onchange="MY.upload(this)">
       <input class="grow" id="my-url" placeholder="veya doğrudan dosya adresi (.gif/.jpg/.mp4)">
@@ -593,7 +597,17 @@ function drawRes(more){
   hydrateThumbs(wrap);
 }
 MY.toggleSel=function(i){ if(ST.sel.has(i)) ST.sel.delete(i); else ST.sel.add(i); drawRes(ST.more); };
-MY.selAll=function(){ ST.res.forEach((_,i)=>ST.sel.add(i)); drawRes(ST.more); };
+MY.selAll=function(){ if(ST.res.length&&ST.sel.size===ST.res.length) ST.sel=new Set(); else ST.res.forEach((_,i)=>ST.sel.add(i)); drawRes(ST.more); };
+MY.selType=function(t){ ST.sel=new Set(); ST.res.forEach((r,i)=>{ if(r.tur===t) ST.sel.add(i); }); if(!ST.sel.size) toast('Bu türden sonuç yok','error'); drawRes(ST.more); };
+MY.loadAll=async function(){
+  let n=0; while(ST.more&&!ST.busy&&n<8){ n++; toast('Sayfa '+(n+1)+' getiriliyor… ('+ST.res.length+' sonuç)','info'); await MY.collect(false); }
+  toast(ST.res.length+' sonuç getirildi'+(ST.more?' (daha fazlası var, tekrar bas)':''),'success');
+};
+MY.saveAll=async function(){
+  if(!ST.res.length){ toast('Önce bir arama yap','error'); return; }
+  if(ST.res.length>60&&!confirm(ST.res.length+' öğe kütüphaneye kaydedilecek. Devam edilsin mi?')) return;
+  ST.res.forEach((_,i)=>ST.sel.add(i)); await MY.saveSel();
+};
 async function putFile(folderId,blob,mime,meta){
   const ext=EXT[mime]||(mime.split('/')[1]||'bin');
   const path=`${folderId}/${(crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random().toString(16).slice(2))}.${ext}`;
