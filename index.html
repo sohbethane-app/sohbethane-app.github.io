@@ -1176,9 +1176,9 @@ body:not(.media-small) .msg-video-preview{width:min(82vw,880px);max-width:100%;m
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
         <button id="poke-quick-btn" onclick="togglePokeQuickPanel()" title="Konu ikonları">🎯</button>
         <button id="medya-btn" class="input-btn" style="display:none" onclick="_medyaLoad('lib')" title="Multimedya (yalnızca yönetici)">🗂</button>
-        <button id="medya-ai-btn" class="input-btn" style="display:none" onclick="_medyaLoad('sug')" title="Yapay zekâ cevap önerisi (yalnızca yönetici)">🤖</button>
         <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
         <button id="poke-btn" onclick="togglePokePanel()" title="Özel konu için dürt">👉 Dürt</button>
+        <button id="medya-ai-btn" class="input-btn" style="display:none;font-weight:700;white-space:nowrap" onclick="_medyaLoad('inline')" title="Yapay zekâ cevap önerisi (yalnızca yönetici)">🤖 Öneri</button>
         <button id="send-btn" onclick="sendMessage()">Gönder ✦</button>
       </div>
       <div id="enter-send-row">
@@ -3365,9 +3365,9 @@ async function doLogout(){
 // Yönetici araçları (Multimedya + yapay zekâ önerisi) — yalnızca yönetici hesabında yüklenir
 function _medyaLoad(tab){
   if(!S.profile||!S.profile.yonetici) return;
-  const go=()=>window.MY&&window.MY.open(tab);
+  const go=()=>window.MY&&(tab==='inline'?window.MY.inline():window.MY.open(tab));
   if(window.MY){ go(); return; }
-  const sc=document.createElement('script'); sc.src='medya.js?v=20261123g'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
+  const sc=document.createElement('script'); sc.src='medya.js?v=20261123h'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
   document.head.appendChild(sc);
 }
 function _medyaButtons(){

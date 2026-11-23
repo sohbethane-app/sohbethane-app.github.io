@@ -72,6 +72,11 @@ function css(){
 .my-badge{position:absolute;top:4px;left:4px;background:rgba(63,185,80,.9);color:#fff;font-size:.65rem;padding:1px 6px;border-radius:8px}
 .my-sug{background:var(--bg2,#161b22);border:1px solid var(--brd,#30363d);border-radius:10px;padding:.7rem;margin-bottom:.6rem}
 .my-muted{color:var(--txt2,#8b949e);font-size:.8rem}
+
+#ai-inline{display:none;padding:.45rem .6rem;border-top:1px solid rgba(255,255,255,.1);background:rgba(10,10,25,.92);max-height:38vh;overflow:auto}
+.ai-in-h{display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem}.ai-in-h b{flex:1;font-size:.82rem}.ai-in-h select{background:var(--bg3,#161b22);color:inherit;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:.15rem .3rem;font-size:.78rem}
+.ai-in-row{display:flex;gap:.4rem;align-items:center;margin:.25rem 0;font-size:.85rem}.ai-in-t{flex:1;white-space:pre-wrap}.ai-in-row.err{color:#f85149;font-size:.76rem}
+.ai-in-media{display:flex;gap:.35rem;overflow:auto;margin-top:.3rem}.ai-in-m{border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:0;background:#000;width:64px;height:64px;flex:none;overflow:hidden;cursor:pointer}.ai-in-m img,.ai-in-m video{width:100%;height:100%;object-fit:cover}
 `;
   document.head.appendChild(st);
 }
@@ -842,11 +847,7 @@ function convo(){
   const ms=(S.messages||[]).filter(m=>m.mesaj_tipi==='metin'&&m._text&&!String(m._text).startsWith('🔒')).slice(-8);
   return ms.map(m=>(m.gonderen_id===S.user.id?'Ben: ':'Karşı taraf: ')+String(m._text).slice(0,400)).join('\n');
 }
-MY.runSug=async function(){
-  const c=cfg(); const ton=$('my-ton').value; c.ton=ton; saveCfg(c);
-  const conv=convo(); if(!conv){ toast('Bu sohbette öneri için okunabilir mesaj yok','error'); return; }
-  if(!ackOk()) return;
-  const out=$('my-sugout'); out.innerHTML='Yapay zekâlar düşünüyor…';
+async function sugCompute(ton,conv){
   const sys=`Bir sohbet sitesinde yazışıyorsun. Aşağıdaki konuşmanın devamı için "Ben" adına ${ton} tonda, doğal ve kısa (en fazla 2 cümle) bir cevap öner. Karşı tarafın yazdığı dilde yaz. Yalnızca şu JSON'u ver: {"cevap":"...","medya_anahtar":"GIF/resim aramak için 1-3 kelime"}`;
   const ps=aiList().slice(0,3);
   const res=await Promise.all(ps.map(async p=>{
@@ -873,6 +874,56 @@ MY.runSug=async function(){
     items=items.slice(0,8);
   }
   ST.sugItems=items; await signUrls(items);
+  return {res,items};
+}
+
+// ───────── ana sohbet penceresinde hızlı öneri ─────────
+function inlineBox(){
+  let b=$('ai-inline'); if(b) return b;
+  const wrap=$('chat-input-wrap'); if(!wrap) return null;
+  b=document.createElement('div'); b.id='ai-inline';
+  wrap.parentNode.insertBefore(b,wrap); return b;
+}
+function inlineHead(ton){
+  return `<div class="ai-in-h"><b>🤖 Cevap önerileri</b>
+    <select id="ai-in-ton" onchange="MY.inline(this.value)">${['samimi','nazik','esprili','flörtöz'].map(t=>`<option ${t===ton?'selected':''}>${t}</option>`).join('')}</select>
+    <button class="btn btn-secondary btn-sm" onclick="MY.inline(document.getElementById('ai-in-ton').value)" title="Yeniden getir">↻</button>
+    <button class="btn btn-secondary btn-sm" onclick="MY.inlineClose()">✕</button></div>`;
+}
+MY.inlineClose=function(){ const b=$('ai-inline'); if(b) b.style.display='none'; };
+MY.inline=async function(tonArg){
+  if(!S.currentRoom){ toast('Önce bir sohbet aç','error'); return; }
+  css();
+  const box=inlineBox(); if(!box) return;
+  const c=rawCfg(); const ton=(typeof tonArg==='string'&&tonArg)?tonArg:(c.ton||'samimi');
+  if(ton!==c.ton){ c.ton=ton; saveCfg(c); }
+  box.style.display='block';
+  const conv=convo();
+  if(!conv){ box.innerHTML=inlineHead(ton)+'<div class="my-muted">Bu sohbette öneri için okunabilir mesaj yok.</div>'; return; }
+  if(!ackOk()){ box.style.display='none'; return; }
+  if(!aiList().length&&!Object.keys(SK).length) await loadKeys();
+  if(!aiList().length){ box.innerHTML=inlineHead(ton)+'<div class="my-muted">Önce 🗂 Multimedya > Ayarlar bölümünden bir yapay zekâ anahtarı ekle.</div>'; return; }
+  box.innerHTML=inlineHead(ton)+'<div class="my-muted">Yapay zekâlar düşünüyor…</div>';
+  try{
+    if(!ST.folders.length) await loadFolders();
+    const {res,items}=await sugCompute(ton,conv);
+    window._mySugRes=res;
+    box.innerHTML=inlineHead(ton)+res.map((r,i)=>r.err
+      ?`<div class="ai-in-row err"><b>${esc(r.p.ad)}</b> ${esc(r.err)}</div>`
+      :`<div class="ai-in-row"><div class="ai-in-t"><b>${esc(r.p.ad)}</b> ${esc(r.cevap)}</div><button class="btn btn-secondary btn-sm" onclick="MY.useSug(${i})" title="Mesaj kutusuna yaz">✎ Yaz</button><button class="btn btn-primary btn-sm" onclick="MY.sendSug(${i})" title="Hemen gönder">➤ Gönder</button></div>`).join('')
+      +(items.length?'<div class="ai-in-media">'+items.map(it=>{ const u=ST.urls[it.dosya_yolu]||''; const prev=it.tur==='video'?`<video src="${esc(u)}" muted playsinline preload="metadata"></video>`:(it.tur==='gif'||it.tur==='resim')?`<img src="${esc(u)}" alt="">`:`<span>${esc((it.metin||'').slice(0,40))}</span>`; return `<button type="button" class="ai-in-m" onclick="MY.send('${it.id}')" title="Gönder">${prev}</button>`; }).join('')+'</div>':'');
+  }catch(e){ box.innerHTML=inlineHead(ton)+'<div class="ai-in-row err">'+esc(e.message||e)+'</div>'; }
+};
+MY.sendSug=async function(i){
+  const r=window._mySugRes&&window._mySugRes[i]; if(!r||!r.cevap) return;
+  try{ await sendTextMessage(r.cevap,S.currentRoom); MY.inlineClose(); }catch(e){ toast('Gönderilemedi: '+(e.message||e),'error'); }
+};
+MY.runSug=async function(){
+  const c=cfg(); const ton=$('my-ton').value; c.ton=ton; saveCfg(c);
+  const conv=convo(); if(!conv){ toast('Bu sohbette öneri için okunabilir mesaj yok','error'); return; }
+  if(!ackOk()) return;
+  const out=$('my-sugout'); out.innerHTML='Yapay zekâlar düşünüyor…';
+  const {res,items}=await sugCompute(ton,conv);
   out.innerHTML=res.map((r,i)=>`<div class="my-sug"><b>${esc(r.p.ad)}</b>${r.err?`<div style="color:#f85149;font-size:.8rem">${esc(r.err)}</div>`:`<div style="margin:.4rem 0;white-space:pre-wrap">${esc(r.cevap)}</div><div class="my-muted">medya: ${esc(r.key||'—')}</div><button class="btn btn-primary btn-sm" onclick="MY.useSug(${i})">Mesaj kutusuna koy</button>`}</div>`).join('')
    +(items.length?`<div class="my-sug"><b>Kütüphaneden medya önerileri</b> <span class="my-muted">(bu sohbete daha önce gönderilmemiş)</span><div class="my-grid" style="margin-top:.5rem">${items.map(it=>{
       const u=ST.urls[it.dosya_yolu]||'';
@@ -883,7 +934,7 @@ MY.runSug=async function(){
 MY.useSug=function(i){
   const r=window._mySugRes&&window._mySugRes[i]; if(!r) return;
   const inp=document.getElementById('chat-input'); if(inp){ inp.value=r.cevap; try{autoResize(inp);}catch(e){} inp.focus(); }
-  MY.close();
+  MY.close(); MY.inlineClose();
 };
 
 // ───────── ayarlar ─────────
