@@ -394,11 +394,23 @@ const SRC={
   soz:{ad:'Veciz söz (yapay zekâ yazar)',tur:'soz',ai:true},
   emoji_ai:{ad:'Emoji kombinasyonu (yapay zekâ)',tur:'emoji',ai:true}
 };
+const TYPE_DEFS=[['gif','🎞 GIF'],['resim','🖼 Resim'],['video','🎬 Video']];
+function mediaSrcs(){ return Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site'); }
+function usableOf(t){ const c=cfg(); return mediaSrcs().filter(k=>SRC[k].tur===t&&(!SRC[k].key||c[SRC[k].key])); }
+function typeOn(t){ const u=usableOf(t); return u.length>0&&u.every(k=>ST.srcs.has(k)); }
+MY.typeToggle=function(t){
+  const on=new Set(TYPE_DEFS.map(x=>x[0]).filter(typeOn));
+  if(on.has(t)) on.delete(t); else on.add(t);
+  const list=[]; on.forEach(x=>list.push(...usableOf(x)));
+  if(!usableOf(t).length){ toast(t==='video'?'Video için anahtarsız kaynak yok: Pexels/Pixabay anahtarı ekle ya da "Site adresinden topla"yı kullan':'Bu tür için kullanılabilir kaynak yok','error'); return; }
+  ST.srcs=new Set(list.length?list:['bing_img']); srcRefresh();
+};
 function srcChips(){
   const media=Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site');
   const _c=cfg(); const usable0=media.filter(k=>!SRC[k].key||_c[SRC[k].key]); const all=usable0.length>0&&usable0.every(k=>ST.srcs.has(k));
   const chip=(k,t,on,fn)=>`<label style="cursor:pointer;border:1px solid ${on?'#58a6ff':'#30363d'};background:${on?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap"><input type="checkbox" style="display:none" ${on?'checked':''} onchange="${fn}">${t}</label>`;
-  return chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).map(([k,v])=>chip(k,v.ad,ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
+  const typeRow='<div style="width:100%;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center"><span class="my-muted">Ne toplansın:</span>'+TYPE_DEFS.map(([t,l])=>chip('t_'+t,l+(usableOf(t).length?'':' (anahtar gerekir)'),typeOn(t),`MY.typeToggle('${t}')`)).join('')+'</div>';
+  return typeRow+chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).map(([k,v])=>chip(k,v.ad,ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
 }
 function srcRefresh(){
   const w=$('my-srcs'); if(w) w.innerHTML=srcChips();
