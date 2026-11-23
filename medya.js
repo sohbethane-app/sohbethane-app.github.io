@@ -69,6 +69,11 @@ function css(){
 .my-prev img,.my-prev video{max-width:100%;max-height:100%;object-fit:contain}
 .my-prev.txt{background:var(--bg3,#21262d);padding:.5rem;font-size:.82rem;text-align:center;overflow:auto;align-items:flex-start;display:block;white-space:pre-wrap}
 .my-meta{padding:.35rem .5rem;font-size:.7rem;color:var(--txt2,#8b949e);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.my-badge{margin:0 .4rem .4rem;font-size:.7rem;color:#3fb950}
+.my-pick{position:fixed;z-index:100000;background:var(--bg2,#161b22);border:1px solid var(--brd,#30363d);border-radius:12px;padding:.6rem;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:70vh;overflow:auto}
+.my-pick-h{font-weight:600;font-size:.85rem;margin-bottom:.5rem}
+.my-pick-l{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.5rem}
+.my-pick-n{display:flex;gap:.3rem}.my-pick-n input{flex:1;min-width:0;font-size:.8rem}
 .my-act{display:flex;gap:.25rem;padding:0 .4rem .4rem;flex-wrap:wrap}
 .my-act button{font-size:.72rem;padding:.2rem .4rem}
 .my-badge{position:absolute;top:4px;left:4px;background:rgba(63,185,80,.9);color:#fff;font-size:.65rem;padding:1px 6px;border-radius:8px}
@@ -478,6 +483,7 @@ function renderTopla(){
       <button class="btn btn-secondary btn-sm" onclick="MY.newFolder()">➕ Yeni klasör</button>
       <button class="btn btn-primary btn-sm" onclick="MY.sendRes()">💬 Seçilenleri sohbete gönder</button>
       <button class="btn btn-success btn-sm" onclick="MY.saveSel()">💾 Yalnızca kaydet</button>
+      <button class="btn btn-secondary btn-sm" onclick="MY.pickSel(this)" title="Seçilenleri istediğin klasöre gönder">📁 Seçilenleri klasöre…</button>
       <label class="my-muted" style="display:flex;gap:.3rem;align-items:center"><input type="checkbox" id="my-alsosave" checked> Gönderirken kütüphaneye de kaydet</label>
       <button class="btn btn-secondary btn-sm" onclick="MY.selAll()">Tümünü seç / bırak</button>
       <button class="btn btn-secondary btn-sm" onclick="MY.selType('gif')">Yalnız GIF'leri seç</button>
@@ -683,7 +689,7 @@ function drawRes(more){
     if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
     else if(r.tur==='video'&&!r.thumb) prev=`<div class="my-prev txt" style="font-size:1.6rem">🎬</div>`;
     else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" data-tfb="${esc(r.thumbFb||'')}" alt=""></div>`;
-    return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button></div></div>`;
+    return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
   }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
   if(ST.notes&&ST.notes.length) wrap.insertAdjacentHTML('afterbegin','<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+ST.notes.map(esc).join('<br>')+'</div>');
   hydrateThumbs(wrap);
@@ -742,10 +748,40 @@ MY.sendRes=async function(list){
   }
   if(ok){ toast(ok+' öğe gönderildi ✓'+(save?' (kütüphaneye de kaydedildi)':''),'success'); if($('my-caption')&&cap) $('my-caption').value=''; ST.sel=new Set(); drawRes(ST.more); }
 };
+MY.pickFor=function(idx,btn){
+  MY.closePick();
+  const q=TURKEY(ST.lastQuery||'');
+  const last=(()=>{try{return JSON.parse(localStorage.getItem('my_lastf')||'[]');}catch(e){return [];}})();
+  const score=f=>{const n=TURKEY(f.ad); let sc=last.indexOf(f.id); sc=sc<0?99:sc; if(q&&(q.includes(n)||n.includes(q))) sc=-1; return sc;};
+  const fl=[...ST.folders].sort((a,b)=>score(a)-score(b));
+  const box=document.createElement('div'); box.id='my-pick'; box.className='my-pick';
+  box.innerHTML='<div class="my-pick-h">📁 '+idx.length+' öğeyi klasöre gönder <span onclick="MY.closePick()" style="cursor:pointer;float:right">✕</span></div>'+
+    '<div class="my-pick-l">'+fl.map(f=>'<button class="btn btn-secondary btn-sm" onclick="MY.pickDo(\''+f.id+'\',['+idx.join(',')+'])">'+esc(f.ad)+(score(f)<0?' ⭐':'')+'</button>').join('')+'</div>'+
+    '<div class="my-pick-n"><input id="my-pick-new" class="input" placeholder="+ Yeni klasör adı" maxlength="60"><button class="btn btn-primary btn-sm" onclick="MY.pickNew(['+idx.join(',')+'])">Oluştur ve gönder</button></div>';
+  document.body.appendChild(box);
+  const r=btn.getBoundingClientRect(); const w=Math.min(300,innerWidth-16);
+  box.style.width=w+'px'; box.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';
+  const h=box.offsetHeight; box.style.top=(r.bottom+h+8>innerHeight?Math.max(8,r.top-h-4):r.bottom+4)+'px';
+  setTimeout(()=>document.addEventListener('mousedown',MY._pickOut=function(e){ if(!box.contains(e.target)) MY.closePick(); }),0);
+};
+MY.closePick=function(){ const b=document.getElementById('my-pick'); if(b) b.remove(); if(MY._pickOut){ document.removeEventListener('mousedown',MY._pickOut); MY._pickOut=null; } };
+MY.pickDo=async function(fid,idx){
+  MY.closePick();
+  try{ let l=JSON.parse(localStorage.getItem('my_lastf')||'[]').filter(x=>x!==fid); l.unshift(fid); localStorage.setItem('my_lastf',JSON.stringify(l.slice(0,8))); }catch(e){}
+  await MY.saveSel(fid,idx);
+};
+MY.pickNew=async function(idx){
+  const ad=($('my-pick-new')?.value||'').trim(); if(!ad) return;
+  const {data,error}=await sb.from('medya_klasorler').insert({ad}).select().single();
+  if(error){ toast('Klasör oluşturulamadı: '+error.message,'error'); return; }
+  ST.folders.push(data); await MY.pickDo(data.id,idx);
+};
+MY.pickSel=function(btn){ const idx=[...ST.sel]; if(!idx.length){ toast('Önce sonuçlardan seç','error'); return; } MY.pickFor(idx,btn); };
 MY.saveOne=function(i){ ST.sel=new Set([i]); MY.saveSel(); };
-MY.saveSel=async function(){
-  const fid=$('my-tf')?.value; if(!fid){ toast('Klasör seç','error'); return; }
-  const picks=[...ST.sel].map(i=>ST.res[i]).filter(Boolean);
+MY.saveSel=async function(fidArg,idxArg){
+  const fid=fidArg||$('my-tf')?.value; if(!fid){ toast('Klasör seç','error'); return; }
+  const idxs=idxArg||[...ST.sel];
+  const picks=idxs.map(i=>ST.res[i]).filter(Boolean);
   if(!picks.length){ toast('Önce sonuçlardan seç','error'); return; }
   const q=ST.lastQuery||'';
   let ok=0,fail=0,idx=0;
@@ -761,7 +797,7 @@ MY.saveSel=async function(){
           const {blob:b,type:bt}=await NB(r.url);
           const _m=(bt&&bt!=='application/octet-stream')?bt:r.mime; await putFile(fid,b,_m,{tur:_m.startsWith('video/')?'video':(_m==='image/gif'?'gif':'resim'),etiket:(q+' '+(r.ad||'')).trim().slice(0,200),kaynak:r.kaynak});
         }
-        ok++;
+        ok++; r._klasor=fid;
       }catch(e){ fail++; console.warn('medya kaydet',e); }
     }
   }
