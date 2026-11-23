@@ -351,6 +351,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
             <option value="duvar">Duvar</option>
           </select>
         </div>
+        <div style="margin:.5rem 0"><button id="room-bulk" class="btn btn-danger btn-sm" style="display:none" onclick="deleteSelectedRooms()"></button></div>
         <div id="rooms-list" class="loading-state"><span class="spinner"></span></div>
       </div>
 
@@ -900,8 +901,9 @@ function renderRooms(list){
   if(!list.length){ el.innerHTML='<div class="empty">Oda bulunamadı.</div>'; return; }
   const turIcon = {dm:'💬',grup:'👥',arsiv:'📁',duvar:'📰'};
   el.innerHTML=`<div class="table-wrap"><table>
-    <thead><tr><th>Oda Adı</th><th>Tür</th><th>Kilit</th><th>Oluşturma</th><th></th></tr></thead>
+    <thead><tr><th style="width:28px"><input type="checkbox" onclick="toggleAllRooms(this.checked)" title="Tümünü seç"></th><th>Oda Adı</th><th>Tür</th><th>Kilit</th><th>Oluşturma</th><th></th></tr></thead>
     <tbody>${list.map(r=>`<tr>
+      <td><input type="checkbox" class="room-chk" value="${esc(r.id)}" onclick="roomSelChanged()"></td>
       <td>
         <div style="font-weight:600">${turIcon[r.tur]||'🏠'} ${esc(r.isim||'(İsimsiz)')}</div>
         <div style="font-size:.72rem;color:var(--txt2)">${esc(r.id)}</div>
@@ -910,11 +912,36 @@ function renderRooms(list){
       <td>${r.sifre?'🔒 Şifreli':'🔓 Açık'}</td>
       <td style="font-size:.8rem">${fmtDate(r.olusturma_tarihi)}</td>
       <td>${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}','${(r.isim||r.id).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">💬 Mesajlar</button>`:
-        '<span style="font-size:.75rem;color:var(--txt2)">🔐 E2E Şifreli</span>'}</td>
+        '<span style="font-size:.75rem;color:var(--txt2)">🔐 E2E Şifreli</span>'}
+        <button class="btn btn-danger btn-sm" style="margin-left:.4rem" onclick="deleteRoom('${r.id}',${jsArg(r.isim||'(İsimsiz)')},${jsArg(r.tur)})">🗑 Sil</button></td>
     </tr>`).join('')}</tbody>
   </table></div>`;
 }
 
+
+// ─── ODA SİLME (yönetici) ────────────────────────────────────
+function toggleAllRooms(on){ document.querySelectorAll('.room-chk').forEach(c=>c.checked=on); roomSelChanged(); }
+function roomSelChanged(){
+  const n=document.querySelectorAll('.room-chk:checked').length;
+  const b=document.getElementById('room-bulk'); if(!b) return;
+  b.style.display=n?'inline-flex':'none'; b.textContent='🗑 Seçilenleri sil ('+n+')';
+}
+async function _roomDel(id){ const {data,error}=await sb.rpc('oda_sil_yonetici',{p_id:id}); if(error||!data?.silindi) throw new Error(error?.message||'silinemedi'); return data; }
+async function deleteRoom(id,name,tur){
+  if(!confirm(`"${name}" (${tur}) odası kalıcı silinsin mi?\n\nOdadaki TÜM mesajlar ve üyelikler silinir, tüm üyelerde kaybolur. Bu işlem GERİ ALINMAZ.`)) return;
+  try{ const d=await _roomDel(id); toast(`Oda silindi (${d.mesaj} mesaj, ${d.uye} üye)`,'success'); }
+  catch(e){ toast('Silinemedi: '+e.message,'error'); return; }
+  loadRooms();
+}
+async function deleteSelectedRooms(){
+  const ids=[...document.querySelectorAll('.room-chk:checked')].map(c=>c.value);
+  if(!ids.length) return;
+  if(!confirm(`${ids.length} oda kalıcı silinsin mi?\n\nTüm mesajlar ve üyelikler silinir. Bu işlem GERİ ALINMAZ.`)) return;
+  let ok=0,fail=0;
+  for(const id of ids){ try{ await _roomDel(id); ok++; }catch(e){ fail++; } }
+  toast(`${ok} oda silindi`+(fail?`, ${fail} silinemedi`:''),fail?'error':'success');
+  loadRooms();
+}
 // ─── MESSAGES ────────────────────────────────────────────────
 async function loadMessages(){
   const el = document.getElementById('messages-list');
