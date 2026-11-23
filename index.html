@@ -954,6 +954,9 @@ body:not(.media-small) .msg-img-wrap{display:block}
 body:not(.media-small) .msg-img-preview{max-width:min(82vw,820px);max-height:75vh;width:auto;height:auto;object-fit:contain}
 body:not(.media-small) .msg-video-preview{width:min(82vw,880px);max-width:100%;max-height:75vh;height:auto}
 #media-size-btn.small{background:rgba(255,255,255,.12);border-radius:10px}
+
+.media-min-btn{position:absolute;top:.4rem;right:.4rem;z-index:4;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:.15rem .55rem;font-size:.72rem;font-weight:700;cursor:pointer;opacity:.85;backdrop-filter:blur(4px)}
+.media-min-btn:hover{opacity:1;background:rgba(0,0,0,.8)}
 </style>
 </head>
 <body>
@@ -1109,7 +1112,6 @@ body:not(.media-small) .msg-video-preview{width:min(82vw,880px);max-width:100%;m
         <div id="chat-header-sub"></div>
       </div>
       <button class="icon-btn" title="Arama" onclick="openSearch()">🔍</button>
-      <button class="icon-btn" id="media-size-btn" title="Resim/GIF/video boyutu" onclick="toggleMediaSize()">🗕 Küçült</button>
       <button class="icon-btn ps-tgl" id="ps-toggle-btn" title="Profil panelini aç/kapat" onclick="togglePS()">👤</button>
       <button class="icon-btn" id="room-info-btn" title="Oda Bilgisi" onclick="openRoomInfo()" style="display:none">ℹ️</button>
       <button class="icon-btn" id="clear-chat-btn" title="Sohbet geçmişini sil" onclick="openClearMenu(event)">🧹</button>
@@ -3397,12 +3399,13 @@ async function startApp(){
   // Admin tab
   if(S.profile.yonetici) document.getElementById('admin-tab-btn').style.display='';
   // Load data
-  await loadBlockMute();
-  await getAllProfiles();
-  await loadRooms();
+  try{ startGlobalPresence(); }catch(e){ console.error('presence',e); }
+  try{ await loadBlockMute(); }catch(e){ console.error('loadBlockMute',e); }
+  try{ await getAllProfiles(); }catch(e){ console.error('getAllProfiles',e); }
+  try{ await loadRooms(); }catch(e){ console.error('loadRooms',e); }
   // Realtime
-  subscribeRooms();
-  subscribeInbox();
+  try{ subscribeRooms(); }catch(e){ console.error('subscribeRooms',e); }
+  try{ subscribeInbox(); }catch(e){ console.error('subscribeInbox',e); }
   renderWelcomePanel();
   // Set initial favicon & tab title
   updateTabBadge();
@@ -3430,8 +3433,6 @@ async function startApp(){
   setTimeout(function(){ try{ renderPokeStrip(S.currentRoom&&S.currentRoom.tur==='dm'); }catch(e){} },900);
   setTimeout(()=>{try{maybeAskGender();}catch(e){}},300);
   setTimeout(()=>{try{maybeAskNativeLang();}catch(e){}},600);
-  // Global presence
-  startGlobalPresence();
   // First-time theme picker
   setTimeout(()=>showFirstTimeThemePicker(), 600);
 }
@@ -4238,7 +4239,7 @@ function renderFileContent(m){
     const room18=isRoom18Plus(S.currentRoom?.id);
     const isBlurred=room18||(()=>{try{return localStorage.getItem(blurKey)==='1';}catch(e){return false;}})();
     return `<div>
-      <div class="msg-img-wrap${isBlurred?' blurred':''}" id="imgwrap_${m.id}">
+      <div class="msg-img-wrap${isBlurred?' blurred':''}" id="imgwrap_${m.id}"><button type="button" class="media-min-btn" onclick="event.stopPropagation();toggleMediaSize()"></button>
         <div class="msg-img-loading" id="imgload_${m.id}">🔓 Şifre çözülüyor…</div>
         <img class="msg-img-preview" id="imgel_${m.id}" data-msg-id="${m.id}" onclick="openImgLightbox('${m.id}')" alt="${escHtml(name)}" style="display:none">
         <div class="msg-img-blur-overlay" onclick="unblurMsgImg('${m.id}')">
@@ -4255,9 +4256,9 @@ function renderFileContent(m){
   }
   if(isVid){
     return `<div>
-      <video class="msg-video-preview" controls data-msg-id="${m.id}" preload="none">
+      <div style="position:relative;display:inline-block;max-width:100%"><button type="button" class="media-min-btn" onclick="event.stopPropagation();toggleMediaSize()"></button><video class="msg-video-preview" controls data-msg-id="${m.id}" preload="none">
         Tarayıcınız video oynatmıyor.
-      </video>
+      </video></div>
       <div class="msg-video-loading" id="vidload_${m.id}">⏳ Video şifresi çözülüyor...</div>
       ${captionHtml}
       <div style="display:flex;align-items:center;gap:.5rem;margin-top:.2rem">
@@ -6403,6 +6404,7 @@ function startGlobalPresence(){
         await _presenceChannel.track({gizli:isGizli,son_aktif:new Date().toISOString()});
       } else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
         // Yeniden bağlan
+        try{ sb.removeChannel(_presenceChannel); }catch(_){} _presenceChannel=null; clearInterval(_sonAktifTimer);
         setTimeout(()=>{ if(S.user) startGlobalPresence(); }, 5000);
       }
     });
@@ -8104,9 +8106,10 @@ document.addEventListener('click',function(e){
 function _ccFlag(cc){ if(!cc||cc.length!==2) return '🌍'; try{ return String.fromCodePoint(...cc.toUpperCase().split('').map(c=>127397+c.charCodeAt(0))); }catch(e){ return '🌍'; } }
 
 function _mediaSmall(){ try{ return localStorage.getItem('sh_media_small')==='1'; }catch(e){ return false; } }
-function _applyMediaSize(){ const sm=_mediaSmall(); document.body.classList.toggle('media-small',sm); const b=document.getElementById('media-size-btn'); if(b){ b.textContent=sm?'🗖 Büyüt':'🗕 Küçült'; b.style.fontSize='.78rem'; b.classList.toggle('small',sm); b.title=sm?'Medyayı büyüt (sohbeti kaplasın)':'Medyayı küçült'; } }
+function _applyMediaSize(){ const sm=_mediaSmall(); document.body.classList.toggle('media-small',sm); document.querySelectorAll('.media-min-btn').forEach(b=>{ b.textContent=sm?'⤢ Büyüt':'⤡ Küçült'; }); }
 function toggleMediaSize(){ try{ localStorage.setItem('sh_media_small',_mediaSmall()?'0':'1'); }catch(e){} _applyMediaSize(); const c=document.getElementById('messages'); if(c&&!_mediaSmall()) c.scrollTop=c.scrollHeight; toast(_mediaSmall()?'Medya küçük':'Medya büyük','success'); }
 document.addEventListener('DOMContentLoaded',_applyMediaSize); _applyMediaSize();
+new MutationObserver(()=>{ document.querySelectorAll('.media-min-btn:empty').forEach(b=>{ b.textContent=_mediaSmall()?'⤢ Büyüt':'⤡ Küçült'; }); }).observe(document.documentElement,{childList:true,subtree:true});
 function _psWanted(){ try{ return localStorage.getItem('sh_ps_open')==='1'; }catch(e){ return false; } }
 function togglePS(){
   const on=!_psWanted(); try{ localStorage.setItem('sh_ps_open',on?'1':'0'); }catch(e){}
