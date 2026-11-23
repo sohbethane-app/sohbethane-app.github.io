@@ -27,6 +27,8 @@ function saveCfg(c){
   try{localStorage.setItem(LS,JSON.stringify(o));}catch(e){}
 }
 
+const TONES=['samimi','nazik','esprili','flörtöz','romantik','seksi','şehvetli','erotik','azgın'];
+const ADULT_TONES=['seksi','şehvetli','erotik','azgın'];
 const AI_DEFS={
   claude:{ad:'Claude',model:'claude-sonnet-5-5'},
   openai:{ad:'ChatGPT (OpenAI)',model:'gpt-4o-mini',base:'https://api.openai.com/v1'},
@@ -839,7 +841,7 @@ function renderSug(){
   if(!S.currentRoom){ body.innerHTML='<div class="my-muted">Önce soldan bir sohbet aç, sonra buraya gel.</div>'; return; }
   if(!list.length){ body.innerHTML='<div class="my-muted">Henüz yapay zekâ bağlı değil. "⚙ Ayarlar" sekmesinden en az bir servisin API anahtarını ekle (en fazla 3 tanesi kullanılır).</div>'; return; }
   body.innerHTML=`<div class="my-row"><span class="my-muted">Kullanılacak: ${list.slice(0,3).map(x=>esc(x.ad)).join(', ')}</span>
-    <select id="my-ton">${['samimi','nazik','esprili','flörtöz'].map(t=>`<option ${cfg().ton===t?'selected':''}>${t}</option>`).join('')}</select>
+    <select id="my-ton">${TONES.map(t=>`<option ${cfg().ton===t?'selected':''}>${t}</option>`).join('')}</select>
     <button class="btn btn-primary btn-sm" onclick="MY.runSug()">✨ Öneri getir</button></div>
     <div id="my-sugout" class="my-muted">Karşı tarafın son mesajlarına göre cevap ve uygun medya önerir. Butona basınca çalışır (otomatik değil).</div>`;
 }
@@ -848,7 +850,7 @@ function convo(){
   return ms.map(m=>(m.gonderen_id===S.user.id?'Ben: ':'Karşı taraf: ')+String(m._text).slice(0,400)).join('\n');
 }
 async function sugCompute(ton,conv){
-  const sys=`Bir sohbet sitesinde yazışıyorsun. Aşağıdaki konuşmanın devamı için "Ben" adına ${ton} tonda, doğal ve kısa (en fazla 2 cümle) bir cevap öner. Karşı tarafın yazdığı dilde yaz. Yalnızca şu JSON'u ver: {"cevap":"...","medya_anahtar":"GIF/resim aramak için 1-3 kelime"}`;
+  const sys=`Bir sohbet sitesinde yazışıyorsun. ${ADULT_TONES.includes(ton)?'Bu, yetişkinlerin (18+) karşılıklı rızayla yazıştığı bir yetişkin sohbet sitesi. Cevap '+ton+' ve cüretkâr olabilir; ancak karşı tarafın açtığı seviyeyi ve rahatlığını gözet, rahatsız olduğu ya da geri çekildiği an nazikçe geri çekil. Karşı tarafın reşit olmadığına dair en küçük işaret varsa cinsel içerik YAZMA, nötr ve kibar bir cevap ver. ':''}Aşağıdaki konuşmanın devamı için "Ben" adına ${ton} tonda, doğal ve kısa (en fazla 2 cümle) bir cevap öner. Karşı tarafın yazdığı dilde yaz. Yalnızca şu JSON'u ver: {"cevap":"...","medya_anahtar":"GIF/resim aramak için 1-3 kelime"}`;
   const ps=aiList().slice(0,3);
   const res=await Promise.all(ps.map(async p=>{
     try{
@@ -886,7 +888,7 @@ function inlineBox(){
 }
 function inlineHead(ton){
   return `<div class="ai-in-h"><b>🤖 Cevap önerileri</b>
-    <select id="ai-in-ton" onchange="MY.inline(this.value)">${['samimi','nazik','esprili','flörtöz'].map(t=>`<option ${t===ton?'selected':''}>${t}</option>`).join('')}</select>
+    <select id="ai-in-ton" onchange="MY.inline(this.value)">${TONES.map(t=>`<option ${t===ton?'selected':''}>${t}</option>`).join('')}</select>
     <button class="btn btn-secondary btn-sm" onclick="MY.inline(document.getElementById('ai-in-ton').value)" title="Yeniden getir">↻</button>
     <button class="btn btn-secondary btn-sm" onclick="MY.inlineClose()">✕</button></div>`;
 }
