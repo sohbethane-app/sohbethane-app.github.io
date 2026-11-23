@@ -36,7 +36,7 @@ const AI_DEFS={
   grok:{ad:'Grok (xAI)',model:'grok-3',base:'https://api.x.ai/v1'}
 };
 
-const ST={tab:'lib',folders:[],folderId:null,items:[],urls:{},sent:new Set(),q:'',showSent:false,
+const ST={siteTypes:new Set(['gif','resim','video']),siteAddr:'',tab:'lib',folders:[],folderId:null,items:[],urls:{},sent:new Set(),q:'',showSent:false,
   src:'bing_img',srcs:new Set(['bing_img','bing_gif']),pg:{},pinTokMap:{},notes:[],res:[],sel:new Set(),page:0,busy:false,lastQuery:''};
 
 // ───────── arayüz ─────────
@@ -449,18 +449,35 @@ MY.typeToggle=function(t){
   if(!usableOf(t).length){ toast(t==='video'?'Video için anahtarsız kaynak yok: Pexels/Pixabay anahtarı ekle ya da "Site adresinden topla"yı kullan':(t==='soz'?'Veciz söz için bir yapay zekâ anahtarı gerekir (Ayarlar)':'Bu tür için kullanılabilir kaynak yok'),'error'); return; }
   ST.srcs=new Set(list.length?list:['bing_img']); srcRefresh();
 };
+function siteChip(t,l,on,fn){ return `<label style="cursor:pointer;border:1px solid ${on?'#58a6ff':'#30363d'};background:${on?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap"><input type="checkbox" style="display:none" ${on?'checked':''} onchange="${fn}">${l}</label>`; }
 function srcChips(){
   const media=Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site');
   const _c=cfg(); const usable0=media.filter(k=>!SRC[k].key||_c[SRC[k].key]); const all=usable0.length>0&&usable0.every(k=>ST.srcs.has(k));
   const chip=(k,t,on,fn)=>`<label style="cursor:pointer;border:1px solid ${on?'#58a6ff':'#30363d'};background:${on?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap"><input type="checkbox" style="display:none" ${on?'checked':''} onchange="${fn}">${t}</label>`;
   const typeRow='<div style="width:100%;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center"><span class="my-muted">Ne toplansın:</span>'+TYPE_DEFS.map(([t,l])=>chip('t_'+t,l+(usableOf(t).length?'':' (anahtar gerekir)'),typeOn(t),`MY.typeToggle('${t}')`)).join('')+'</div>';
-  return typeRow+chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).map(([k,v])=>chip(k,v.ad+((v.key&&!_c[v.key])?' (anahtar gerekir)':''),ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
+  return typeRow+chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).filter(([k])=>k!=='site').map(([k,v])=>chip(k,v.ad+((v.key&&!_c[v.key])?' (anahtar gerekir)':''),ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
 }
 function srcRefresh(){
   const w=$('my-srcs'); if(w) w.innerHTML=srcChips();
-  const site=ST.srcs.has('site'); const tq=$('my-tq'); if(tq) tq.placeholder=site?'Site adresi (örn. https://ornek.com/galeri)':'Anahtar kelime (örn. beyaz çiçek)';
+  
   ST.src=[...ST.srcs][0]||'bing_img';
 }
+MY.siteType=function(t){ if(ST.siteTypes.has(t)) ST.siteTypes.delete(t); else ST.siteTypes.add(t); if(!ST.siteTypes.size) ST.siteTypes.add(t); ST.siteAddr=$('my-site')?.value||ST.siteAddr; renderTopla(); };
+MY.siteScan=async function(){
+  if(ST.busy) return;
+  const a=($('my-site')?.value||'').trim(); ST.siteAddr=a;
+  if(!a){ toast('Site adresi yaz','error'); return; }
+  ST.res=[]; ST.sel=new Set(); ST.notes=[]; ST.lastQuery=a.replace(/^https?:\/\//i,'').split('/')[0]; ST.more=false; ST.doneSrc=new Set(); ST.pg={};
+  ST.busy=true; $('my-res').innerHTML='<div class="my-muted">Site taranıyor…</div>';
+  try{
+    const all=await siteSearch(a); const r=all.filter(x=>ST.siteTypes.has(x.tur)).map(x=>({...x,id:'site:'+x.id,src:'site'}));
+    const c={gif:0,resim:0,video:0}; all.forEach(x=>c[x.tur]++);
+    ST.notes=['Sitede bulunan: '+c.gif+' GIF, '+c.resim+' resim, '+c.video+' video'+(r.length<all.length?' — seçtiğin türlere göre '+r.length+' sonuç gösteriliyor':'')];
+    ST.res=r;
+    if(!r.length) $('my-res').innerHTML='<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+esc(ST.notes[0])+'</div><div class="my-muted">Seçili türde sonuç yok; yukarıdan başka tür de seç.</div>'; else drawRes(false);
+  }catch(e){ $('my-res').innerHTML='<div style="color:#f0883e;font-size:.85rem">'+esc(e.message||e)+'</div>'; }
+  ST.busy=false;
+};
 MY.srcToggle=function(k){
   if(ST.srcs.has(k)) { ST.srcs.delete(k); if(!ST.srcs.size) ST.srcs.add(k); }
   else { if(k==='site') ST.srcs=new Set(['site']); else { ST.srcs.delete('site'); ST.srcs.add(k); } }
@@ -474,7 +491,14 @@ MY.srcAll=function(){
 function renderTopla(){
   const body=$('my-body');
   const fopts=ST.folders.map(f=>`<option value="${f.id}" ${f.id===ST.folderId?'selected':''}>${esc(f.ad)}</option>`).join('');
-  body.innerHTML=`<div class="my-row">
+  body.innerHTML=`<div class="my-row" style="border:1px solid #1f6feb;border-radius:10px;padding:.5rem;background:rgba(31,111,235,.08)">
+      <b style="width:100%;font-size:.85rem">🌐 Site adresinden topla <span class="my-muted" style="font-weight:400">(anahtar gerekmez)</span></b>
+      <input class="grow" id="my-site" placeholder="Site adresi yaz (örn. https://ornek.com/galeri)" value="${esc(ST.siteAddr||'')}" onkeydown="if(event.key==='Enter')MY.siteScan()">
+      <span class="my-muted">Ne taransın:</span>
+      ${[['gif','🎞 GIF'],['resim','🖼 Resim'],['video','🎬 Video']].map(([t,l])=>siteChip('s_'+t,l,ST.siteTypes.has(t),`MY.siteType('${t}')`)).join('')}
+      <button class="btn btn-primary btn-sm" onclick="MY.siteScan()">🔎 Siteyi tara</button>
+    </div>
+    <div class="my-row">
       <div id="my-srcs" style="display:flex;flex-wrap:wrap;gap:.35rem;width:100%">${srcChips()}</div>
       <input class="grow" id="my-tq" placeholder="Anahtar kelime (örn. beyaz çiçek)" onkeydown="if(event.key==='Enter')MY.collect(true)">
       <button class="btn btn-primary btn-sm" onclick="MY.collect(true)">🔎 Ara</button>
