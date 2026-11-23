@@ -377,6 +377,7 @@ const SRC={
   bing_img:{ad:'Resim — Bing (anahtarsız)',tur:'resim',free:true},
   bing_gif:{ad:'GIF — Bing (anahtarsız)',tur:'gif',free:true},
   bing_pin:{ad:'Pinterest — Bing üzerinden (anahtarsız)',tur:'resim',free:true},
+  bing_pin_gif:{ad:'GIF — Pinterest, Bing üzerinden (anahtarsız)',tur:'gif',free:true},
   bing_giphy:{ad:'GIF — Giphy/Tenor (anahtarsız)',tur:'gif',free:true},
   giphy:{ad:'GIF — Giphy',tur:'gif',key:'giphy',link:'developers.giphy.com'},
   pexels_img:{ad:'Resim — Pexels',tur:'resim',key:'pexels',link:'pexels.com/api'},
@@ -410,7 +411,7 @@ function srcChips(){
   const _c=cfg(); const usable0=media.filter(k=>!SRC[k].key||_c[SRC[k].key]); const all=usable0.length>0&&usable0.every(k=>ST.srcs.has(k));
   const chip=(k,t,on,fn)=>`<label style="cursor:pointer;border:1px solid ${on?'#58a6ff':'#30363d'};background:${on?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap"><input type="checkbox" style="display:none" ${on?'checked':''} onchange="${fn}">${t}</label>`;
   const typeRow='<div style="width:100%;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center"><span class="my-muted">Ne toplansın:</span>'+TYPE_DEFS.map(([t,l])=>chip('t_'+t,l+(usableOf(t).length?'':' (anahtar gerekir)'),typeOn(t),`MY.typeToggle('${t}')`)).join('')+'</div>';
-  return typeRow+chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).map(([k,v])=>chip(k,v.ad,ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
+  return typeRow+chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).map(([k,v])=>chip(k,v.ad+((v.key&&!_c[v.key])?' (anahtar gerekir)':''),ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
 }
 function srcRefresh(){
   const w=$('my-srcs'); if(w) w.innerHTML=srcChips();
@@ -545,6 +546,7 @@ async function searchSrc(src,q,page){
   if(src==='bing_img') return bingSearch(q,page,false);
   if(src==='bing_gif') return bingSearch(q,page,true);
   if(src==='bing_pin') return bingSearch(q,page,false,'site:pinterest.com');
+  if(src==='bing_pin_gif') return bingSearch(q,page,true,'site:pinterest.com');
   if(src==='bing_giphy') return bingSearch(q,page,true,'(site:giphy.com OR site:tenor.com)');
   if(src==='yandex_img'||src==='yandex_gif'){
     const gif=src==='yandex_gif';
