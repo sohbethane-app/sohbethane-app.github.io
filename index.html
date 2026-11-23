@@ -957,6 +957,12 @@ body:not(.media-small) .msg-video-preview{width:min(82vw,880px);max-width:100%;m
 
 .media-min-btn{position:absolute;top:.4rem;right:.4rem;z-index:4;background:rgba(0,0,0,.6);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:.15rem .55rem;font-size:.72rem;font-weight:700;cursor:pointer;opacity:.85;backdrop-filter:blur(4px)}
 .media-min-btn:hover{opacity:1;background:rgba(0,0,0,.8)}
+
+/* Giriş/Kayıt: daha görünür sekmeler ve düğmeler */
+.auth-tabs{padding:6px!important;gap:6px!important;border:1px solid rgba(255,255,255,.18)!important}
+.auth-tab{padding:.95rem .5rem!important;font-size:1.05rem!important;font-weight:700!important;border:1px solid rgba(255,255,255,.14)!important;color:var(--txt)!important;min-height:52px}
+.auth-tab.active{border-color:transparent!important;font-size:1.1rem!important}
+#login-form>button.btn-primary,#register-form>button.btn-primary{padding:1.1rem!important;font-size:1.15rem!important;min-height:58px;background:linear-gradient(135deg,#ff4d6d,#ff8a5b)!important;color:#1a0a0e!important;box-shadow:0 8px 28px rgba(255,77,109,.55)!important;position:sticky;bottom:12px;z-index:5}
 </style>
 </head>
 <body>
@@ -3044,6 +3050,7 @@ function showSidebar(){
   // Don't force global feed here — let the sidebar tabs handle it
 }
 function hideSidebar(){ if(window.innerWidth<=640){ document.getElementById('sidebar').classList.add('hidden'); document.getElementById('chat-area').style.display='flex'; } }
+document.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const id=e.target&&e.target.id; if(id==='l-user'||id==='l-pass'){ e.preventDefault(); try{ doLogin(); }catch(_){} } });
 function authTab(tab){
   document.getElementById('login-form').style.display = tab==='login'?'block':'none';
   document.getElementById('register-form').style.display = tab==='register'?'block':'none';
