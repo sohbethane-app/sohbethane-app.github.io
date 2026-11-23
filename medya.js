@@ -69,6 +69,7 @@ function css(){
 .my-prev img,.my-prev video{max-width:100%;max-height:100%;object-fit:contain}
 .my-prev.txt{background:var(--bg3,#21262d);padding:.5rem;font-size:.82rem;text-align:center;overflow:auto;align-items:flex-start;display:block;white-space:pre-wrap}
 .my-meta{padding:.35rem .5rem;font-size:.7rem;color:var(--txt2,#8b949e);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.my-dur{position:absolute;top:.35rem;right:.35rem;z-index:3;background:rgba(0,0,0,.75);color:#fff;font-size:.7rem;padding:.1rem .4rem;border-radius:6px}
 .my-badge{margin:0 .4rem .4rem;font-size:.7rem;color:#3fb950}
 .my-pick{position:fixed;z-index:100000;background:var(--bg2,#161b22);border:1px solid var(--brd,#30363d);border-radius:12px;padding:.6rem;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:70vh;overflow:auto}
 .my-pick-h{font-weight:600;font-size:.85rem;margin-bottom:.5rem}
@@ -189,12 +190,34 @@ async function NB(url,opts){
 }
 const _thumbs={};
 async function thumb(url){ if(_thumbs[url]) return _thumbs[url]; try{ const {blob}=await NB(url); return _thumbs[url]=URL.createObjectURL(blob); }catch(e){ return ''; } }
+
+// ───────── video süre grupları ─────────
+const VF=[['all','Tüm videolar'],['short','⚡ Kısa (<30 sn)'],['mid','🎬 Orta (30 sn–2 dk)'],['long','🎞 Uzun (>2 dk)']];
+function vGroup(d){ return d<30?'short':(d<=120?'mid':'long'); }
+function fmtDur(d){ d=Math.round(d); const m=Math.floor(d/60),s=d%60; return m+':'+String(s).padStart(2,'0'); }
+function vfBar(){ ST.vf=ST.vf||'all'; return '<div class="my-row" id="my-vfbar" style="gap:.3rem"><span class="my-muted">Video süresi:</span>'+VF.map(([k,l])=>`<label style="cursor:pointer;border:1px solid ${ST.vf===k?'#58a6ff':'#30363d'};background:${ST.vf===k?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap" onclick="MY.vfSet('${k}')">${l}<span class="my-vfn" data-k="${k}"></span></label>`).join('')+'</div>'; }
+function applyVF(){
+  const f=ST.vf||'all'; const cnt={all:0,short:0,mid:0,long:0};
+  document.querySelectorAll('.my-card[data-vid]').forEach(c=>{
+    const g=c.dataset.dur?vGroup(parseFloat(c.dataset.dur)):'';
+    cnt.all++; if(g) cnt[g]++;
+    c.style.display=(f==='all'||g===f)?'':'none';
+  });
+  document.querySelectorAll('.my-vfn').forEach(e=>{ const k=e.dataset.k; e.textContent=cnt.all?' ('+cnt[k]+')':''; });
+}
+MY.vfSet=function(k){ ST.vf=k; const bar=document.getElementById('my-vfbar'); if(bar) bar.outerHTML=vfBar(); applyVF(); };
+function trackDur(v){
+  const card=v.closest('.my-card'); if(!card) return; card.dataset.vid='1';
+  const set=()=>{ if(!isFinite(v.duration)||!v.duration) return; card.dataset.dur=v.duration; if(!card.querySelector('.my-dur')) card.insertAdjacentHTML('afterbegin','<span class="my-dur">'+fmtDur(v.duration)+'</span>'); applyVF(); };
+  if(v.readyState>=1) set(); v.addEventListener('loadedmetadata',set);
+}
 function hydrateVideos(root){ root.querySelectorAll('video[data-vurl]').forEach(v=>{
   const u=v.dataset.vurl; delete v.dataset.vurl;
   let tried=false;
   const viaProxy=async()=>{ if(tried) return; tried=true;
     try{ const {blob}=await NB(u); const t=(blob.type&&blob.type.startsWith('video/'))?blob.type:'video/mp4'; v.src=URL.createObjectURL(new Blob([blob],{type:t})); v.load(); }
     catch(e){ if(!v.nextElementSibling||!v.nextElementSibling.classList.contains('my-vfail')) v.insertAdjacentHTML('afterend','<div class="my-muted my-vfail" style="font-size:.7rem;padding:.2rem">Önizleme yüklenemedi (yine de kaydedilebilir)</div>'); } };
+  trackDur(v);
   v.addEventListener('error',viaProxy);
   v.addEventListener('loadeddata',()=>{ try{ if(v.currentTime===0) v.currentTime=0.1; }catch(e){} },{once:true});
   v.src=u;
@@ -276,10 +299,10 @@ async function drawGrid(){
       <button class="btn btn-danger btn-sm" ${nsel?'':'disabled'} onclick="MY.lDelSel()">🗑 Seçilenleri sil (${nsel})</button>
       <select class="btn btn-secondary btn-sm" ${nsel?'':'disabled'} onchange="MY.lMoveSel(this.value)"><option value="">Seçilenleri taşı…</option>${fopts}</select>
     </div>`;
-  g.innerHTML=bar+'<div class="my-grid">'+items.map(it=>{
+  g.innerHTML=bar+(items.some(i=>i.tur==='video')?vfBar():'')+'<div class="my-grid">'+items.map(it=>{
     const u=ST.urls[it.dosya_yolu]||'';
     let prev;
-    if(it.tur==='video') prev=`<div class="my-prev"><video src="${esc(u)}" controls loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000"></video></div>`;
+    if(it.tur==='video') prev=`<div class="my-prev"><video data-lib="1" src="${esc(u)}" controls loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000"></video></div>`;
     else if(it.tur==='gif'||it.tur==='resim') prev=`<div class="my-prev"><img loading="lazy" src="${esc(u)}" alt=""></div>`;
     else prev=`<div class="my-prev txt">${esc(it.metin||'')}</div>`;
     const sent=ST.sent.has(it.id)?'<span class="my-badge">✓ gönderildi</span>':'';
@@ -292,6 +315,7 @@ async function drawGrid(){
         <button class="btn btn-danger btn-sm" onclick="MY.del('${it.id}')">🗑</button>
       </div></div>`;
   }).join('')+'</div>';
+  g.querySelectorAll('video[data-lib]').forEach(trackDur); applyVF();
 }
 MY.lToggle=function(id){ if(!ST.lsel) ST.lsel=new Set(); if(ST.lsel.has(id)) ST.lsel.delete(id); else ST.lsel.add(id); drawGrid(); };
 MY.lSelAll=function(){ if(!ST.lsel) ST.lsel=new Set(); let items=ST.items; if(S.currentRoom&&!ST.showSent) items=items.filter(i=>!ST.sent.has(i.id)); if(ST.lsel.size&&ST.lsel.size===items.length) ST.lsel=new Set(); else ST.lsel=new Set(items.map(i=>i.id)); drawGrid(); };
@@ -720,7 +744,7 @@ MY.collect=async function(reset){
 };
 function drawRes(more){
   const wrap=$('my-res');
-  wrap.innerHTML='<div class="my-grid">'+ST.res.map((r,i)=>{
+  wrap.innerHTML=(ST.res.some(r=>r.tur==='video')?vfBar():'')+'<div class="my-grid">'+ST.res.map((r,i)=>{
     let prev;
     if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
     else if(r.tur==='video') prev=`<div class="my-prev"><video data-vurl="${esc(r.url)}" ${r.thumb?'poster="'+esc(r.thumb)+'"':''} controls muted playsinline preload="metadata" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000" onclick="event.stopPropagation()"></video></div>`;
@@ -728,7 +752,7 @@ function drawRes(more){
     return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
   }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
   if(ST.notes&&ST.notes.length) wrap.insertAdjacentHTML('afterbegin','<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+ST.notes.map(esc).join('<br>')+'</div>');
-  hydrateThumbs(wrap);
+  hydrateThumbs(wrap); applyVF();
 }
 MY.toggleSel=function(i){ if(ST.sel.has(i)) ST.sel.delete(i); else ST.sel.add(i); drawRes(ST.more); };
 MY.selAll=function(){ if(ST.res.length&&ST.sel.size===ST.res.length) ST.sel=new Set(); else ST.res.forEach((_,i)=>ST.sel.add(i)); drawRes(ST.more); };
