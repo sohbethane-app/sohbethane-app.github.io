@@ -727,7 +727,7 @@ function renderUsers(list){
         <td style="font-size:.78rem">${fmtDate(p.kayit_tarihi)}</td>
         <td style="font-size:.78rem">${fmtAgo(p.son_giris||p.son_gorulme)}</td>
         <td>
-          ${p.banli?'<span class="badge badge-ban">🚫 Banlı</span>':p.yonetici?'<span class="badge badge-admin">👑 Yön.</span>':'<span class="badge badge-online">✓ Aktif</span>'}
+          ${p.banli?'<span class="badge badge-ban">🚫 Banlı</span>':_presBadge(p)}
         </td>
         <td style="white-space:nowrap;text-align:right">
           <button class="btn btn-secondary btn-sm" title="Profil" onclick="openDrawer('${p.id}')">👤</button>
@@ -889,6 +889,14 @@ function renderRooms(list){
 }
 
 
+// Durum: gerçek çevrimiçi/çevrimdışı (hesabın banlı olup olmadığı değil)
+function _presBadge(p){
+  const t=p.son_gorulme?new Date(p.son_gorulme).getTime():0;
+  const on=t && (Date.now()-t)<5*60*1000;
+  const adm=p.yonetici?' <span title="Yönetici" style="font-size:.75rem">👑</span>':'';
+  if(on) return (p.aktif_gizli?'<span class="badge badge-online" title="Kullanıcı aktif durumunu gizlemiş, yalnızca sen görürsün">👻 Çevrimiçi (gizli)</span>':'<span class="badge badge-online">🟢 Çevrimiçi</span>')+adm;
+  return '<span class="badge" style="background:rgba(139,148,158,.18);color:var(--txt2)">⚪ Çevrimdışı</span>'+adm;
+}
 // Oda adları uçtan uca şifreli saklanır; yönetici okuyamaz
 function roomLabel(r){ const n=r&&r.isim; if(!n) return r&&r.tur==='dm'?'(Birebir sohbet)':'(İsimsiz)'; return n.startsWith('enc1:')?'🔒 Şifreli oda':n; }
 // ─── ODA SİLME (yönetici) ────────────────────────────────────
