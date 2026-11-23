@@ -192,9 +192,14 @@ async function thumb(url){ if(_thumbs[url]) return _thumbs[url]; try{ const {blo
 function hydrateVideos(root){ root.querySelectorAll('video[data-vurl]').forEach(v=>{
   const u=v.dataset.vurl; delete v.dataset.vurl;
   let tried=false;
-  v.addEventListener('error',async()=>{ if(tried) return; tried=true; try{ const {blob}=await NB(u); v.src=URL.createObjectURL(new Blob([blob],{type:blob.type&&blob.type.startsWith('video/')?blob.type:'video/mp4'})); }catch(e){ v.insertAdjacentHTML('afterend','<div class="my-muted" style="font-size:.7rem;padding:.2rem">Önizleme yüklenemedi (yine de kaydedilebilir)</div>'); } });
+  const viaProxy=async()=>{ if(tried) return; tried=true;
+    try{ const {blob}=await NB(u); const t=(blob.type&&blob.type.startsWith('video/'))?blob.type:'video/mp4'; v.src=URL.createObjectURL(new Blob([blob],{type:t})); v.load(); }
+    catch(e){ if(!v.nextElementSibling||!v.nextElementSibling.classList.contains('my-vfail')) v.insertAdjacentHTML('afterend','<div class="my-muted my-vfail" style="font-size:.7rem;padding:.2rem">Önizleme yüklenemedi (yine de kaydedilebilir)</div>'); } };
+  v.addEventListener('error',viaProxy);
   v.addEventListener('loadeddata',()=>{ try{ if(v.currentTime===0) v.currentTime=0.1; }catch(e){} },{once:true});
   v.src=u;
+  // Doğrudan yüklenemediyse (hotlink engeli vb. hata vermeden takılırsa) 3 sn sonra sunucu üzerinden getir
+  setTimeout(()=>{ if(!tried&&(v.readyState<2||!v.videoWidth)) viaProxy(); },3000);
 }); }
 function hydrateThumbs(root){ hydrateVideos(root); root.querySelectorAll('img[data-turl]').forEach(async im=>{ let u=await thumb(im.dataset.turl); if(!u&&im.dataset.tfb) u=await thumb(im.dataset.tfb); if(u) im.src=u; }); }
 
