@@ -605,15 +605,15 @@ async function loadStats(){
   const two='display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:.9rem;margin-bottom:.9rem';
   box.innerHTML=`
   <div style="${grid}">
-    ${_stCard('Ziyaret (dönem)',d.ziyaret_toplam,'tekil ziyaretçi: '+d.ziyaretci_tekil)}
-    ${_stCard('Bugün ziyaret',d.bugun_ziyaret,'tekil: '+d.bugun_tekil)}
+    ${_stCard('Ziyaretçi (dönem)',d.ziyaretci_tekil,'aynı IP günde 1 kez sayılır')}
+    ${_stCard('Bugün ziyaretçi',d.bugun_tekil,'üye + üye olmayan')}
     ${_stCard('Toplam üye',d.uye_toplam,'dönemde yeni: '+d.uye_yeni)}
-    ${_stCard('Şu an aktif',d.uye_aktif,'son 5 dakika')}
+    ${_stCard('Şu an aktif',d.uye_aktif,'son 5 dakika · bugün giren üye: '+d.uye_bugun)}
     ${_stCard('Mesaj (dönem)',d.mesaj_toplam,'bugün: '+d.mesaj_bugun)}
     ${_stCard('Oda sayısı',d.oda_toplam,'')}
   </div>
   <div style="${two}">
-    ${_stBox('🌍 Ziyaretçi ülkeleri <span style="font-weight:400;color:var(--txt2);font-size:.75rem">(ziyaret / tekil)</span>',_stBars(d.ziyaret_ulke,r=>_stCountry(r.k),'ziyaret','tekil'))}
+    ${_stBox('🌍 Ziyaretçi ülkeleri <span style="font-weight:400;color:var(--txt2);font-size:.75rem">(günlük tekil ziyaretçi)</span>',_stBars(d.ziyaret_ulke,r=>_stCountry(r.k),'tekil'))}
     ${_stBox('👥 Üyelerin ülkeleri',_stBars(d.uye_ulke,r=>_stCountry(r.k),'n'))}
   </div>
   <div style="${two}">
@@ -628,7 +628,7 @@ async function loadStats(){
     ${_stBox('⚧ Üye cinsiyeti',_stBars(d.uye_cinsiyet,cg,'n'))}
     ${_stBox('🈯 Üye arayüz dili',_stBars(d.uye_dil,r=>r.k,'n'))}
   </div>
-  <div style="font-size:.75rem;color:var(--txt2)">Ziyaret sayacı bugünden itibaren kayda başladı. Yalnızca ülke, dil, cihaz ve rastgele ziyaretçi no saklanır; IP saklanmaz.</div>`;
+  <div style="font-size:.75rem;color:var(--txt2)">Aynı IP günde yalnızca 1 kez sayılır (üye girişi yapsa da yapmasa da). Ham IP saklanmaz, yalnızca geri döndürülemez bir özet tutulur.</div>`;
 }
 // ─── DASHBOARD ───────────────────────────────────────────────
 async function loadDashboard(){
