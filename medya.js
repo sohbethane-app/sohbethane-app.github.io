@@ -267,7 +267,7 @@ async function drawGrid(){
   g.innerHTML=bar+'<div class="my-grid">'+items.map(it=>{
     const u=ST.urls[it.dosya_yolu]||'';
     let prev;
-    if(it.tur==='video') prev=`<div class="my-prev"><video src="${esc(u)}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()"></video></div>`;
+    if(it.tur==='video') prev=`<div class="my-prev"><video src="${esc(u)}" controls loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000"></video></div>`;
     else if(it.tur==='gif'||it.tur==='resim') prev=`<div class="my-prev"><img loading="lazy" src="${esc(u)}" alt=""></div>`;
     else prev=`<div class="my-prev txt">${esc(it.metin||'')}</div>`;
     const sent=ST.sent.has(it.id)?'<span class="my-badge">✓ gönderildi</span>':'';
@@ -711,7 +711,7 @@ function drawRes(more){
   wrap.innerHTML='<div class="my-grid">'+ST.res.map((r,i)=>{
     let prev;
     if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
-    else if(r.tur==='video'&&!r.thumb) prev=`<div class="my-prev txt" style="font-size:1.6rem">🎬</div>`;
+    else if(r.tur==='video') prev=`<div class="my-prev"><video src="${esc(r.url)}" ${r.thumb?'poster="'+esc(r.thumb)+'"':''} controls playsinline preload="metadata" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000" onclick="event.stopPropagation()"></video></div>`;
     else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" data-tfb="${esc(r.thumbFb||'')}" alt=""></div>`;
     return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
   }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
