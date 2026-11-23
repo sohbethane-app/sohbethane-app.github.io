@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; connect-src https:;">
+<title>net</title></head><body>
+<script>
+// Yalnızca yönetici Multimedya aracı için: dış servislere istek yapar, sonucu üst sayfaya düz veri olarak verir.
+window.netFetch=async function(url,opts,kind){
+  try{
+    if(!/^https:\/\//i.test(url)) return {ok:false,status:0,error:'yalnızca https'};
+    const r=await fetch(url,Object.assign({},opts||{}));
+    if(kind==='buf'){ const b=await r.arrayBuffer(); return {ok:r.ok,status:r.status,type:r.headers.get('content-type')||'',buf:b}; }
+    const t=await r.text(); let d=null; try{ d=JSON.parse(t); }catch(e){}
+    return {ok:r.ok,status:r.status,data:d,text:d?null:t.slice(0,300)};
+  }catch(e){ return {ok:false,status:0,error:String(e&&e.message||e)}; }
+};
+</script></body></html>

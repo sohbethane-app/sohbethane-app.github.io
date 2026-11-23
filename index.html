@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net https://translate.googleapis.com https://ipapi.co https://ipwho.is https://www.cloudflare.com;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; media-src 'self' blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mymemory.translated.net https://translate.googleapis.com https://ipapi.co https://ipwho.is https://www.cloudflare.com;">
 <meta name="referrer" content="no-referrer">
 <title>SohbetHane – Uçtan Uca Şifreli +18 Sohbet</title>
 <meta name="description" content="SohbetHane: uçtan uca şifreli, +18 yetişkin sohbet uygulaması. Dünyanın her yerinden insanlarla özel sohbet, otomatik çeviri, konuya göre sohbet ortamı. Ücretsiz."><meta name="robots" content="index,follow,max-image-preview:large"><meta name="rating" content="adult">
@@ -1155,6 +1155,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <button id="translate-input-btn" onclick="toggleTranslatePanel()" title="Çeviri Ayarları">🌐<span class="tib-badge">OTO</span></button>
         <button class="input-btn" onclick="toggleEmoji()">😊</button>
         <button id="poke-quick-btn" onclick="togglePokeQuickPanel()" title="Konu ikonları">🎯</button>
+        <button id="medya-btn" class="input-btn" style="display:none" onclick="_medyaLoad('lib')" title="Multimedya (yalnızca yönetici)">🗂</button>
+        <button id="medya-ai-btn" class="input-btn" style="display:none" onclick="_medyaLoad('sug')" title="Yapay zekâ cevap önerisi (yalnızca yönetici)">🤖</button>
         <button class="input-btn" id="voice-record-btn" onclick="toggleVoice()" title="Ses kaydı (tıkla başlat, tekrar tıkla gönder)">🎤</button>
         <button id="poke-btn" onclick="togglePokePanel()" title="Özel konu için dürt">👉 Dürt</button>
         <button id="send-btn" onclick="sendMessage()">Gönder ✦</button>
@@ -3340,7 +3342,20 @@ async function doLogout(){
 // ============================================================
 // APP STARTUP
 // ============================================================
+// Yönetici araçları (Multimedya + yapay zekâ önerisi) — yalnızca yönetici hesabında yüklenir
+function _medyaLoad(tab){
+  if(!S.profile||!S.profile.yonetici) return;
+  const go=()=>window.MY&&window.MY.open(tab);
+  if(window.MY){ go(); return; }
+  const sc=document.createElement('script'); sc.src='medya.js?v=20261123a'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
+  document.head.appendChild(sc);
+}
+function _medyaButtons(){
+  const on=!!(S.profile&&S.profile.yonetici);
+  ['medya-btn','medya-ai-btn'].forEach(id=>{ const b=document.getElementById(id); if(b) b.style.display=on?'':'none'; });
+}
 async function startApp(){
+  setTimeout(_medyaButtons,0);
   // Ülke/IP: oturum otomatik devam ettiğinde de (şifre girilmeden) güncelle; günde en fazla bir kez, ülke boşsa hemen
   try{
     const _gk='sh_geo_'+S.user.id, _today=new Date().toISOString().slice(0,10);
@@ -4891,7 +4906,8 @@ async function sendFileDirectly(file, caption){
     if(error) throw error;
     toast('Dosya gönderildi ✓','success');
     await loadMessages(room.id);
-  } catch(e){ toast('Dosya gönderilemedi: '+e.message,'error'); }
+    return true;
+  } catch(e){ toast('Dosya gönderilemedi: '+e.message,'error'); return false; }
 }
 async function decryptFileToBlobUrl(msgId){
   const m=S.messages.find(x=>x.id===msgId);
