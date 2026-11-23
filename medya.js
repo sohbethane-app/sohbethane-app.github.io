@@ -115,7 +115,10 @@ function sniff(buf){
   return 'application/octet-stream';
 }
 // Sunucudaki yönetici-yalnızca indirme aracı (Supabase edge function)
+const REF={};
 async function PX(body){
+  if(cfg().vpn===false) throw new Error('Sunucu üzerinden erişim (VPN) Ayarlar\'dan kapatılmış');
+  if(body.url&&REF[body.url]) body.referer=REF[body.url];
   const ses=(await sb.auth.getSession()).data.session; if(!ses) throw new Error('oturum yok');
   const r=await fetch(SUPABASE_URL+'/functions/v1/medya-proxy',{method:'POST',headers:{'Authorization':'Bearer '+ses.access_token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
   return r;
@@ -123,6 +126,11 @@ async function PX(body){
 async function PJ(url,opts){
   const r=await PX({mode:'json',url,method:opts&&opts.method,headers:opts&&opts.headers,body:opts&&opts.body});
   const j=await r.json().catch(()=>null); if(!j) throw new Error('indirme aracı yanıt vermedi ('+r.status+')'); if(j.error&&j.ok===false&&j.status==null) throw new Error(j.error); return j;
+}
+async function PH(url){
+  const r=await PX({mode:'html',url}); const j=await r.json().catch(()=>null);
+  if(!j) throw new Error('sayfa okunamadı ('+r.status+')'); if(j.ok===false&&j.error) throw new Error(j.error); if(!j.ok) throw new Error('Site yanıtı: '+j.status);
+  return j;
 }
 async function PB(url){
   const r=await PX({mode:'buf',url});
@@ -340,10 +348,13 @@ const SRC={
   pexels_vid:{ad:'Video — Pexels',tur:'video',key:'pexels',link:'pexels.com/api'},
   pixabay_img:{ad:'Resim — Pixabay',tur:'resim',key:'pixabay',link:'pixabay.com/api/docs'},
   pixabay_vid:{ad:'Video — Pixabay',tur:'video',key:'pixabay',link:'pixabay.com/api/docs'},
+  site:{ad:'🌐 Site adresinden topla (anahtar gerekmez)',tur:'karma'},
   google_img:{ad:'Resim — Google Görseller',tur:'resim',key:'serpapi',link:'serpapi.com'},
   google_gif:{ad:'GIF — Google Görseller',tur:'gif',key:'serpapi',link:'serpapi.com'},
   yandex_img:{ad:'Resim — Yandex Görseller',tur:'resim',key:'serpapi',link:'serpapi.com'},
+  yandex_gif:{ad:'GIF — Yandex Görseller',tur:'gif',key:'serpapi',link:'serpapi.com'},
   pinterest:{ad:'Resim — Pinterest',tur:'resim',key:'serpapi',link:'serpapi.com'},
+  pinterest_gif:{ad:'GIF — Pinterest',tur:'gif',key:'serpapi',link:'serpapi.com'},
   emoji:{ad:'Emoji (anahtar kelimeye göre)',tur:'emoji'},
   soz:{ad:'Veciz söz (yapay zekâ yazar)',tur:'soz',ai:true},
   emoji_ai:{ad:'Emoji kombinasyonu (yapay zekâ)',tur:'emoji',ai:true}
@@ -367,13 +378,46 @@ function renderTopla(){
     <div id="my-res"><div class="my-muted">Bir kaynak seç, anahtar kelime yaz ve ara. Sonuçlardan beğendiklerini işaretleyip klasöre kaydet.</div></div>`;
   if(ST.res.length) drawRes(ST.more);
 }
-MY.setSrc=function(v){ ST.src=v; ST.res=[]; ST.sel=new Set(); ST.page=0; $('my-res').innerHTML='<div class="my-muted">Anahtar kelime yazıp ara.</div>'; };
+MY.setSrc=function(v){ ST.src=v; const tq=$('my-tq'); if(tq) tq.placeholder=v==='site'?'Site adresi (örn. https://ornek.com/galeri)':'Anahtar kelime (örn. beyaz çiçek)'; ST.res=[]; ST.sel=new Set(); ST.page=0; $('my-res').innerHTML='<div class="my-muted">Anahtar kelime yazıp ara.</div>'; };
 async function jget(url,headers){
   const r=await NJ(url,{headers:headers||{}});
   if(!r.ok) throw new Error('Servis hatası '+r.status+(r.data&&(r.data.error||r.data.message)?': '+(r.data.error?.message||r.data.error||r.data.message):''));
   return r.data;
 }
 const BAD=['porn','xxx','nsfw'];
+const MEDIA_RE=/\.(gif|jpe?g|png|webp|avif|mp4|webm)(\?|#|$)/i;
+async function siteSearch(addr){
+  let u=addr.trim(); if(!/^https?:\/\//i.test(u)) u='https://'+u; u=u.replace(/^http:/i,'https:');
+  try{ new URL(u); }catch(e){ throw new Error('Geçerli bir site adresi yaz (örn. https://ornek.com/sayfa)'); }
+  const j=await PH(u); const html=j.text||''; const base=j.url||u;
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const bt=doc.querySelector('base[href]'); let bu=base; try{ if(bt) bu=new URL(bt.getAttribute('href'),base).toString(); }catch(e){}
+  const seen=new Map(); const add=(raw,hint)=>{
+    if(!raw) return; raw=String(raw).trim().replace(/&amp;/g,'&').replace(/\\\//g,'/'); if(!raw||raw.startsWith('data:')||raw.startsWith('blob:')) return;
+    let a; try{ a=new URL(raw,bu).toString(); }catch(e){ return; }
+    if(!/^https:/i.test(a)) { if(/^http:/i.test(a)) a=a.replace(/^http:/i,'https:'); else return; }
+    if(/(sprite|favicon|logo|avatar|1x1|pixel|spacer|blank)\b/i.test(a)&&!/\.gif/i.test(a)) return;
+    if(!hint&&!MEDIA_RE.test(a)) return;
+    const key=a.split('#')[0]; if(!seen.has(key)) seen.set(key,hint||'');
+  };
+  const srcset=v=>{ if(!v) return; const parts=v.split(',').map(x=>x.trim().split(/\s+/)); parts.sort((x,y)=>(parseFloat(y[1])||0)-(parseFloat(x[1])||0)); if(parts[0]) add(parts[0][0],'img'); };
+  doc.querySelectorAll('meta[property="og:image"],meta[property="og:video"],meta[property="og:video:url"],meta[name="twitter:image"],meta[name="twitter:player:stream"]').forEach(m=>add(m.getAttribute('content'),'meta'));
+  doc.querySelectorAll('img').forEach(im=>{ ['data-original','data-src','data-lazy-src','data-gif','src'].forEach(a=>add(im.getAttribute(a),'img')); srcset(im.getAttribute('srcset')||im.getAttribute('data-srcset')); });
+  doc.querySelectorAll('source').forEach(el=>{ add(el.getAttribute('src'),'src'); srcset(el.getAttribute('srcset')); });
+  doc.querySelectorAll('video').forEach(v=>{ add(v.getAttribute('src'),'video'); add(v.getAttribute('data-src'),'video'); });
+  doc.querySelectorAll('a[href]').forEach(a=>add(a.getAttribute('href')));
+  (html.match(/https?:\\?\/\\?\/[^\s"'<>\\)]+?\.(?:gif|jpe?g|png|webp|mp4|webm)(?:\?[^\s"'<>\\)]*)?/gi)||[]).forEach(x=>add(x));
+  const out=[]; let n=0;
+  for(const [a] of seen){
+    const m=a.match(/\.(gif|jpe?g|png|webp|avif|mp4|webm)(\?|$)/i); const ext=(m?m[1]:'jpg').toLowerCase();
+    const tur=ext==='gif'?'gif':(/^(mp4|webm)$/.test(ext)?'video':'resim');
+    const mime=ext==='gif'?'image/gif':(ext==='mp4'?'video/mp4':ext==='webm'?'video/webm':ext==='png'?'image/png':ext==='webp'?'image/webp':ext==='avif'?'image/avif':'image/jpeg');
+    REF[a]=base; out.push({id:'s'+(n++),tur,thumb:tur==='video'?'':a,url:a,mime,ad:decodeURIComponent((a.split('?')[0].split('/').pop()||'')).slice(0,40),kaynak:'site'});
+    if(out.length>=120) break;
+  }
+  if(!out.length) throw new Error('Bu sayfada indirilebilir resim/GIF/video bulunamadı. Sayfa JavaScript ile sonradan yükleniyorsa içerikler görünmeyebilir; başka bir sayfa adresi dene.');
+  return out;
+}
 async function searchSrc(src,q,page){
   const c=cfg(); const s=SRC[src]; const k=s.key&&c[s.key];
   if(s.key&&!k) throw new Error(s.ad+' için API anahtarı yok. "⚙ Ayarlar" sekmesinden ekle (ücretsiz: '+s.link+').');
@@ -407,16 +451,24 @@ async function searchSrc(src,q,page){
     if(d.error) throw new Error(d.error);
     return (d.images_results||[]).filter(x=>x.original).map((x,i)=>({id:'gi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||q,kaynak:'google'}));
   }
-  if(src==='yandex_img'){
+  if(src==='site') return siteSearch(q);
+  if(src==='yandex_img'||src==='yandex_gif'){
+    const gif=src==='yandex_gif';
+    const d=await jget(`https://serpapi.com/search.json?engine=yandex_images&text=${encodeURIComponent(q+(gif?' gif':''))}&p=${page}&api_key=${encodeURIComponent(k)}`);
+    if(d.error) throw new Error(d.error);
+    return (d.images_results||[]).filter(x=>x.original&&(!gif||/\.gif(\?|$)/i.test(x.original))).map((x,i)=>({id:'yi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||q,kaynak:'yandex'}));
+  }
+  if(false){
     const d=await jget(`https://serpapi.com/search.json?engine=yandex_images&text=${encodeURIComponent(q)}&p=${page}&api_key=${encodeURIComponent(k)}`);
     if(d.error) throw new Error(d.error);
     return (d.images_results||[]).filter(x=>x.original).map((x,i)=>({id:'yi'+page+'_'+i,tur:'resim',thumb:x.thumbnail,url:x.original,mime:'image/jpeg',ad:x.title||q,kaynak:'yandex'}));
   }
-  if(src==='pinterest'){
-    const d=await jget(`https://serpapi.com/search.json?engine=pinterest&q=${encodeURIComponent(q)}${page&&ST.pinTok?'&next_page_token='+encodeURIComponent(ST.pinTok):''}&api_key=${encodeURIComponent(k)}`);
+  if(src==='pinterest'||src==='pinterest_gif'){
+    const gif=src==='pinterest_gif';
+    const d=await jget(`https://serpapi.com/search.json?engine=pinterest&q=${encodeURIComponent(q+(gif?' gif':''))}${page&&ST.pinTok?'&next_page_token='+encodeURIComponent(ST.pinTok):''}&api_key=${encodeURIComponent(k)}`);
     if(d.error) throw new Error(d.error);
     ST.pinTok=d.serpapi_pagination?.next_page_token||null;
-    return (d.pins||[]).filter(x=>x.original).map((x,i)=>({id:'pi'+page+'_'+i,tur:'resim',thumb:x.thumbnail,url:x.original,mime:'image/jpeg',ad:x.title||x.description||q,kaynak:'pinterest'}));
+    return (d.pins||[]).filter(x=>x.original&&(!gif||/\.gif(\?|$)/i.test(x.original))).map((x,i)=>({id:'pi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||x.description||q,kaynak:'pinterest'}));
   }
   if(src==='emoji') return emojiSearch(q);
   if(src==='soz'||src==='emoji_ai') return aiCollect(src,q);
@@ -425,13 +477,13 @@ async function searchSrc(src,q,page){
 MY.collect=async function(reset){
   if(ST.busy) return;
   const q=($('my-tq')?.value||'').trim();
-  if(!q){ toast('Anahtar kelime yaz','error'); return; }
+  if(!q){ toast(ST.src==='site'?'Site adresi yaz':'Anahtar kelime yaz','error'); return; }
   if(reset){ ST.res=[]; ST.sel=new Set(); ST.page=0; ST.lastQuery=q; ST.pinTok=null; }
   ST.busy=true; $('my-res').innerHTML='<div class="my-muted">Aranıyor…</div>';
   try{
     const r=await searchSrc(ST.src,ST.lastQuery||q,ST.page);
     ST.res=ST.res.concat(r); ST.page++;
-    ST.more=r.length>=8&&!(ST.src==='emoji'||ST.src==='soz'||ST.src==='emoji_ai')&&!(ST.src==='pinterest'&&!ST.pinTok);
+    ST.more=r.length>=8&&!(ST.src==='emoji'||ST.src==='soz'||ST.src==='emoji_ai')&&ST.src!=='site'&&!((ST.src==='pinterest'||ST.src==='pinterest_gif')&&!ST.pinTok);
     if(!ST.res.length) $('my-res').innerHTML='<div class="my-muted">Sonuç bulunamadı.</div>'; else drawRes(ST.more);
   }catch(e){ $('my-res').innerHTML='<div style="color:#f85149">'+esc(e.message||e)+'</div>'; }
   ST.busy=false;
@@ -441,6 +493,7 @@ function drawRes(more){
   wrap.innerHTML='<div class="my-grid">'+ST.res.map((r,i)=>{
     let prev;
     if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
+    else if(r.tur==='video'&&!r.thumb) prev=`<div class="my-prev txt" style="font-size:1.6rem">🎬</div>`;
     else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" alt=""></div>`;
     return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div></div>`;
   }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
@@ -720,6 +773,7 @@ function renderAi(){
   <h4>İçerik servisleri</h4>
   <div class="my-row"><label style="width:110px">Giphy</label><input class="grow" type="password" id="k-giphy" value="${esc(c.giphy||'')}" placeholder="Giphy API anahtarı"></div>
   <div class="my-row"><label style="width:110px">Pexels</label><input class="grow" type="password" id="k-pexels" value="${esc(c.pexels||'')}" placeholder="Pexels API anahtarı"></div>
+  <div class="my-row"><label style="display:flex;gap:.4rem;align-items:center"><input type="checkbox" id="k-vpn" ${c.vpn===false?'':'checked'}> 🌍 Sunucu üzerinden eriş (VPN benzeri — erişim engelli sitelerden de toplar)</label></div>
   <div class="my-row"><label style="width:110px">SerpApi</label><input class="grow" type="password" id="k-serpapi" value="${esc(c.serpapi||'')}" placeholder="SerpApi anahtarı (Google/Yandex Görseller + Pinterest için)"></div>
   <div class="my-row"><label style="width:110px">Pixabay</label><input class="grow" type="password" id="k-pixabay" value="${esc(c.pixabay||'')}" placeholder="Pixabay API anahtarı"></div>
   <h4 style="margin-top:1rem">Yapay zekâ (cevap önerisi, söz ve emoji yazdırma) — resmi API anahtarları</h4>
@@ -731,7 +785,7 @@ function renderAi(){
 }
 MY.saveAi=function(){
   const c=cfg();
-  c.giphy=$('k-giphy').value.trim(); c.pexels=$('k-pexels').value.trim(); c.pixabay=$('k-pixabay').value.trim(); c.serpapi=$('k-serpapi').value.trim();
+  c.giphy=$('k-giphy').value.trim(); c.pexels=$('k-pexels').value.trim(); c.pixabay=$('k-pixabay').value.trim(); c.serpapi=$('k-serpapi').value.trim(); c.vpn=$('k-vpn').checked;
   c.ai={};
   Object.keys(AI_DEFS).forEach(k=>{ c.ai[k]={key:$('ak-'+k).value.trim(),model:$('am-'+k).value.trim()||AI_DEFS[k].model,on:$('on-'+k).checked}; });
   saveCfg(c); toast('Kaydedildi ✓','success');
