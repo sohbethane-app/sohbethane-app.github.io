@@ -394,7 +394,9 @@ function renderTopla(){
     </div>
     <div class="my-row"><span class="my-muted">Kaydedilecek klasör:</span><select id="my-tf">${fopts}</select>
       <button class="btn btn-secondary btn-sm" onclick="MY.newFolder()">➕ Yeni klasör</button>
-      <button class="btn btn-success btn-sm" onclick="MY.saveSel()">💾 Seçilenleri kaydet</button>
+      <button class="btn btn-primary btn-sm" onclick="MY.sendRes()">💬 Seçilenleri sohbete gönder</button>
+      <button class="btn btn-success btn-sm" onclick="MY.saveSel()">💾 Yalnızca kaydet</button>
+      <label class="my-muted" style="display:flex;gap:.3rem;align-items:center"><input type="checkbox" id="my-alsosave" checked> Gönderirken kütüphaneye de kaydet</label>
       <button class="btn btn-secondary btn-sm" onclick="MY.selAll()">Tümünü seç</button></div>
     <div class="my-row"><span class="my-muted">Kendi dosyaların:</span>
       <input type="file" id="my-file" multiple accept="image/*,video/*" onchange="MY.upload(this)">
@@ -554,7 +556,7 @@ function drawRes(more){
     if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
     else if(r.tur==='video'&&!r.thumb) prev=`<div class="my-prev txt" style="font-size:1.6rem">🎬</div>`;
     else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" alt=""></div>`;
-    return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div></div>`;
+    return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button></div></div>`;
   }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
   if(ST.notes&&ST.notes.length) wrap.insertAdjacentHTML('afterbegin','<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+ST.notes.map(esc).join('<br>')+'</div>');
   hydrateThumbs(wrap);
@@ -566,9 +568,44 @@ async function putFile(folderId,blob,mime,meta){
   const path=`${folderId}/${(crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random().toString(16).slice(2))}.${ext}`;
   const {error:ue}=await sb.storage.from(BUCKET).upload(path,blob,{contentType:mime,upsert:false});
   if(ue) throw ue;
-  const {error}=await sb.from('medya_ogeler').insert({klasor_id:folderId,tur:meta.tur,dosya_yolu:path,etiket:meta.etiket||'',aciklama:meta.aciklama||null,kaynak:meta.kaynak||null,mime,boyut:blob.size});
+  const {data:row,error}=await sb.from('medya_ogeler').insert({klasor_id:folderId,tur:meta.tur,dosya_yolu:path,etiket:meta.etiket||'',aciklama:meta.aciklama||null,kaynak:meta.kaynak||null,mime,boyut:blob.size}).select().single();
   if(error){ await sb.storage.from(BUCKET).remove([path]); throw error; }
+  return row;
 }
+// Topla sonuçlarından doğrudan sohbete gönder (isteğe bağlı kütüphaneye de kaydeder)
+MY.sendRes=async function(list){
+  if(!S.currentRoom){ toast('Önce soldan bir sohbet aç, sonra Multimedya\'yı aç','error'); return; }
+  const picks=(list||[...ST.sel]).map(i=>ST.res[i]).filter(Boolean);
+  if(!picks.length){ toast('Önce sonuçlardan seç','error'); return; }
+  const save=$('my-alsosave')?.checked!==false; const fid=$('my-tf')?.value;
+  if(save&&!fid){ toast('Klasör seç ya da "Kütüphaneye de kaydet" kutusunu kapat','error'); return; }
+  const cap=($('my-caption')?.value||'').trim(); const q=ST.lastQuery||'';
+  let ok=0,fail=0,first=true;
+  toast(picks.length+' öğe gönderiliyor…','info');
+  for(const r of picks){
+    try{
+      const capNow=first?cap:''; // açıklama yalnızca ilk öğeye
+      if(r.tur==='emoji'||r.tur==='soz'){
+        let row=null;
+        if(save){ const {data,error}=await sb.from('medya_ogeler').insert({klasor_id:fid,tur:r.tur,metin:r.metin,etiket:(q+' '+(r.ad||'')).trim(),kaynak:r.kaynak||'yerel'}).select().single(); if(error) throw error; row=data; }
+        await sendTextMessage((capNow?capNow+'\n\n':'')+(r.metin||''),S.currentRoom);
+        if(row) await markSent(S.currentRoom.id,row.id);
+      } else {
+        const {blob:b,type:bt}=await NB(r.url);
+        const m=(bt&&bt!=='application/octet-stream')?bt:r.mime;
+        let row=null;
+        if(save) row=await putFile(fid,b,m,{tur:m.startsWith('video/')?'video':(m==='image/gif'?'gif':'resim'),etiket:(q+' '+(r.ad||'')).trim().slice(0,200),kaynak:r.kaynak});
+        const f=new File([b],'medya_'+Date.now()+'.'+(EXT[m]||'bin'),{type:m});
+        const okS=await sendFileDirectly(f,capNow);
+        if(!okS) throw new Error('gönderilemedi');
+        if(row) await markSent(S.currentRoom.id,row.id);
+      }
+      ok++; first=false;
+    }catch(e){ fail++; console.warn('medya gönder',e); if(fail===1) toast('Gönderilemedi: '+(e.message||e),'error'); }
+  }
+  if(ok){ toast(ok+' öğe gönderildi ✓'+(save?' (kütüphaneye de kaydedildi)':''),'success'); if($('my-caption')&&cap) $('my-caption').value=''; ST.sel=new Set(); drawRes(ST.more); }
+};
+MY.saveOne=function(i){ ST.sel=new Set([i]); MY.saveSel(); };
 MY.saveSel=async function(){
   const fid=$('my-tf')?.value; if(!fid){ toast('Klasör seç','error'); return; }
   const picks=[...ST.sel].map(i=>ST.res[i]).filter(Boolean);
