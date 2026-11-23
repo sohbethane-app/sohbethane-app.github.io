@@ -773,19 +773,21 @@ function initAdminPresence(){
 async function _refreshOnlineSection(){
   const el=document.getElementById('online-list');
   if(!el) return;
+  // Canlı presence + veritabanındaki son görülme (yedek): ikisinin birleşimi
+  const since=new Date(Date.now()-3*60*1000).toISOString();
   const uids=Object.keys(_adminOnlineState);
+  let q=sb.from('profiller').select('id,kullanici_adi,goruntu_adi,ulke,cinsiyet,son_gorulme,aktif_gizli');
+  q=uids.length?q.or('son_gorulme.gte.'+since+',id.in.('+uids.join(',')+')'):q.gte('son_gorulme',since);
+  const {data,error}=await q;
   const statEl=document.getElementById('stat-online');
-  if(statEl) statEl.textContent=uids.length;
-  if(!uids.length){
+  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
+  if(statEl) statEl.textContent=(data||[]).length;
+  if(!(data||[]).length){
     el.innerHTML='<div class="empty">Şu an çevrimiçi kullanıcı yok.</div>';
     return;
   }
-  const {data,error}=await sb.from('profiller')
-    .select('id,kullanici_adi,goruntu_adi,ulke,cinsiyet')
-    .in('id',uids);
-  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
   await _mergeIps(data);
-  const profiles=(data||[]).map(p=>({...p,...(_adminOnlineState[p.id]||{})}));
+  const profiles=(data||[]).map(p=>({...p,gizli:!!p.aktif_gizli,...(_adminOnlineState[p.id]||{})}));
   el.innerHTML=`<div class="alert alert-info" style="margin-bottom:1rem">Şu an çevrimiçi: <b>${profiles.length} kullanıcı</b></div>
   <div class="table-wrap"><table>
     <thead><tr><th>Kullanıcı</th><th>Ülke</th><th>Mod</th><th>IP</th><th></th></tr></thead>
@@ -806,20 +808,12 @@ async function _refreshOnlineSection(){
   </table></div>`;
 }
 
+setInterval(()=>{ try{ if(document.getElementById('online-list')&&!document.hidden) _refreshOnlineSection(); }catch(e){} },20000);
 async function loadOnline(){
   const el=document.getElementById('online-list');
   el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
   // Presence kanalı zaten initApp'te başlatıldı; mevcut state varsa hemen göster
-  if(Object.keys(_adminOnlineState).length){
-    await _refreshOnlineSection();
-  } else {
-    // Henüz sync olmadıysa kısa bekle
-    setTimeout(()=>{
-      if(!document.getElementById('online-list')) return;
-      if(Object.keys(_adminOnlineState).length) _refreshOnlineSection();
-      else document.getElementById('online-list').innerHTML='<div class="empty">Şu an çevrimiçi kullanıcı yok.</div>';
-    }, 2000);
-  }
+  await _refreshOnlineSection();
 }
 
 // ─── NEW USERS ────────────────────────────────────────────────
