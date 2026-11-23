@@ -189,7 +189,14 @@ async function NB(url,opts){
 }
 const _thumbs={};
 async function thumb(url){ if(_thumbs[url]) return _thumbs[url]; try{ const {blob}=await NB(url); return _thumbs[url]=URL.createObjectURL(blob); }catch(e){ return ''; } }
-function hydrateThumbs(root){ root.querySelectorAll('img[data-turl]').forEach(async im=>{ let u=await thumb(im.dataset.turl); if(!u&&im.dataset.tfb) u=await thumb(im.dataset.tfb); if(u) im.src=u; }); }
+function hydrateVideos(root){ root.querySelectorAll('video[data-vurl]').forEach(v=>{
+  const u=v.dataset.vurl; delete v.dataset.vurl;
+  let tried=false;
+  v.addEventListener('error',async()=>{ if(tried) return; tried=true; try{ const {blob}=await NB(u); v.src=URL.createObjectURL(new Blob([blob],{type:blob.type&&blob.type.startsWith('video/')?blob.type:'video/mp4'})); }catch(e){ v.insertAdjacentHTML('afterend','<div class="my-muted" style="font-size:.7rem;padding:.2rem">Önizleme yüklenemedi (yine de kaydedilebilir)</div>'); } });
+  v.addEventListener('loadeddata',()=>{ try{ if(v.currentTime===0) v.currentTime=0.1; }catch(e){} },{once:true});
+  v.src=u;
+}); }
+function hydrateThumbs(root){ hydrateVideos(root); root.querySelectorAll('img[data-turl]').forEach(async im=>{ let u=await thumb(im.dataset.turl); if(!u&&im.dataset.tfb) u=await thumb(im.dataset.tfb); if(u) im.src=u; }); }
 
 // ───────── veri ─────────
 async function loadFolders(){
@@ -711,7 +718,7 @@ function drawRes(more){
   wrap.innerHTML='<div class="my-grid">'+ST.res.map((r,i)=>{
     let prev;
     if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
-    else if(r.tur==='video') prev=`<div class="my-prev"><video src="${esc(r.url)}" ${r.thumb?'poster="'+esc(r.thumb)+'"':''} controls playsinline preload="metadata" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000" onclick="event.stopPropagation()"></video></div>`;
+    else if(r.tur==='video') prev=`<div class="my-prev"><video data-vurl="${esc(r.url)}" ${r.thumb?'poster="'+esc(r.thumb)+'"':''} controls muted playsinline preload="metadata" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000" onclick="event.stopPropagation()"></video></div>`;
     else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" data-tfb="${esc(r.thumbFb||'')}" alt=""></div>`;
     return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
   }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
