@@ -3384,6 +3384,7 @@ async function startApp(){
   await loadRooms();
   // Realtime
   subscribeRooms();
+  subscribeInbox();
   renderWelcomePanel();
   // Set initial favicon & tab title
   updateTabBadge();
@@ -4380,6 +4381,37 @@ async function sendTyping(){
 // ============================================================
 // REALTIME
 // ============================================================
+// Yeni sohbet/oda: biri seni ilk kez eklediğinde ya da yazdığında sayfayı yenilemeden listeye düşsün
+let _inboxBusy=false;
+async function _inboxRefresh(){
+  if(_inboxBusy) return; _inboxBusy=true;
+  try{
+    for(const wait of [300,2500]){
+      await new Promise(r=>setTimeout(r,wait));
+      const old=new Map((S.rooms||[]).map(r=>[r.id,r._unread||0]));
+      await loadRooms();
+      let changed=false;
+      (S.rooms||[]).forEach(r=>{
+        if(old.has(r.id)) { if(old.get(r.id)&&!r._unread) r._unread=old.get(r.id); }
+        else { changed=true; if(r._lastMsg&&r._lastMsg.gonderen_id!==S.user.id) r._unread=1; }
+      });
+      if(changed){ renderRoomList(S.rooms); subscribeRooms(); try{ updateTabBadge(); }catch(_){} }
+    }
+  }catch(_){}
+  _inboxBusy=false;
+}
+function subscribeInbox(){
+  if(!S.user) return;
+  if(S.inboxCh){ try{ sb.removeChannel(S.inboxCh); }catch(_){} }
+  S.inboxCh=sb.channel('inbox_'+S.user.id)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'oda_uyeleri',filter:`kullanici_id=eq.${S.user.id}`},()=>_inboxRefresh())
+    .on('broadcast',{event:'new_room'},()=>_inboxRefresh())
+    .subscribe();
+  if(!S._inboxVis){ S._inboxVis=true; document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&S.user) _inboxRefresh(); }); }
+}
+function _pingInbox(ids){
+  (ids||[]).forEach(id=>{ if(!id||id===S.user.id) return; try{ sb.channel('inbox_'+id).send({type:'broadcast',event:'new_room',payload:{}}).catch(()=>{}); }catch(_){} });
+}
 function subscribeRooms(){
   (S.globalSubs||[]).forEach(s=>sb.removeChannel(s));
   S.globalSubs=[];
@@ -5375,6 +5407,7 @@ async function createGroup(tur){
     }
     const {error:me}=await sb.from('oda_uyeleri').insert(members);
     if(me) throw me;
+    _pingInbox(members.map(m=>m.kullanici_id));
     S.groupKeys[room.id]=groupKey;
     S.newRoomMembers=[];S.newDuvarMembers=[];
     closeModal('new-room-modal');
@@ -5424,6 +5457,7 @@ async function startDM(userId){
     {oda_id:room.id,kullanici_id:S.user.id},
     {oda_id:room.id,kullanici_id:userId}
   ]);
+  _pingInbox([userId]);
   await loadRooms(); subscribeRooms();
   const newRoom=S.rooms.find(r=>r.id===room.id)||{...room,_otherUserId:userId};
   if(!newRoom._otherUserId) newRoom._otherUserId=userId;
@@ -6167,6 +6201,7 @@ async function doConvertToGroup(){
       {oda_id:newRoom.id,kullanici_id:S.user.id,grup_anahtar_enc:myWrap.enc,grup_anahtar_iv:myWrap.iv,grup_anahtar_eph:myWrap.eph},
       {oda_id:newRoom.id,kullanici_id:otherId,grup_anahtar_enc:thWrap.enc,grup_anahtar_iv:thWrap.iv,grup_anahtar_eph:thWrap.eph}
     ]);
+    _pingInbox([otherId]);
     S.groupKeys[newRoom.id]=groupKey;
     closeModal('convert-modal');
     await loadRooms(); subscribeRooms();
