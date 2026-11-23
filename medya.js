@@ -339,7 +339,7 @@ MY.del=async function(id){
 };
 
 // ───────── gönderme ─────────
-const EXT={'image/gif':'gif','image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm'};
+const EXT={'image/svg+xml':'svg','image/avif':'avif','image/gif':'gif','image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm'};
 async function itemFile(it){
   const {data,error}=await sb.storage.from(BUCKET).download(it.dosya_yolu);
   if(error||!data) throw new Error(error?.message||'dosya indirilemedi');
@@ -404,6 +404,10 @@ MY.randomQuote=async function(){
 
 // ───────── toplama ─────────
 const SRC={
+  bing_vektor:{ad:'Vektörel — Bing (anahtarsız)',tur:'vektor',free:true},
+  bing_ikon:{ad:'İkon — Bing (anahtarsız)',tur:'ikon',free:true},
+  bing_cizim:{ad:'Çizim/illüstrasyon — Bing (anahtarsız)',tur:'cizim',free:true},
+  bing_sticker:{ad:'Sticker (şeffaf) — Bing (anahtarsız)',tur:'sticker',free:true},
   yandex_free_img:{ad:'Resim — Yandex (anahtarsız, deneysel)',tur:'resim',free:true},
   yandex_free_gif:{ad:'GIF — Yandex (anahtarsız, deneysel)',tur:'gif',free:true},
   google_free_img:{ad:'Resim — Google (anahtarsız, deneysel)',tur:'resim',free:true},
@@ -429,15 +433,15 @@ const SRC={
   soz:{ad:'Veciz söz (yapay zekâ yazar)',tur:'soz',ai:true},
   emoji_ai:{ad:'Emoji kombinasyonu (yapay zekâ)',tur:'emoji',ai:true}
 };
-const TYPE_DEFS=[['gif','🎞 GIF'],['resim','🖼 Resim'],['video','🎬 Video']];
+const TYPE_DEFS=[['gif','🎞 GIF'],['resim','🖼 Resim'],['video','🎬 Video'],['emoji','😀 Emoji'],['soz','💬 Veciz söz'],['vektor','📐 Vektörel'],['ikon','🔷 İkon'],['cizim','✏️ Çizim'],['sticker','🏷 Sticker']];
 function mediaSrcs(){ return Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site'); }
-function usableOf(t){ const c=cfg(); return mediaSrcs().filter(k=>SRC[k].tur===t&&(!SRC[k].key||c[SRC[k].key])); }
+function usableOf(t){ const c=cfg(); const ai=aiList().length>0; return Object.keys(SRC).filter(k=>k!=='site'&&SRC[k].tur===t&&(!SRC[k].key||c[SRC[k].key])&&(!SRC[k].ai||ai)); }
 function typeOn(t){ const u=usableOf(t); return u.length>0&&u.every(k=>ST.srcs.has(k)); }
 MY.typeToggle=function(t){
   const on=new Set(TYPE_DEFS.map(x=>x[0]).filter(typeOn));
   if(on.has(t)) on.delete(t); else on.add(t);
   const list=[]; on.forEach(x=>list.push(...usableOf(x)));
-  if(!usableOf(t).length){ toast(t==='video'?'Video için anahtarsız kaynak yok: Pexels/Pixabay anahtarı ekle ya da "Site adresinden topla"yı kullan':'Bu tür için kullanılabilir kaynak yok','error'); return; }
+  if(!usableOf(t).length){ toast(t==='video'?'Video için anahtarsız kaynak yok: Pexels/Pixabay anahtarı ekle ya da "Site adresinden topla"yı kullan':(t==='soz'?'Veciz söz için bir yapay zekâ anahtarı gerekir (Ayarlar)':'Bu tür için kullanılabilir kaynak yok'),'error'); return; }
   ST.srcs=new Set(list.length?list:['bing_img']); srcRefresh();
 };
 function srcChips(){
@@ -528,9 +532,11 @@ async function siteSearch(addr){
   return out;
 }
 function decEnt(t){ return String(t).replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); }
-async function bingSearch(q,page,gif,site){
-  const qq=(site?q+' '+site:q);
-  const url='https://www.bing.com/images/async?q='+encodeURIComponent(qq)+'&first='+(page*35)+'&count=35&mmasync=1&setlang=tr'+(gif?'&qft='+encodeURIComponent(' filterui:photo-animatedgif'):'');
+async function bingSearch(q,page,gif,site,extra){
+  extra=extra||{};
+  const qq=(site?q+' '+site:q)+(extra.suffix?' '+extra.suffix:'');
+  const qft=(gif?' filterui:photo-animatedgif':'')+(extra.qft?' '+extra.qft:'');
+  const url='https://www.bing.com/images/async?q='+encodeURIComponent(qq)+'&first='+(page*35)+'&count=35&mmasync=1&setlang=tr'+(qft?'&qft='+encodeURIComponent(qft):'');
   const j=await PH(url); const html=j.text||'';
   const out=[]; const seen=new Set(); let n=0;
   for(const m of html.matchAll(/\sm="(\{[^"]*\})"/g)){
@@ -611,6 +617,10 @@ async function searchSrc(src,q,page){
   if(src==='yandex_free_gif') return yandexFree(q,page,true);
   if(src==='google_free_img') return googleFree(q,page,false);
   if(src==='google_free_gif') return googleFree(q,page,true);
+  if(src==='bing_vektor') return bingSearch(q,page,false,'',{suffix:'vektör vector',qft:'filterui:photo-clipart'});
+  if(src==='bing_ikon') return bingSearch(q,page,false,'',{suffix:'icon',qft:'filterui:photo-transparent'});
+  if(src==='bing_cizim') return bingSearch(q,page,false,'',{suffix:'illüstrasyon çizim',qft:'filterui:photo-linedrawing'});
+  if(src==='bing_sticker') return bingSearch(q,page,false,'',{suffix:'sticker png',qft:'filterui:photo-transparent'});
   if(src==='bing_img') return bingSearch(q,page,false);
   if(src==='bing_gif') return bingSearch(q,page,true);
   if(src==='bing_pin') return bingSearch(q,page,false,'site:pinterest.com');
