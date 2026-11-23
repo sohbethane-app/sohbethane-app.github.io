@@ -454,8 +454,8 @@ function srcChips(){
   const media=Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site');
   const _c=cfg(); const usable0=media.filter(k=>!SRC[k].key||_c[SRC[k].key]); const all=usable0.length>0&&usable0.every(k=>ST.srcs.has(k));
   const chip=(k,t,on,fn)=>`<label style="cursor:pointer;border:1px solid ${on?'#58a6ff':'#30363d'};background:${on?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap"><input type="checkbox" style="display:none" ${on?'checked':''} onchange="${fn}">${t}</label>`;
-  const typeRow='<div style="width:100%;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center"><span class="my-muted">Ne toplansın:</span>'+TYPE_DEFS.map(([t,l])=>chip('t_'+t,l+(usableOf(t).length?'':' (anahtar gerekir)'),typeOn(t),`MY.typeToggle('${t}')`)).join('')+'</div>';
-  return typeRow+chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).filter(([k])=>k!=='site').map(([k,v])=>chip(k,v.ad+((v.key&&!_c[v.key])?' (anahtar gerekir)':''),ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
+  const typeRow='<div style="width:100%;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center"><span class="my-muted">Ne toplansın:</span>'+TYPE_DEFS.filter(([t])=>usableOf(t).length).map(([t,l])=>chip('t_'+t,l,typeOn(t),`MY.typeToggle('${t}')`)).join('')+'</div>';
+  return typeRow+chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).filter(([k,v])=>k!=='site'&&!v.ai&&k!=='emoji'&&(!v.key||_c[v.key])).map(([k,v])=>chip(k,v.ad.replace(/ \((anahtarsız|deneysel|anahtarsız, deneysel)\)/,'').replace(', Bing üzerinden',''),ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
 }
 function srcRefresh(){
   const w=$('my-srcs'); if(w) w.innerHTML=srcChips();
