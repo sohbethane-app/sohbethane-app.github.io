@@ -651,7 +651,7 @@ function renderUsers(list){
           ${p.banli
             ?`<button class="btn btn-success btn-sm" onclick="setBan('${p.id}',false)" title="Yasağı Kaldır">🔓</button>`
             :`<button class="btn btn-warn btn-sm" onclick="setBan('${p.id}',true)" title="Askıya Al">🚫</button>`}
-          <button class="btn btn-danger btn-sm" onclick="deleteUser('${p.id}',${JSON.stringify(p.kullanici_adi)})" title="Sil">🗑</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteUser('${p.id}',${jsArg(p.kullanici_adi)})" title="Sil">🗑</button>
           `:'<span style="color:var(--txt2);font-size:.75rem">Sen</span>'}
         </td>
       </tr>`;
@@ -937,7 +937,7 @@ async function loadComplaints(){
         <button class="btn btn-secondary btn-sm" onclick="openDrawer('${c.sikayet_eden?.id}')">👤 Şikayet Eden</button>
         <button class="btn btn-secondary btn-sm" onclick="openDrawer('${c.hedef?.id}')">👤 Hedef</button>
         ${!c.cozuldu?`<button class="btn btn-success btn-sm" onclick="resolveComplaint('${c.id}')">✓ Çözüldü İşaretle</button>
-        <button class="btn btn-warn btn-sm" onclick="setBanFromComplaint('${c.hedef?.id}',${JSON.stringify(c.hedef?.kullanici_adi)})">🚫 Hedefi Askıya Al</button>`:''}
+        <button class="btn btn-warn btn-sm" onclick="setBanFromComplaint('${c.hedef?.id}',${jsArg(c.hedef?.kullanici_adi)})">🚫 Hedefi Askıya Al</button>`:''}
         <button class="btn btn-danger btn-sm" onclick="deleteComplaint('${c.id}')">🗑 Sil</button>
       </div>
     </div>`).join('');
@@ -977,7 +977,7 @@ async function loadBanned(){
       <td style="font-family:monospace">${esc(b.ip_adresi)}</td>
       <td style="font-size:.8rem">${esc(b.sebep||'—')}</td>
       <td style="font-size:.8rem">${fmtDate(b.tarih)}</td>
-      <td><button class="btn btn-success btn-sm" onclick="unbanIp('${b.id}',${JSON.stringify(b.ip_adresi)})">🔓 Kaldır</button></td>
+      <td><button class="btn btn-success btn-sm" onclick="unbanIp('${b.id}',${jsArg(b.ip_adresi)})">🔓 Kaldır</button></td>
     </tr>`).join('')}</tbody>
   </table></div>`;
 }
@@ -1064,7 +1064,7 @@ async function loadDrawerRooms(uid){
       <span style="font-size:1rem">${turIcon[r.tur]||'🏠'}</span>
       <div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.isim||'(İsimsiz)')}</div>
       <div style="font-size:.72rem;color:var(--txt2)">${esc(r.tur)}</div></div>
-      ${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}',${JSON.stringify(r.isim||r.id)})">💬</button>`:''}
+      ${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}',${jsArg(r.isim||r.id)})">💬</button>`:''}
     </div>`).join('');
 }
 
@@ -1094,7 +1094,7 @@ async function loadDrawerActions(uid){
       ${p?.banli
         ?`<button class="btn btn-success" onclick="setBan('${uid}',false)">🔓 Askıyı Kaldır</button>`
         :`<button class="btn btn-warn" onclick="setBan('${uid}',true)">🚫 Askıya Al</button>`}
-      <button class="btn btn-danger" onclick="deleteUser('${uid}',${JSON.stringify(p?.kullanici_adi)})">🗑 Kullanıcıyı Sil</button>
+      <button class="btn btn-danger" onclick="deleteUser('${uid}',${jsArg(p?.kullanici_adi)})">🗑 Kullanıcıyı Sil</button>
       <hr style="border-color:var(--brd);margin:.3rem 0">
       <button class="btn btn-secondary" onclick="closeDrawer();showSection('messages');document.getElementById('msg-room-id').value='';document.getElementById('msg-search').value='';loadMessages()">💬 Mesajlarını Gör</button>
     </div>`;
@@ -1122,6 +1122,8 @@ async function setBan(uid, ban){
   if(A.drawerUserId===uid) loadDrawerActions(uid);
 }
 
+// HTML öznitelik (onclick="...") içine güvenle yazılacak JS metni
+function jsArg(v){return JSON.stringify(v==null?'':String(v)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'\\u003c');}
 async function deleteUser(uid, name){
   if(!confirm(`"${name}" kullanıcısını kalıcı olarak sil?\n\nIP adresi de yasaklanacak. Bu işlem GERİ ALINMAZ.`)) return;
   const prof={ip_adresi:await _ipOf(uid)};
@@ -1129,7 +1131,8 @@ async function deleteUser(uid, name){
     await sb.from('yasakli_ipler').upsert({ip_adresi:prof.ip_adresi,sebep:'Hesap silindi'},{onConflict:'ip_adresi'});
   }
   // Profili sil (cascade ile ilgili kayıtlar Supabase RLS tarafından temizlenir)
-  await sb.from('profiller').delete().eq('id',uid);
+  const {error:delErr}=await sb.from('profiller').delete().eq('id',uid);
+  if(delErr){ toast('Silinemedi: '+(delErr.message||'bilinmeyen hata'),'error'); console.error('deleteUser',delErr); return; }
   // Auth kullanıcısını silmek admin API gerektirir — profil silinince oturum açamaz
   toast(name+' silindi','success');
   closeDrawer();
