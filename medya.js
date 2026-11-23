@@ -21,7 +21,7 @@ const AI_DEFS={
 };
 
 const ST={tab:'lib',folders:[],folderId:null,items:[],urls:{},sent:new Set(),q:'',showSent:false,
-  src:'giphy',srcs:new Set(['giphy']),pg:{},pinTokMap:{},notes:[],res:[],sel:new Set(),page:0,busy:false,lastQuery:''};
+  src:'bing_img',srcs:new Set(['bing_img','bing_gif']),pg:{},pinTokMap:{},notes:[],res:[],sel:new Set(),page:0,busy:false,lastQuery:''};
 
 // ───────── arayüz ─────────
 function css(){
@@ -343,6 +343,10 @@ MY.randomQuote=async function(){
 
 // ───────── toplama ─────────
 const SRC={
+  bing_img:{ad:'Resim — Bing (anahtarsız)',tur:'resim',free:true},
+  bing_gif:{ad:'GIF — Bing (anahtarsız)',tur:'gif',free:true},
+  bing_pin:{ad:'Pinterest — Bing üzerinden (anahtarsız)',tur:'resim',free:true},
+  bing_giphy:{ad:'GIF — Giphy/Tenor (anahtarsız)',tur:'gif',free:true},
   giphy:{ad:'GIF — Giphy',tur:'gif',key:'giphy',link:'developers.giphy.com'},
   pexels_img:{ad:'Resim — Pexels',tur:'resim',key:'pexels',link:'pexels.com/api'},
   pexels_vid:{ad:'Video — Pexels',tur:'video',key:'pexels',link:'pexels.com/api'},
@@ -361,14 +365,14 @@ const SRC={
 };
 function srcChips(){
   const media=Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site');
-  const all=media.every(k=>ST.srcs.has(k));
+  const _c=cfg(); const usable0=media.filter(k=>!SRC[k].key||_c[SRC[k].key]); const all=usable0.length>0&&usable0.every(k=>ST.srcs.has(k));
   const chip=(k,t,on,fn)=>`<label style="cursor:pointer;border:1px solid ${on?'#58a6ff':'#30363d'};background:${on?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap"><input type="checkbox" style="display:none" ${on?'checked':''} onchange="${fn}">${t}</label>`;
-  return chip('all','✅ Tümü (resim/GIF/video)',all,"MY.srcAll()")+Object.entries(SRC).map(([k,v])=>chip(k,v.ad,ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
+  return chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).map(([k,v])=>chip(k,v.ad,ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
 }
 function srcRefresh(){
   const w=$('my-srcs'); if(w) w.innerHTML=srcChips();
   const site=ST.srcs.has('site'); const tq=$('my-tq'); if(tq) tq.placeholder=site?'Site adresi (örn. https://ornek.com/galeri)':'Anahtar kelime (örn. beyaz çiçek)';
-  ST.src=[...ST.srcs][0]||'giphy';
+  ST.src=[...ST.srcs][0]||'bing_img';
 }
 MY.srcToggle=function(k){
   if(ST.srcs.has(k)) { ST.srcs.delete(k); if(!ST.srcs.size) ST.srcs.add(k); }
@@ -378,8 +382,7 @@ MY.srcToggle=function(k){
 MY.srcAll=function(){
   const media=Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site');
   const c=cfg(); const usable=media.filter(k=>!SRC[k].key||c[SRC[k].key]);
-  const list=usable.length?usable:media;
-  ST.srcs=new Set(list.every(k=>ST.srcs.has(k))?['giphy']:list); srcRefresh();
+  ST.srcs=new Set(usable.every(k=>ST.srcs.has(k))?['bing_img']:usable); srcRefresh();
 };
 function renderTopla(){
   const body=$('my-body');
@@ -440,6 +443,22 @@ async function siteSearch(addr){
   if(!out.length) throw new Error('Bu sayfada indirilebilir resim/GIF/video bulunamadı. Sayfa JavaScript ile sonradan yükleniyorsa içerikler görünmeyebilir; başka bir sayfa adresi dene.');
   return out;
 }
+function decEnt(t){ return String(t).replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); }
+async function bingSearch(q,page,gif,site){
+  const qq=(site?q+' '+site:q);
+  const url='https://www.bing.com/images/async?q='+encodeURIComponent(qq)+'&first='+(page*35)+'&count=35&mmasync=1&setlang=tr'+(gif?'&qft='+encodeURIComponent(' filterui:photo-animatedgif'):'');
+  const j=await PH(url); const html=j.text||'';
+  const out=[]; const seen=new Set(); let n=0;
+  for(const m of html.matchAll(/\sm="(\{[^"]*\})"/g)){
+    let o; try{ o=JSON.parse(decEnt(m[1])); }catch(e){ continue; }
+    if(!o.murl||seen.has(o.murl)) continue; seen.add(o.murl);
+    const isGif=/\.gif(\?|$)/i.test(o.murl); if(gif&&!isGif) continue;
+    const vid=/\.(mp4|webm)(\?|$)/i.test(o.murl);
+    out.push({id:'b'+page+'_'+(n++),tur:isGif?'gif':(vid?'video':'resim'),thumb:o.turl||o.murl,url:o.murl,mime:isGif?'image/gif':'image/jpeg',ad:(o.t||q).replace(/<[^>]+>/g,'').slice(0,60),kaynak:'bing'});
+  }
+  if(!out.length) throw new Error('Bing sonuç vermedi (sayfa yapısı değişmiş ya da erişim engellenmiş olabilir)');
+  return out;
+}
 async function searchSrc(src,q,page){
   const c=cfg(); const s=SRC[src]; const k=s.key&&c[s.key];
   if(s.key&&!k) throw new Error(s.ad+' için API anahtarı yok. "⚙ Ayarlar" sekmesinden ekle (ücretsiz: '+s.link+').');
@@ -474,6 +493,10 @@ async function searchSrc(src,q,page){
     return (d.images_results||[]).filter(x=>x.original).map((x,i)=>({id:'gi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||q,kaynak:'google'}));
   }
   if(src==='site') return siteSearch(q);
+  if(src==='bing_img') return bingSearch(q,page,false);
+  if(src==='bing_gif') return bingSearch(q,page,true);
+  if(src==='bing_pin') return bingSearch(q,page,false,'site:pinterest.com');
+  if(src==='bing_giphy') return bingSearch(q,page,true,'(site:giphy.com OR site:tenor.com)');
   if(src==='yandex_img'||src==='yandex_gif'){
     const gif=src==='yandex_gif';
     const d=await jget(`https://serpapi.com/search.json?engine=yandex_images&text=${encodeURIComponent(q+(gif?' gif':''))}&p=${page}&api_key=${encodeURIComponent(k)}`);
