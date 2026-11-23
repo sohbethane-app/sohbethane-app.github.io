@@ -10,8 +10,22 @@ const BUCKET='medya_ozel';
 const LS='sh_admin_medya_cfg';
 const TURKEY=s=>String(s||'').toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i');
 
-function cfg(){ try{return JSON.parse(localStorage.getItem(LS)||'{}')||{};}catch(e){return {};} }
-function saveCfg(c){ try{localStorage.setItem(LS,JSON.stringify(c));}catch(e){} }
+// API anahtarları SUNUCUDA saklanır (medya_anahtarlar, yalnızca medya-proxy erişir). Tarayıcıda yalnızca "{{KEY:ad}}" yer tutucusu ve son 4 hane bulunur.
+let SK={};
+const KEYNAMES=['giphy','pexels','pixabay','serpapi'];
+function rawCfg(){ try{return JSON.parse(localStorage.getItem(LS)||'{}')||{};}catch(e){return {};} }
+function cfg(){
+  const c=rawCfg();
+  KEYNAMES.forEach(k=>{ c[k]=SK[k]?'{{KEY:'+k+'}}':''; });
+  c.ai=c.ai||{};
+  Object.keys(AI_DEFS).forEach(id=>{ c.ai[id]=Object.assign({},c.ai[id],{key:SK[id]?'{{KEY:'+id+'}}':''}); });
+  return c;
+}
+function saveCfg(c){
+  // gizli değerleri yerelde tutma
+  const o=JSON.parse(JSON.stringify(c)); KEYNAMES.forEach(k=>delete o[k]); if(o.ai) Object.keys(o.ai).forEach(id=>{ if(o.ai[id]) delete o.ai[id].key; });
+  try{localStorage.setItem(LS,JSON.stringify(o));}catch(e){}
+}
 
 const AI_DEFS={
   claude:{ad:'Claude',model:'claude-sonnet-5-5'},
@@ -85,7 +99,7 @@ function ui(){
 MY.open=async function(tab){
   if(!S||!S.profile||!S.profile.yonetici) return;
   ui(); $('my-modal').classList.add('open');
-  await loadFolders();
+  await Promise.all([loadFolders(),loadKeys()]);
   MY.tab(tab||ST.tab||'lib');
 };
 MY.close=function(){ const m=$('my-modal'); if(m) m.classList.remove('open'); };
@@ -117,7 +131,7 @@ function sniff(buf){
 // Sunucudaki yönetici-yalnızca indirme aracı (Supabase edge function)
 const REF={};
 async function PX(body){
-  if(cfg().vpn===false) throw new Error('Sunucu üzerinden erişim (VPN) Ayarlar\'dan kapatılmış');
+  if(rawCfg().vpn===false && !String(body.mode||'').startsWith('keys_') && !/KEY(:|%3A)/i.test(JSON.stringify([body.url,body.headers]))) throw new Error('Sunucu üzerinden erişim (VPN) Ayarlar\'dan kapatılmış');
   if(body.url&&REF[body.url]) body.referer=REF[body.url];
   const ses=(await sb.auth.getSession()).data.session; if(!ses) throw new Error('oturum yok');
   const r=await fetch(SUPABASE_URL+'/functions/v1/medya-proxy',{method:'POST',headers:{'Authorization':'Bearer '+ses.access_token,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -139,8 +153,18 @@ async function PB(url){
   const buf=await r.arrayBuffer(); const type=r.headers.get('x-up-type')||sniff(buf);
   return {blob:new Blob([buf],{type}),type};
 }
+async function loadKeys(){
+  try{ const r=await PX({mode:'keys_status'}); const j=await r.json(); if(j&&j.ok) SK=j.keys||{}; }catch(e){ console.warn('anahtarlar alınamadı',e); }
+  // eski sürümde tarayıcıda saklanan anahtarları sunucuya taşı ve yerelden sil
+  try{
+    const c=rawCfg(); const mv={}; KEYNAMES.forEach(k=>{ if(c[k]&&!SK[k]) mv[k]=c[k]; });
+    Object.keys(AI_DEFS).forEach(id=>{ const v=c.ai&&c.ai[id]&&c.ai[id].key; if(v&&!SK[id]) mv[id]=v; });
+    if(Object.keys(mv).length){ const r=await PX({mode:'keys_set',keys:mv}); const j=await r.json(); if(j&&j.ok){ SK=j.keys||SK; toast('Anahtarların sunucuya taşındı ✓','success'); } }
+    if(Object.keys(SK).length){ saveCfg(Object.assign({},c)); }
+  }catch(e){ console.warn(e); }
+}
 async function NJ(url,opts){
-  const direct=DIRECT_OK.test(hostOf(url));
+  const direct=DIRECT_OK.test(hostOf(url)) && !/KEY(:|%3A)/i.test(JSON.stringify([url,opts&&opts.headers]));
   if(direct){ try{ const w=await netWin(); const r=await w.netFetch(url,opts,'json'); if(!r.error) return r; }catch(e){} }
   return PJ(url,opts);
 }
@@ -866,25 +890,40 @@ MY.useSug=function(i){
 function renderAi(){
   const c=cfg(); const ai=c.ai||{};
   const body=$('my-body');
-  body.innerHTML=`<div class="my-muted" style="margin-bottom:.6rem">Anahtarlar yalnızca bu tarayıcıda (yönetici hesabında) saklanır; sunucuya gönderilmez. Ücretsiz anahtarlar: Giphy → developers.giphy.com, Pexels → pexels.com/api, Pixabay → pixabay.com/api/docs, SerpApi (Google/Yandex Görseller, Pinterest) → serpapi.com (ücretsiz plan var)</div>
+  body.innerHTML=`<div class="my-muted" style="margin-bottom:.6rem">Anahtarlar sunucuda güvenli saklanır (yalnızca senin yönetici hesabın kullanabilir, tarayıcıya geri indirilmez); hangi bilgisayardan girersen gir çalışır. Kayıtlı bir anahtarı değiştirmek için kutuya yenisini yaz, boş bırakırsan eskisi kalır. Ücretsiz anahtarlar: Giphy → developers.giphy.com, Pexels → pexels.com/api, Pixabay → pixabay.com/api/docs, SerpApi (Google/Yandex Görseller, Pinterest) → serpapi.com (ücretsiz plan var)</div>
   <h4>İçerik servisleri</h4>
-  <div class="my-row"><label style="width:110px">Giphy</label><input class="grow" type="password" id="k-giphy" value="${esc(c.giphy||'')}" placeholder="Giphy API anahtarı"></div>
-  <div class="my-row"><label style="width:110px">Pexels</label><input class="grow" type="password" id="k-pexels" value="${esc(c.pexels||'')}" placeholder="Pexels API anahtarı"></div>
+  <div class="my-row"><label style="width:110px">Giphy</label><input class="grow" type="password" id="k-giphy" value="" placeholder="${SK.giphy?'•••• kayıtlı (sonu '+SK.giphy+') — değiştirmek için yenisini yaz':'Giphy API anahtarı'}"></div>
+  <div class="my-row"><label style="width:110px">Pexels</label><input class="grow" type="password" id="k-pexels" value="" placeholder="${SK.pexels?'•••• kayıtlı (sonu '+SK.pexels+') — değiştirmek için yenisini yaz':'Pexels API anahtarı'}"></div>
   <div class="my-row"><label style="display:flex;gap:.4rem;align-items:center"><input type="checkbox" id="k-vpn" ${c.vpn===false?'':'checked'}> 🌍 Sunucu üzerinden eriş (VPN benzeri — erişim engelli sitelerden de toplar)</label></div>
-  <div class="my-row"><label style="width:110px">SerpApi</label><input class="grow" type="password" id="k-serpapi" value="${esc(c.serpapi||'')}" placeholder="SerpApi anahtarı (Google/Yandex Görseller + Pinterest için)"></div>
-  <div class="my-row"><label style="width:110px">Pixabay</label><input class="grow" type="password" id="k-pixabay" value="${esc(c.pixabay||'')}" placeholder="Pixabay API anahtarı"></div>
+  <div class="my-row"><label style="width:110px">SerpApi</label><input class="grow" type="password" id="k-serpapi" value="" placeholder="${SK.serpapi?'•••• kayıtlı (sonu '+SK.serpapi+') — değiştirmek için yenisini yaz':'SerpApi anahtarı (Google/Yandex Görseller + Pinterest için)'}"></div>
+  <div class="my-row"><label style="width:110px">Pixabay</label><input class="grow" type="password" id="k-pixabay" value="" placeholder="${SK.pixabay?'•••• kayıtlı (sonu '+SK.pixabay+') — değiştirmek için yenisini yaz':'Pixabay API anahtarı'}"></div>
   <h4 style="margin-top:1rem">Yapay zekâ (cevap önerisi, söz ve emoji yazdırma) — resmi API anahtarları</h4>
   ${Object.keys(AI_DEFS).map(k=>`<div class="my-row"><label style="width:110px"><input type="checkbox" id="on-${k}" ${(ai[k]?.on!==false)?'checked':''}> ${esc(AI_DEFS[k].ad)}</label>
-    <input class="grow" type="password" id="ak-${k}" value="${esc(ai[k]?.key||'')}" placeholder="API anahtarı">
+    <input class="grow" type="password" id="ak-${k}" value="" placeholder="${SK[k]?'•••• kayıtlı (sonu '+SK[k]+') — değiştirmek için yenisini yaz':'API anahtarı'}">
     <input id="am-${k}" value="${esc(ai[k]?.model||AI_DEFS[k].model)}" style="width:170px" title="Model adı"></div>`).join('')}
   <div class="my-muted">En fazla 3 servis kullanılır (sıra: Claude, ChatGPT, DeepSeek, Grok; anahtarı olanlar). Model adlarını servisin güncel listesine göre değiştirebilirsin.</div>
-  <div class="my-row" style="margin-top:.8rem"><button class="btn btn-primary btn-sm" onclick="MY.saveAi()">💾 Kaydet</button></div>`;
+  <div class="my-row" style="margin-top:.8rem"><button class="btn btn-primary btn-sm" onclick="MY.saveAi()">💾 Kaydet</button> <button class="btn btn-secondary btn-sm" onclick="MY.clearKeys()">🗑 Kayıtlı anahtarları sil</button></div>`;
 }
-MY.saveAi=function(){
-  const c=cfg();
-  c.giphy=$('k-giphy').value.trim(); c.pexels=$('k-pexels').value.trim(); c.pixabay=$('k-pixabay').value.trim(); c.serpapi=$('k-serpapi').value.trim(); c.vpn=$('k-vpn').checked;
-  c.ai={};
-  Object.keys(AI_DEFS).forEach(k=>{ c.ai[k]={key:$('ak-'+k).value.trim(),model:$('am-'+k).value.trim()||AI_DEFS[k].model,on:$('on-'+k).checked}; });
-  saveCfg(c); toast('Kaydedildi ✓','success');
+MY.saveAi=async function(){
+  const c=rawCfg();
+  c.vpn=$('k-vpn').checked;
+  c.ai=c.ai||{};
+  Object.keys(AI_DEFS).forEach(k=>{ c.ai[k]={model:$('am-'+k).value.trim()||AI_DEFS[k].model,on:$('on-'+k).checked}; });
+  saveCfg(c);
+  const keys={};
+  KEYNAMES.forEach(k=>{ const v=($('k-'+k)?.value||'').trim(); if(v) keys[k]=v; });
+  Object.keys(AI_DEFS).forEach(k=>{ const v=($('ak-'+k)?.value||'').trim(); if(v) keys[k]=v; });
+  try{
+    if(Object.keys(keys).length){
+      const r=await PX({mode:'keys_set',keys}); const j=await r.json();
+      if(!j.ok) throw new Error(j.error||'kaydedilemedi'); SK=j.keys||SK;
+    }
+    toast('Kaydedildi ✓ (anahtarlar sunucuda saklandı)','success'); renderAi();
+  }catch(e){ toast('Anahtar kaydedilemedi: '+(e.message||e),'error'); }
+};
+MY.clearKeys=async function(){
+  if(!confirm('Sunucuda kayıtlı TÜM API anahtarları silinsin mi?')) return;
+  try{ const all={}; [...KEYNAMES,...Object.keys(AI_DEFS)].forEach(k=>all[k]=null); const r=await PX({mode:'keys_set',keys:all}); const j=await r.json(); if(!j.ok) throw new Error(j.error); SK=j.keys||{}; toast('Anahtarlar silindi','success'); renderAi(); }
+  catch(e){ toast('Silinemedi: '+(e.message||e),'error'); }
 };
 })();

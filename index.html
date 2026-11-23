@@ -3365,7 +3365,7 @@ function _medyaLoad(tab){
   if(!S.profile||!S.profile.yonetici) return;
   const go=()=>window.MY&&window.MY.open(tab);
   if(window.MY){ go(); return; }
-  const sc=document.createElement('script'); sc.src='medya.js?v=20261123f'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
+  const sc=document.createElement('script'); sc.src='medya.js?v=20261123g'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
   document.head.appendChild(sc);
 }
 function _medyaButtons(){
