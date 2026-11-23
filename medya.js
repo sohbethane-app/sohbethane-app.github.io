@@ -803,7 +803,7 @@ MY.saveSel=async function(fidArg,idxArg){
   }
   await Promise.all([worker(),worker(),worker()]);
   toast(ok+' kaydedildi'+(fail?', '+fail+' başarısız (tarayıcı bazı sitelerden indirmeye izin vermeyebilir)':''),fail&&!ok?'error':'success');
-  ST.sel=new Set(); drawRes(ST.more);
+  if(!idxArg) ST.sel=new Set(); drawRes(ST.more);
 };
 MY.upload=async function(inp){
   const fid=$('my-tf')?.value; const files=[...(inp.files||[])]; inp.value='';
