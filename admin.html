@@ -223,6 +223,9 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
       <div class="nav-item active" onclick="showSection('dashboard')" id="nav-dashboard">
         <span>📊</span> Dashboard
       </div>
+      <div class="nav-item" onclick="showSection('stats')" id="nav-stats">
+        <span>📈</span> İstatistikler
+      </div>
       <div class="nav-item" onclick="showSection('users')" id="nav-users">
         <span>👥</span> Kullanıcılar
       </div>
@@ -254,6 +257,15 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
 
     <!-- MAIN CONTENT -->
     <div class="content">
+
+      <!-- İSTATİSTİKLER -->
+      <div id="section-stats" style="display:none">
+        <div class="section-header">
+          <h2>📈 Site İstatistikleri</h2>
+          <span class="subtitle"><select id="st-days" onchange="loadStats()" style="background:var(--bg3);color:var(--txt);border:1px solid var(--brd);border-radius:8px;padding:.3rem .5rem"><option value="1">Son 24 saat</option><option value="7">Son 7 gün</option><option value="30" selected>Son 30 gün</option><option value="90">Son 90 gün</option></select></span>
+        </div>
+        <div id="st-body" style="color:var(--txt2)">Yükleniyor...</div>
+      </div>
 
       <!-- DASHBOARD -->
       <div id="section-dashboard">
@@ -526,7 +538,7 @@ async function loadComplaintBadge(){
 }
 
 // ─── NAVIGATION ──────────────────────────────────────────────
-const SECTIONS = ['dashboard','users','online','newusers','rooms','messages','friends','complaints','banned'];
+const SECTIONS = ['dashboard','stats','users','online','newusers','rooms','messages','friends','complaints','banned'];
 
 function showSection(name){
   SECTIONS.forEach(s=>{
@@ -534,6 +546,7 @@ function showSection(name){
     document.getElementById('nav-'+s)?.classList.toggle('active',s===name);
   });
   const loaders = {
+    stats:()=>loadStats(),
     users:()=>loadUsers(),
     online:()=>loadOnline(),
     newusers:()=>loadNewUsers(),
@@ -545,6 +558,65 @@ function showSection(name){
   if(loaders[name]) loaders[name]();
 }
 
+
+// ─── İSTATİSTİKLER ───────────────────────────────────────────
+function _stCountry(c){
+  if(!c||c==='?') return '❔ Bilinmiyor';
+  if(/^[A-Z]{2}$/.test(c)){
+    let n=c; try{n=new Intl.DisplayNames(['tr'],{type:'region'}).of(c)||c;}catch(e){}
+    const flag=String.fromCodePoint(...[...c].map(x=>127397+x.charCodeAt(0)));
+    return flag+' '+n;
+  }
+  return '🌍 '+c;
+}
+function _stBars(rows,labelFn,valKey,extra){
+  if(!rows||!rows.length) return '<div style="color:var(--txt2);font-size:.85rem">Henüz veri yok</div>';
+  const max=Math.max(...rows.map(r=>+r[valKey]||0),1);
+  return rows.map(r=>{const v=+r[valKey]||0;const w=Math.max(2,Math.round(v/max*100));
+    return `<div style="display:flex;align-items:center;gap:.5rem;margin:.28rem 0;font-size:.82rem"><div style="width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(labelFn(r))}</div><div style="flex:1;background:var(--bg3);border-radius:6px;height:14px"><div style="width:${w}%;height:100%;border-radius:6px;background:linear-gradient(90deg,#e11d48,#fb7185)"></div></div><div style="min-width:3.2rem;text-align:right;font-weight:700">${v}${extra?` <span style="color:var(--txt2);font-weight:400">/${r[extra]}</span>`:''}</div></div>`;}).join('');
+}
+function _stCard(t,v,sub){return `<div style="background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:.9rem 1rem"><div style="font-size:.72rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em">${t}</div><div style="font-size:1.7rem;font-weight:800;margin-top:.15rem">${v}</div>${sub?`<div style="font-size:.75rem;color:var(--txt2)">${sub}</div>`:''}</div>`;}
+function _stBox(t,inner){return `<div style="background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:1rem"><div style="font-weight:700;margin-bottom:.5rem">${t}</div>${inner}</div>`;}
+function _stSpark(rows,key){
+  if(!rows||!rows.length) return '<div style="color:var(--txt2);font-size:.85rem">Henüz veri yok</div>';
+  const max=Math.max(...rows.map(r=>+r[key]||0),1);
+  return `<div style="display:flex;align-items:flex-end;gap:3px;height:90px">${rows.map(r=>`<div title="${esc(r.gun)}: ${r[key]}" style="flex:1;min-width:3px;height:${Math.max(3,Math.round((+r[key]||0)/max*100))}%;background:#fb7185;border-radius:3px 3px 0 0"></div>`).join('')}</div><div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--txt2);margin-top:.2rem"><span>${esc(rows[0].gun)}</span><span>${esc(rows[rows.length-1].gun)}</span></div>`;
+}
+async function loadStats(){
+  const box=document.getElementById('st-body'); if(!box) return;
+  const days=+(document.getElementById('st-days')?.value||30);
+  const {data:d,error}=await sb.rpc('istatistik_ozet',{p_gun:days});
+  if(error||!d){ box.textContent='İstatistikler alınamadı: '+(error?.message||'veri yok'); return; }
+  const cg=r=>({E:'👨 Erkek',K:'👩 Kadın',D:'🌈 Diğer'})[r.k]||'Belirtilmemiş';
+  const grid='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem';
+  const two='display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:.9rem;margin-bottom:.9rem';
+  box.innerHTML=`
+  <div style="${grid}">
+    ${_stCard('Ziyaret (dönem)',d.ziyaret_toplam,'tekil ziyaretçi: '+d.ziyaretci_tekil)}
+    ${_stCard('Bugün ziyaret',d.bugun_ziyaret,'tekil: '+d.bugun_tekil)}
+    ${_stCard('Toplam üye',d.uye_toplam,'dönemde yeni: '+d.uye_yeni)}
+    ${_stCard('Şu an aktif',d.uye_aktif,'son 5 dakika')}
+    ${_stCard('Mesaj (dönem)',d.mesaj_toplam,'bugün: '+d.mesaj_bugun)}
+    ${_stCard('Oda sayısı',d.oda_toplam,'')}
+  </div>
+  <div style="${two}">
+    ${_stBox('🌍 Ziyaretçi ülkeleri <span style="font-weight:400;color:var(--txt2);font-size:.75rem">(ziyaret / tekil)</span>',_stBars(d.ziyaret_ulke,r=>_stCountry(r.k),'ziyaret','tekil'))}
+    ${_stBox('👥 Üyelerin ülkeleri',_stBars(d.uye_ulke,r=>_stCountry(r.k),'n'))}
+  </div>
+  <div style="${two}">
+    ${_stBox('📅 Günlük ziyaret',_stSpark(d.ziyaret_gun,'ziyaret'))}
+    ${_stBox('🆕 Günlük yeni üye',_stSpark(d.uye_gun,'n'))}
+  </div>
+  <div style="${two}">
+    ${_stBox('🔗 Nereden geldiler',_stBars(d.ziyaret_kaynak,r=>r.k,'n'))}
+    ${_stBox('📄 Sayfalar',_stBars(d.ziyaret_sayfa,r=>r.k,'n'))}
+    ${_stBox('🗣 Tarayıcı dili',_stBars(d.ziyaret_dil,r=>r.k,'n'))}
+    ${_stBox('📱 Cihaz',_stBars(d.ziyaret_cihaz,r=>r.k,'n'))}
+    ${_stBox('⚧ Üye cinsiyeti',_stBars(d.uye_cinsiyet,cg,'n'))}
+    ${_stBox('🈯 Üye arayüz dili',_stBars(d.uye_dil,r=>r.k,'n'))}
+  </div>
+  <div style="font-size:.75rem;color:var(--txt2)">Ziyaret sayacı bugünden itibaren kayda başladı. Yalnızca ülke, dil, cihaz ve rastgele ziyaretçi no saklanır; IP saklanmaz.</div>`;
+}
 // ─── DASHBOARD ───────────────────────────────────────────────
 async function loadDashboard(){
   const el = id=>'stat-'+id;
@@ -944,14 +1016,16 @@ async function loadComplaints(){
 }
 
 async function resolveComplaint(id){
-  await sb.from('sikayetler').update({cozuldu:true,cozuldu_tarih:new Date().toISOString()}).eq('id',id);
+  const {error}=await sb.from('sikayetler').update({cozuldu:true,cozuldu_tarih:new Date().toISOString()}).eq('id',id);
+  if(error){ toast('Hata: '+error.message,'error'); return; }
   toast('Şikayet çözüldü işaretlendi','success');
   loadComplaints(); loadComplaintBadge();
 }
 
 async function deleteComplaint(id){
   if(!confirm('Bu şikayeti kalıcı sil?')) return;
-  await sb.from('sikayetler').delete().eq('id',id);
+  const {error}=await sb.from('sikayetler').delete().eq('id',id);
+  if(error){ toast('Hata: '+error.message,'error'); return; }
   toast('Şikayet silindi','info');
   loadComplaints(); loadComplaintBadge();
 }
@@ -984,7 +1058,8 @@ async function loadBanned(){
 
 async function unbanIp(id, ip){
   if(!confirm(`${ip} IP yasakını kaldır?`)) return;
-  await sb.from('yasakli_ipler').delete().eq('id',id);
+  const {error}=await sb.from('yasakli_ipler').delete().eq('id',id);
+  if(error){ toast('Hata: '+error.message,'error'); return; }
   toast('IP yasağı kaldırıldı','success');
   loadBanned();
 }
@@ -1102,7 +1177,8 @@ async function loadDrawerActions(uid){
 
 // ─── USER ACTIONS ────────────────────────────────────────────
 async function toggleAdmin(uid, makeAdmin){
-  await sb.from('profiller').update({yonetici:makeAdmin}).eq('id',uid);
+  const {error:e1}=await sb.from('profiller').update({yonetici:makeAdmin}).eq('id',uid);
+  if(e1){ toast('Hata: '+e1.message,'error'); return; }
   toast(makeAdmin?'Yönetici yapıldı ⭐':'Yönetici yetkisi alındı','success');
   if(A.allUsers.length) loadUsers();
   if(A.drawerUserId===uid) loadDrawerActions(uid);
@@ -1116,7 +1192,8 @@ async function setBan(uid, ban){
       await sb.from('yasakli_ipler').upsert({ip_adresi:prof.ip_adresi,sebep:'Admin tarafından askıya alındı'},{onConflict:'ip_adresi'});
     }
   }
-  await sb.from('profiller').update({banli:ban}).eq('id',uid);
+  const {error:e2}=await sb.from('profiller').update({banli:ban}).eq('id',uid);
+  if(e2){ toast('Hata: '+e2.message,'error'); return; }
   toast(ban?'Kullanıcı askıya alındı 🚫':'Askı kaldırıldı 🔓', ban?'success':'info');
   if(A.allUsers.length) loadUsers();
   if(A.drawerUserId===uid) loadDrawerActions(uid);
@@ -1126,17 +1203,11 @@ async function setBan(uid, ban){
 function jsArg(v){return JSON.stringify(v==null?'':String(v)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'\\u003c');}
 async function deleteUser(uid, name){
   if(!confirm(`"${name}" kullanıcısını kalıcı olarak sil?\n\nIP adresi de yasaklanacak. Bu işlem GERİ ALINMAZ.`)) return;
-  const prof={ip_adresi:await _ipOf(uid)};
-  if(prof?.ip_adresi){
-    await sb.from('yasakli_ipler').upsert({ip_adresi:prof.ip_adresi,sebep:'Hesap silindi'},{onConflict:'ip_adresi'});
-  }
-  // Profili sil (cascade ile ilgili kayıtlar Supabase RLS tarafından temizlenir)
-  const {error:delErr}=await sb.from('profiller').delete().eq('id',uid);
-  if(delErr){ toast('Silinemedi: '+(delErr.message||'bilinmeyen hata'),'error'); console.error('deleteUser',delErr); return; }
-  // Auth kullanıcısını silmek admin API gerektirir — profil silinince oturum açamaz
-  toast(name+' silindi','success');
+  const {data,error}=await sb.rpc('kullanici_sil',{p_id:uid,p_ip_yasakla:true});
+  if(error||!data?.silindi){ toast('Silinemedi: '+(error?.message||'bilinmeyen hata'),'error'); console.error('deleteUser',error); return; }
+  toast(name+' silindi'+(data.ip_yasaklandi?' (IP yasaklandı)':''),'success');
   closeDrawer();
-  if(A.allUsers.length) loadUsers();
+  loadUsers(); try{loadDashboard();}catch(e){}
 }
 
 // ─── AUTO INIT ───────────────────────────────────────────────
