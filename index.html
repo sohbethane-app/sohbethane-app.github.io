@@ -471,8 +471,8 @@ a{color:var(--acc2);text-decoration:none}
 #translate-input-btn .tib-badge{position:absolute;top:-4px;right:-4px;background:var(--acc2);color:#fff;font-size:.55rem;border-radius:6px;padding:0 .28rem;font-weight:700;display:none}
 #translate-input-btn.active .tib-badge{display:block}
 /* TOAST */
-#toast-container{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;flex-direction:column;gap:.5rem;z-index:200}
-.toast{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:.7rem 1rem;font-size:.85rem;box-shadow:var(--shadow);animation:slideIn .3s;max-width:300px}
+#toast-container{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;flex-direction:column;gap:.5rem;z-index:2147483000;pointer-events:none}
+.toast{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:.7rem 1rem;font-size:.85rem;box-shadow:0 8px 28px rgba(0,0,0,.6);animation:slideIn .3s;max-width:min(340px,calc(100vw - 2rem))}
 .toast.success{border-color:var(--acc2);color:var(--acc2)}
 .toast.error{border-color:var(--danger);color:var(--danger)}
 .toast.info{border-color:var(--info);color:var(--info)}
@@ -3367,7 +3367,7 @@ function _medyaLoad(tab){
   if(!S.profile||!S.profile.yonetici) return;
   const go=()=>window.MY&&(tab==='inline'?window.MY.inline():window.MY.open(tab));
   if(window.MY){ go(); return; }
-  const sc=document.createElement('script'); sc.src='medya.js?v=20261124b'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
+  const sc=document.createElement('script'); sc.src='medya.js?v=20261124c'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
   document.head.appendChild(sc);
 }
 function _medyaButtons(){
