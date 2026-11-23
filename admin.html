@@ -998,12 +998,20 @@ async function openRoomMessages(roomId, roomName){
 // ─── FRIENDS ─────────────────────────────────────────────────
 async function loadFriends(){
   document.getElementById('friends-list').innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
-  const {data,error}=await sb.from('ikili_tuneller')
-    .select('id,olusturma_tarihi,kullanici1:kullanici1_id(id,kullanici_adi,goruntu_adi),kullanici2:kullanici2_id(id,kullanici_adi,goruntu_adi)')
-    .order('olusturma_tarihi',{ascending:false}).limit(300);
+  const [tun,tak]=await Promise.all([
+    sb.from('ikili_tuneller').select('id,olusturma_tarihi,kullanici1_id,kullanici2_id').order('olusturma_tarihi',{ascending:false}).limit(300),
+    sb.from('takipler').select('takip_eden_id,takip_edilen_id,olusturma_tarihi').order('olusturma_tarihi',{ascending:false}).limit(500)
+  ]);
+  const error=tun.error||tak.error;
   if(error){ document.getElementById('friends-list').innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
-  // Normalize to {id, olusturma_tarihi, gonderen, alici} shape renderFriends expects
-  A.allFriends=(data||[]).map(t=>({id:t.id,olusturma_tarihi:t.olusturma_tarihi,durum:'kabul',gonderen:t.kullanici1,alici:t.kullanici2}));
+  const ids=new Set(); (tun.data||[]).forEach(t=>{ids.add(t.kullanici1_id);ids.add(t.kullanici2_id);}); (tak.data||[]).forEach(t=>{ids.add(t.takip_eden_id);ids.add(t.takip_edilen_id);});
+  const pm={};
+  if(ids.size){ const {data:ps}=await sb.from('profiller').select('id,kullanici_adi,goruntu_adi').in('id',[...ids]); (ps||[]).forEach(p=>pm[p.id]=p); }
+  const rows=[];
+  (tun.data||[]).forEach(t=>rows.push({id:t.id,olusturma_tarihi:t.olusturma_tarihi,tur:'tunel',durum:'kabul',gonderen:pm[t.kullanici1_id],alici:pm[t.kullanici2_id]}));
+  (tak.data||[]).forEach(t=>rows.push({id:t.takip_eden_id+'_'+t.takip_edilen_id,olusturma_tarihi:t.olusturma_tarihi,tur:'takip',durum:'kabul',gonderen:pm[t.takip_eden_id],alici:pm[t.takip_edilen_id]}));
+  rows.sort((a,b)=>new Date(b.olusturma_tarihi)-new Date(a.olusturma_tarihi));
+  A.allFriends=rows;
   renderFriends(A.allFriends);
 }
 
@@ -1018,10 +1026,10 @@ function filterFriends(){
 
 function renderFriends(list){
   const el=document.getElementById('friends-list');
-  if(!list.length){ el.innerHTML='<div class="empty">Arkadaşlık kaydı yok.</div>'; return; }
+  if(!list.length){ el.innerHTML='<div class="empty">Takip / ikili tünel kaydı yok.</div>'; return; }
   const durumBadge={kabul:'<span class="badge" style="background:rgba(63,185,80,.2);color:var(--green)">✓ Arkadaş</span>',beklemede:'<span class="badge badge-new">⏳ Beklemede</span>',reddedildi:'<span class="badge badge-ban">✗ Reddedildi</span>'};
   el.innerHTML=`<div class="table-wrap"><table>
-    <thead><tr><th>Gönderen</th><th>Alıcı</th><th>Durum</th><th>Tarih</th></tr></thead>
+    <thead><tr><th>Gönderen / Takip eden</th><th>Alıcı / Takip edilen</th><th>Tür</th><th>Tarih</th></tr></thead>
     <tbody>${list.map(f=>`<tr>
       <td><div style="display:flex;align-items:center;gap:.4rem;cursor:pointer" onclick="openDrawer('${f.gonderen?.id}')">
         ${avatarEl(f.gonderen?.goruntu_adi||f.gonderen?.kullanici_adi)}
@@ -1033,7 +1041,7 @@ function renderFriends(list){
         <div><b>${esc(f.alici?.goruntu_adi||f.alici?.kullanici_adi||'?')}</b>
         <div style="font-size:.72rem;color:var(--txt2)">@${esc(f.alici?.kullanici_adi||'')}</div></div>
       </div></td>
-      <td>${durumBadge[f.durum]||esc(f.durum)}</td>
+      <td>${f.tur==='takip'?'<span class="badge" style="background:rgba(88,166,255,.18);color:#58a6ff">👥 Takip</span>':'<span class="badge" style="background:rgba(63,185,80,.2);color:var(--green)">🔗 İkili Tünel</span>'}</td>
       <td style="font-size:.8rem">${fmtDate(f.olusturma_tarihi)}</td>
     </tr>`).join('')}</tbody>
   </table></div>`;

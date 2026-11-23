@@ -1069,6 +1069,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <!-- Sub-tabs for Zaman Tüneli -->
     <div id="tunel-subtabs">
       <button class="tunel-subtab active" id="tstab-akis" onclick="switchTunelSubTab('akis')">🌐 SohbetHane Akışı</button>
+      <button class="tunel-subtab" id="tstab-takip" onclick="switchTunelSubTab('takip')">👥 Takip</button>
       <button class="tunel-subtab" id="tstab-kendi" onclick="switchTunelSubTab('kendi')">📰 Tünelim</button>
       <button class="tunel-subtab" id="tstab-ikili" onclick="switchTunelSubTab('ikili')">🔗 İkili</button>
     </div>
@@ -1220,6 +1221,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
     <div class="feed-header">
       <span class="feed-header-title" id="feed-title">📰 Zaman Tüneli</span>
       <button class="btn btn-sm btn-secondary" id="feed-back-btn" style="display:none" onclick="closeFeedProfile()">← Geri</button>
+      <button class="btn btn-sm btn-primary" id="feed-follow-btn" style="display:none" onclick="toggleFollowFeedUser()">➕ Takip Et</button>
+      <button class="btn btn-sm btn-secondary" id="feed-follows-btn" style="display:none" onclick="openFollowModal()">👥 Takipçiler</button>
     </div>
     <!-- İkili Tünel info banner -->
     <div class="ikili-tunel-info-banner" id="ikili-info-banner">
@@ -1322,6 +1325,8 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
   </div>
   <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.8rem">
     <button id="pm-tunel-btn" class="btn btn-secondary btn-sm hidden" onclick="openUserTunel()" style="color:var(--acc2);border-color:rgba(64,145,108,.3)">📰 Zaman Tünelie Bak</button>
+    <button id="pm-follow-btn" class="btn btn-primary btn-sm hidden" onclick="togglePmFollow()">➕ Takip Et</button>
+    <div id="pm-follow-info" class="hidden" style="font-size:.78rem;color:var(--txt2);text-align:center"></div>
     <button id="pm-ikili-tunel-btn" class="btn btn-secondary btn-sm hidden" onclick="openIkiliTunel()" style="color:var(--acc2);border-color:rgba(64,145,108,.3)">🔗 İkili Tünel</button>
     <button id="pm-block-btn" class="btn btn-secondary btn-sm" onclick="toggleBlock()"></button>
     <button id="pm-mute-btn" class="btn btn-secondary btn-sm" onclick="toggleMute()"></button>
@@ -1431,6 +1436,19 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 </div>
 </div>
 <!-- SETTINGS -->
+<div class="modal-overlay" id="follow-modal">
+<div class="modal">
+  <div class="modal-header"><span class="modal-title">👥 Takip</span><button class="modal-close" onclick="closeModal('follow-modal')">✕</button></div>
+  <div class="modal-tabs">
+    <button class="modal-tab active" id="fm-tab-takipci" onclick="followTab('takipci')">Takipçilerim</button>
+    <button class="modal-tab" id="fm-tab-takip" onclick="followTab('takip')">Takip ettiklerim</button>
+  </div>
+  <label style="display:flex;align-items:center;gap:.5rem;padding:.7rem 0;font-size:.85rem;cursor:pointer">
+    <input type="checkbox" id="fm-hide" onchange="setFollowersHidden(this.checked)"> 🙈 Takipçilerimi başkalarından gizle
+  </label>
+  <div id="fm-list" style="max-height:50vh;overflow:auto"></div>
+</div>
+</div>
 <div class="modal-overlay" id="settings-modal">
 <div class="modal">
   <div class="modal-header"><span class="modal-title">⚙️ Ayarlar</span><button class="modal-close" onclick="closeModal('settings-modal')">✕</button></div>
@@ -3651,7 +3669,7 @@ function switchSideTab(el, tab){
 
 function switchTunelSubTab(sub){
   S.tunelSubTab = sub;
-  ['akis','kendi','ikili'].forEach(t=>{
+  ['akis','takip','kendi','ikili'].forEach(t=>{
     const btn = document.getElementById('tstab-'+t);
     if(btn) btn.classList.toggle('active', t===sub);
   });
@@ -3668,6 +3686,7 @@ function switchTunelSubTab(sub){
     userSearchWrap.style.display='none';
     roomList.style.display='none';
     if(sub==='akis') showGlobalFeed();
+    else if(sub==='takip') showFollowFeed();
     else showFeed(null); // kendi = personal timeline
   }
 }
@@ -3724,7 +3743,7 @@ async function openIkiliTunelById(tunelId, otherId, prof){
     if(!ok) return;
   }
   const otherProf = prof || await getProfile(otherId);
-  S.feedMode={tunelId, otherUserId:otherId}; S.feedUserId=null;
+  S.feedMode={tunelId, otherUserId:otherId}; S.feedUserId=null; _feedFollowUI('none');
   document.getElementById('chat-area').style.display='none';
   document.getElementById('tunel-area').classList.add('visible');
   const titleEl=document.getElementById('feed-title');
@@ -5471,7 +5490,10 @@ async function openPersonModal(){
     const ikiliBtn=document.getElementById('pm-ikili-tunel-btn');
     ikiliBtn.classList.remove('hidden');
     ikiliBtn.dataset.uid=p.id;
+    _pmFollowInit(p.id);
   } else {
+    document.getElementById('pm-follow-btn').classList.add('hidden');
+    document.getElementById('pm-follow-info').classList.add('hidden');
     // Group/archive/wall
     const members=await getRoomMembers(room.id);
     document.getElementById('pm-name').textContent=room.isim||'Oda';
@@ -5517,6 +5539,7 @@ function showGlobalFeed(){
   const backBtn=document.getElementById('feed-back-btn');
   const postWrap=document.getElementById('post-create-wrap');
   const banner=document.getElementById('ikili-info-banner');
+  _feedFollowUI('none');
   if(titleEl) titleEl.textContent='🌐 SohbetHane Akışı';
   if(backBtn) backBtn.style.display='none';
   if(postWrap) postWrap.style.display='none';
@@ -5535,6 +5558,7 @@ function showFeed(userId){
   if(banner) banner.classList.remove('show');
   _postIkiliTunelId=null;
   updatePrivacyToggle();
+  _feedFollowUI((userId && userId!==S.user?.id)?'user':'own', userId);
   if(userId && userId!==S.user?.id){
     getProfile(userId).then(p=>{
       if(titleEl) titleEl.textContent='📰 '+(p?.goruntu_adi||p?.kullanici_adi||'Zaman Tüneli');
@@ -5576,6 +5600,121 @@ function closeFeedProfile(){
   const sub = S.tunelSubTab||'akis';
   if(sub==='kendi') showFeed(null);
   else showGlobalFeed();
+}
+
+
+// ============================================================
+// TAKİP SİSTEMİ
+// ============================================================
+function showFollowFeed(){
+  S.feedMode='takip'; S.feedUserId=null;
+  document.getElementById('chat-area').style.display='none';
+  document.getElementById('tunel-area').classList.add('visible');
+  const titleEl=document.getElementById('feed-title');
+  const backBtn=document.getElementById('feed-back-btn');
+  const postWrap=document.getElementById('post-create-wrap');
+  const banner=document.getElementById('ikili-info-banner');
+  if(titleEl) titleEl.textContent='👥 Takip Ettiklerim';
+  if(backBtn) backBtn.style.display='none';
+  if(postWrap) postWrap.style.display='none';
+  if(banner) banner.classList.remove('show');
+  _feedFollowUI('own');
+  loadFeed(true);
+}
+let _feedFollowUid=null, _feedFollowing=false;
+function _feedFollowUI(mode,uid){
+  const fb=document.getElementById('feed-follow-btn'), lb=document.getElementById('feed-follows-btn');
+  if(!fb||!lb) return;
+  fb.style.display='none'; lb.style.display=(mode==='own')?'inline-flex':'none';
+  _feedFollowUid=null;
+  if(mode==='user' && uid){
+    _feedFollowUid=uid;
+    Promise.resolve(sb.rpc('takip_bilgi',{p_id:uid})).then(r=>{
+      if(_feedFollowUid!==uid||!r||!r.data) return;
+      _feedFollowing=!!r.data.takip_ediyorum; _paintFeedFollow(); fb.style.display='inline-flex';
+    }).catch(()=>{});
+  }
+}
+function _paintFeedFollow(){
+  const fb=document.getElementById('feed-follow-btn'); if(!fb) return;
+  fb.textContent=_feedFollowing?'✓ Takiptesin':'➕ Takip Et';
+  fb.className='btn btn-sm '+(_feedFollowing?'btn-secondary':'btn-primary');
+}
+async function toggleFollowFeedUser(){
+  const uid=_feedFollowUid; if(!uid) return;
+  const {error}=await sb.rpc(_feedFollowing?'takip_birak':'takip_et',{p_id:uid});
+  if(error){ toast(error.message,'error'); return; }
+  _feedFollowing=!_feedFollowing; _paintFeedFollow();
+  toast(_feedFollowing?'Takip edildi ✓':'Takip bırakıldı','success');
+}
+// Kişi kartı
+let _pmFollowing=false;
+async function _pmFollowInit(uid){
+  const b=document.getElementById('pm-follow-btn'), inf=document.getElementById('pm-follow-info');
+  b.dataset.uid=uid; b.classList.add('hidden'); inf.classList.add('hidden');
+  try{
+    const {data}=await sb.rpc('takip_bilgi',{p_id:uid});
+    if(!data) return;
+    _pmFollowing=!!data.takip_ediyorum; _pmFollowPaint();
+    b.classList.remove('hidden');
+    const tk=(data.takipci==null)?'gizli':data.takipci;
+    inf.textContent='Takipçi: '+tk+' · Takip: '+data.takip+(data.beni_takip_ediyor?' · seni takip ediyor':'');
+    inf.classList.remove('hidden');
+  }catch(e){}
+}
+function _pmFollowPaint(){ const b=document.getElementById('pm-follow-btn'); b.textContent=_pmFollowing?'✓ Takiptesin (bırak)':'➕ Takip Et'; b.className='btn btn-sm '+(_pmFollowing?'btn-secondary':'btn-primary'); }
+async function togglePmFollow(){
+  const uid=document.getElementById('pm-follow-btn').dataset.uid; if(!uid) return;
+  const {error}=await sb.rpc(_pmFollowing?'takip_birak':'takip_et',{p_id:uid});
+  if(error){ toast(error.message,'error'); return; }
+  _pmFollowing=!_pmFollowing; _pmFollowPaint(); toast(_pmFollowing?'Takip edildi ✓':'Takip bırakıldı','success');
+  _pmFollowInit(uid);
+}
+// Takipçi / takip listesi penceresi
+let _fmTab='takipci';
+async function openFollowModal(){
+  openModal('follow-modal');
+  const chk=document.getElementById('fm-hide');
+  if(chk) chk.checked=!!S.profile?.takipci_gizli;
+  followTab(_fmTab);
+}
+async function followTab(t){
+  _fmTab=t;
+  document.getElementById('fm-tab-takipci').classList.toggle('active',t==='takipci');
+  document.getElementById('fm-tab-takip').classList.toggle('active',t==='takip');
+  const box=document.getElementById('fm-list'); box.innerHTML='<div style="padding:1rem;color:var(--txt2)">Yükleniyor...</div>';
+  const {data,error}=await sb.rpc(t==='takipci'?'takipci_listesi':'takip_listesi',{p_id:S.user.id});
+  if(error){ box.textContent=error.message; return; }
+  const c1=document.getElementById('fm-tab-takipci'), c2=document.getElementById('fm-tab-takip');
+  if(t==='takipci') c1.textContent='Takipçilerim ('+(data||[]).length+')'; else c2.textContent='Takip ettiklerim ('+(data||[]).length+')';
+  if(!data||!data.length){ box.innerHTML='<div style="padding:1.2rem;text-align:center;color:var(--txt2)">'+(t==='takipci'?'Henüz takipçin yok.':'Henüz kimseyi takip etmiyorsun.')+'</div>'; return; }
+  box.innerHTML=data.map(p=>{
+    const nm=escHtml(p.goruntu_adi||p.kullanici_adi);
+    const av=p.avatar_url?`<img src="${escHtml(p.avatar_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`<span style="color:#fff;font-size:.8rem">${escHtml(avatarInitials(p.goruntu_adi||p.kullanici_adi))}</span>`;
+    return `<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--brd)">
+      <div class="user-avatar-sm" style="background:${userColor(p.id)};flex:none;cursor:pointer" onclick="followOpenUser('${p.id}')">${av}</div>
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="followOpenUser('${p.id}')"><b>${nm}</b><div style="font-size:.72rem;color:var(--txt2)">@${escHtml(p.kullanici_adi)}</div></div>
+      <button class="btn btn-secondary btn-sm" onclick="followRemove('${p.id}')">${t==='takipci'?'Çıkar':'Bırak'}</button></div>`;
+  }).join('');
+}
+function followOpenUser(uid){
+  closeModal('follow-modal');
+  const tabEl=document.getElementById('stab-duvar'); if(tabEl) switchSideTab(tabEl,'duvar');
+  S.tunelSubTab='kendi';
+  ['akis','takip','kendi','ikili'].forEach(x=>{const b=document.getElementById('tstab-'+x); if(b) b.classList.toggle('active',x==='kendi');});
+  const il=document.getElementById('ikili-tunel-sidebar-list'); if(il) il.classList.remove('show');
+  showFeed(uid);
+}
+async function followRemove(uid){
+  const {error}=await sb.rpc(_fmTab==='takipci'?'takipci_cikar':'takip_birak',{p_id:uid});
+  if(error){ toast(error.message,'error'); return; }
+  followTab(_fmTab); if(S.feedMode==='takip') loadFeed(true);
+}
+async function setFollowersHidden(v){
+  const {error}=await sb.from('profiller').update({takipci_gizli:!!v}).eq('id',S.user.id);
+  if(error){ toast(error.message,'error'); document.getElementById('fm-hide').checked=!v; return; }
+  if(S.profile) S.profile.takipci_gizli=!!v;
+  toast(v?'Takipçilerin artık başkalarından gizli':'Takipçi listen herkese görünür','success');
 }
 
 let _postGenel=false;
@@ -5627,6 +5766,14 @@ async function loadFeed(reset){
     if(S.feedMode==='genel'){
       // Global akış: herkese açık, İkili Tünel dışı paylaşımlar
       q=q.eq('genel',true).is('ikili_tunel_id',null);
+    } else if(S.feedMode==='takip'){
+      const {data:fl}=await sb.from('takipler').select('takip_edilen_id').eq('takip_eden_id',S.user.id);
+      const ids=(fl||[]).map(x=>x.takip_edilen_id);
+      if(!ids.length){
+        if(reset) list.innerHTML='<div class="feed-empty"><span class="icon">👥</span><p>Henüz kimseyi takip etmiyorsunuz.<br>Bir kişinin profilinden <b>➕ Takip Et</b>\'e basın;<br>paylaşımları burada görünür.</p></div>';
+        _feedLoading=false; return;
+      }
+      q=q.in('kullanici_id',ids).eq('genel',true).is('ikili_tunel_id',null);
     } else if(S.feedMode&&typeof S.feedMode==='object'&&S.feedMode.tunelId){
       // İkili Tünel gönderileri
       q=q.eq('ikili_tunel_id',S.feedMode.tunelId);
@@ -7773,7 +7920,7 @@ async function openUserTunel(){
   const tabEl=document.getElementById('stab-duvar');
   if(tabEl) switchSideTab(tabEl,'duvar');
   S.tunelSubTab='kendi';
-  ['akis','kendi','ikili'].forEach(t=>{
+  ['akis','takip','kendi','ikili'].forEach(t=>{
     const btn=document.getElementById('tstab-'+t);
     if(btn) btn.classList.toggle('active',t==='kendi');
   });
