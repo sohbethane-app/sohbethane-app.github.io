@@ -184,7 +184,7 @@ async function NB(url,opts){
 }
 const _thumbs={};
 async function thumb(url){ if(_thumbs[url]) return _thumbs[url]; try{ const {blob}=await NB(url); return _thumbs[url]=URL.createObjectURL(blob); }catch(e){ return ''; } }
-function hydrateThumbs(root){ root.querySelectorAll('img[data-turl]').forEach(async im=>{ const u=await thumb(im.dataset.turl); if(u) im.src=u; }); }
+function hydrateThumbs(root){ root.querySelectorAll('img[data-turl]').forEach(async im=>{ let u=await thumb(im.dataset.turl); if(!u&&im.dataset.tfb) u=await thumb(im.dataset.tfb); if(u) im.src=u; }); }
 
 // ───────── veri ─────────
 async function loadFolders(){
@@ -538,7 +538,7 @@ async function bingSearch(q,page,gif,site){
     if(!o.murl||seen.has(o.murl)) continue; seen.add(o.murl);
     const isGif=/\.gif(\?|$)/i.test(o.murl); if(gif&&!isGif) continue;
     const vid=/\.(mp4|webm)(\?|$)/i.test(o.murl);
-    out.push({id:'b'+page+'_'+(n++),tur:isGif?'gif':(vid?'video':'resim'),thumb:o.turl||o.murl,url:o.murl,mime:isGif?'image/gif':'image/jpeg',ad:(o.t||q).replace(/<[^>]+>/g,'').slice(0,60),kaynak:'bing'});
+    out.push({id:'b'+page+'_'+(n++),tur:isGif?'gif':(vid?'video':'resim'),thumb:isGif?o.murl:(o.turl||o.murl),thumbFb:o.turl||'',url:o.murl,mime:isGif?'image/gif':'image/jpeg',ad:(o.t||q).replace(/<[^>]+>/g,'').slice(0,60),kaynak:'bing'});
   }
   if(!out.length) throw new Error('Bing sonuç vermedi (sayfa yapısı değişmiş ya da erişim engellenmiş olabilir)');
   return out;
@@ -604,7 +604,7 @@ async function searchSrc(src,q,page){
     const gif=src==='google_gif';
     const d=await jget(`https://serpapi.com/search.json?engine=google_images&q=${encodeURIComponent(q)}&ijn=${page}${gif?'&tbs=itp:animated':''}&api_key=${encodeURIComponent(k)}`);
     if(d.error) throw new Error(d.error);
-    return (d.images_results||[]).filter(x=>x.original).map((x,i)=>({id:'gi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||q,kaynak:'google'}));
+    return (d.images_results||[]).filter(x=>x.original).map((x,i)=>({id:'gi'+page+'_'+i,tur:gif?'gif':'resim',thumb:gif?x.original:x.thumbnail,thumbFb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||q,kaynak:'google'}));
   }
   if(src==='site') return siteSearch(q);
   if(src==='yandex_free_img') return yandexFree(q,page,false);
@@ -620,7 +620,7 @@ async function searchSrc(src,q,page){
     const gif=src==='yandex_gif';
     const d=await jget(`https://serpapi.com/search.json?engine=yandex_images&text=${encodeURIComponent(q+(gif?' gif':''))}&p=${page}&api_key=${encodeURIComponent(k)}`);
     if(d.error) throw new Error(d.error);
-    return (d.images_results||[]).filter(x=>x.original&&(!gif||/\.gif(\?|$)/i.test(x.original))).map((x,i)=>({id:'yi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||q,kaynak:'yandex'}));
+    return (d.images_results||[]).filter(x=>x.original&&(!gif||/\.gif(\?|$)/i.test(x.original))).map((x,i)=>({id:'yi'+page+'_'+i,tur:gif?'gif':'resim',thumb:gif?x.original:x.thumbnail,thumbFb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||q,kaynak:'yandex'}));
   }
   if(false){
     const d=await jget(`https://serpapi.com/search.json?engine=yandex_images&text=${encodeURIComponent(q)}&p=${page}&api_key=${encodeURIComponent(k)}`);
@@ -632,7 +632,7 @@ async function searchSrc(src,q,page){
     const d=await jget(`https://serpapi.com/search.json?engine=pinterest&q=${encodeURIComponent(q+(gif?' gif':''))}${page&&ST.pinTokMap[src]?'&next_page_token='+encodeURIComponent(ST.pinTokMap[src]):''}&api_key=${encodeURIComponent(k)}`);
     if(d.error) throw new Error(d.error);
     ST.pinTokMap[src]=d.serpapi_pagination?.next_page_token||null;
-    return (d.pins||[]).filter(x=>x.original&&(!gif||/\.gif(\?|$)/i.test(x.original))).map((x,i)=>({id:'pi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||x.description||q,kaynak:'pinterest'}));
+    return (d.pins||[]).filter(x=>x.original&&(!gif||/\.gif(\?|$)/i.test(x.original))).map((x,i)=>({id:'pi'+page+'_'+i,tur:gif?'gif':'resim',thumb:gif?x.original:x.thumbnail,thumbFb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||x.description||q,kaynak:'pinterest'}));
   }
   if(src==='emoji') return emojiSearch(q);
   if(src==='soz'||src==='emoji_ai') return aiCollect(src,q);
@@ -672,7 +672,7 @@ function drawRes(more){
     let prev;
     if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
     else if(r.tur==='video'&&!r.thumb) prev=`<div class="my-prev txt" style="font-size:1.6rem">🎬</div>`;
-    else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" alt=""></div>`;
+    else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" data-tfb="${esc(r.thumbFb||'')}" alt=""></div>`;
     return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button></div></div>`;
   }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
   if(ST.notes&&ST.notes.length) wrap.insertAdjacentHTML('afterbegin','<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+ST.notes.map(esc).join('<br>')+'</div>');
