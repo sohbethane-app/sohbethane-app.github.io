@@ -374,6 +374,10 @@ MY.randomQuote=async function(){
 
 // ───────── toplama ─────────
 const SRC={
+  yandex_free_img:{ad:'Resim — Yandex (anahtarsız, deneysel)',tur:'resim',free:true},
+  yandex_free_gif:{ad:'GIF — Yandex (anahtarsız, deneysel)',tur:'gif',free:true},
+  google_free_img:{ad:'Resim — Google (anahtarsız, deneysel)',tur:'resim',free:true},
+  google_free_gif:{ad:'GIF — Google (anahtarsız, deneysel)',tur:'gif',free:true},
   bing_img:{ad:'Resim — Bing (anahtarsız)',tur:'resim',free:true},
   bing_gif:{ad:'GIF — Bing (anahtarsız)',tur:'gif',free:true},
   bing_pin:{ad:'Pinterest — Bing üzerinden (anahtarsız)',tur:'resim',free:true},
@@ -385,10 +389,10 @@ const SRC={
   pixabay_img:{ad:'Resim — Pixabay',tur:'resim',key:'pixabay',link:'pixabay.com/api/docs'},
   pixabay_vid:{ad:'Video — Pixabay',tur:'video',key:'pixabay',link:'pixabay.com/api/docs'},
   site:{ad:'🌐 Site adresinden topla (anahtar gerekmez)',tur:'karma'},
-  google_img:{ad:'Resim — Google Görseller',tur:'resim',key:'serpapi',link:'serpapi.com'},
-  google_gif:{ad:'GIF — Google Görseller',tur:'gif',key:'serpapi',link:'serpapi.com'},
-  yandex_img:{ad:'Resim — Yandex Görseller',tur:'resim',key:'serpapi',link:'serpapi.com'},
-  yandex_gif:{ad:'GIF — Yandex Görseller',tur:'gif',key:'serpapi',link:'serpapi.com'},
+  google_img:{ad:'Resim — Google (SerpApi)',tur:'resim',key:'serpapi',link:'serpapi.com'},
+  google_gif:{ad:'GIF — Google (SerpApi)',tur:'gif',key:'serpapi',link:'serpapi.com'},
+  yandex_img:{ad:'Resim — Yandex (SerpApi)',tur:'resim',key:'serpapi',link:'serpapi.com'},
+  yandex_gif:{ad:'GIF — Yandex (SerpApi)',tur:'gif',key:'serpapi',link:'serpapi.com'},
   pinterest:{ad:'Resim — Pinterest',tur:'resim',key:'serpapi',link:'serpapi.com'},
   pinterest_gif:{ad:'GIF — Pinterest',tur:'gif',key:'serpapi',link:'serpapi.com'},
   emoji:{ad:'Emoji (anahtar kelimeye göre)',tur:'emoji'},
@@ -509,6 +513,36 @@ async function bingSearch(q,page,gif,site){
   if(!out.length) throw new Error('Bing sonuç vermedi (sayfa yapısı değişmiş ya da erişim engellenmiş olabilir)');
   return out;
 }
+function mkItems(urls,pfx,page,q,gif,max){
+  const seen=new Set(); const out=[]; let n=0;
+  for(const u0 of urls){
+    const u=u0.replace(/\\u003d/gi,'=').replace(/\\u0026/gi,'&').replace(/&amp;/g,'&');
+    if(seen.has(u)||!/^https?:/i.test(u)) continue; seen.add(u);
+    const isGif=/\.gif(\?|$)/i.test(u); if(gif&&!isGif) continue;
+    const vid=/\.(mp4|webm)(\?|$)/i.test(u);
+    out.push({id:pfx+page+'_'+(n++),tur:isGif?'gif':(vid?'video':'resim'),thumb:u,url:u.replace(/^http:/i,'https:'),mime:isGif?'image/gif':'image/jpeg',ad:q,kaynak:pfx});
+    if(out.length>=max) break;
+  }
+  return out;
+}
+async function yandexFree(q,page,gif){
+  const url='https://yandex.com.tr/gorsel/search?text='+encodeURIComponent(q)+(gif?'&itype=gifan':'')+'&p='+page;
+  const j=await PH(url); const html=j.text||'';
+  if(/showcaptcha|smartcaptcha|checkcaptcha/i.test(html.slice(0,12000))&&!/img_href/.test(html)) throw new Error('Yandex doğrulama (captcha) istedi: sunucu adresi geçici engellenmiş olabilir. Biraz sonra dene ya da Bing kaynaklarını kullan.');
+  const urls=[...html.matchAll(/img_href(?:&quot;|"):(?:&quot;|")(https?:(?:(?!&quot;|")[^\s])+)/g)].map(m=>m[1]);
+  const out=mkItems(urls,'yf',page,q,gif,60);
+  if(!out.length) throw new Error('Yandex sonuç vermedi (sayfa yapısı değişmiş ya da erişim engellenmiş olabilir)');
+  return out;
+}
+async function googleFree(q,page,gif){
+  const url='https://www.google.com/search?q='+encodeURIComponent(q)+'&udm=2&hl=tr&gl=tr'+(gif?'&tbs=itp:animated':'')+(page?'&start='+(page*20):'');
+  const j=await PH(url); const html=j.text||'';
+  if(/unusual traffic|olağan dışı trafik|\/sorry\//i.test(html.slice(0,20000))&&!/\["https?:/.test(html)) throw new Error('Google doğrulama istedi: sunucu adresi geçici engellenmiş olabilir. Biraz sonra dene ya da Bing kaynaklarını kullan.');
+  const urls=[...html.matchAll(/\["(https?:\/\/(?!encrypted-tbn|www\.google|gstatic|lh\d\.google|ssl\.gstatic)[^"]+?)",\s*\d+,\s*\d+\]/g)].map(m=>m[1]);
+  const out=mkItems(urls,'gf',page,q,gif,60);
+  if(!out.length) throw new Error('Google sonuç vermedi (sayfa yapısı değişmiş ya da erişim engellenmiş olabilir)');
+  return out;
+}
 async function searchSrc(src,q,page){
   const c=cfg(); const s=SRC[src]; const k=s.key&&c[s.key];
   if(s.key&&!k) throw new Error(s.ad+' için API anahtarı yok. "⚙ Ayarlar" sekmesinden ekle (ücretsiz: '+s.link+').');
@@ -543,6 +577,10 @@ async function searchSrc(src,q,page){
     return (d.images_results||[]).filter(x=>x.original).map((x,i)=>({id:'gi'+page+'_'+i,tur:gif?'gif':'resim',thumb:x.thumbnail,url:x.original,mime:gif?'image/gif':'image/jpeg',ad:x.title||q,kaynak:'google'}));
   }
   if(src==='site') return siteSearch(q);
+  if(src==='yandex_free_img') return yandexFree(q,page,false);
+  if(src==='yandex_free_gif') return yandexFree(q,page,true);
+  if(src==='google_free_img') return googleFree(q,page,false);
+  if(src==='google_free_gif') return googleFree(q,page,true);
   if(src==='bing_img') return bingSearch(q,page,false);
   if(src==='bing_gif') return bingSearch(q,page,true);
   if(src==='bing_pin') return bingSearch(q,page,false,'site:pinterest.com');
