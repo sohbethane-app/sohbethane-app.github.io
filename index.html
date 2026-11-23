@@ -3302,6 +3302,20 @@ async function doLogout(){
 // APP STARTUP
 // ============================================================
 async function startApp(){
+  // Ülke/IP: oturum otomatik devam ettiğinde de (şifre girilmeden) güncelle; günde en fazla bir kez, ülke boşsa hemen
+  try{
+    const _gk='sh_geo_'+S.user.id, _today=new Date().toISOString().slice(0,10);
+    if(!S.profile?.ulke || localStorage.getItem(_gk)!==_today){
+      detectGeoInfo().then(({ulke,ip_adresi})=>{
+        if(!ulke&&!ip_adresi) return;
+        const upd={son_giris:new Date().toISOString()};
+        if(ulke && !S.profile?.ulke) upd.ulke=ulke;
+        sb.from('profiller').update(upd).eq('id',S.user.id).then(()=>{ if(ulke&&S.profile&&!S.profile.ulke) S.profile.ulke=ulke; }).catch(()=>{});
+        if(ip_adresi) _saveMyIp(ip_adresi);
+        try{localStorage.setItem(_gk,_today);}catch(e){}
+      }).catch(()=>{});
+    }
+  }catch(e){}
   // Set UI language from user's saved country code (for incoming message auto-translation)
   if(S.profile?.ulke){const cl=_CC_LANG[S.profile.ulke];if(cl)_autoUiLang(cl);}
   document.getElementById('auth-screen').style.display='none';
