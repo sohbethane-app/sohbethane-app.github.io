@@ -239,9 +239,6 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
       <div class="nav-item" onclick="showSection('rooms')" id="nav-rooms">
         <span>🏠</span> Odalar
       </div>
-      <div class="nav-item" onclick="showSection('messages')" id="nav-messages">
-        <span>💬</span> Mesajlar
-      </div>
       <div class="nav-item" onclick="showSection('friends')" id="nav-friends">
         <span>🤝</span> Arkadaşlar
       </div>
@@ -355,20 +352,6 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
         <div id="rooms-list" class="loading-state"><span class="spinner"></span></div>
       </div>
 
-      <!-- MESSAGES -->
-      <div id="section-messages" style="display:none">
-        <div class="section-header">
-          <h2>💬 Mesajlar</h2>
-          <span class="subtitle">Yalnızca grup/duvar/arşiv (DM şifrelidir, sunucu okuyamaz)</span>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
-          <input id="msg-room-id" placeholder="Oda ID (boş=tüm gruplar)" style="max-width:300px">
-          <input id="msg-search" placeholder="Mesajda ara..." style="max-width:240px">
-          <button class="btn btn-primary btn-sm" onclick="loadMessages()">🔍 Ara</button>
-        </div>
-        <div id="messages-list" class="loading-state">Yukarıdan oda seçin veya boş bırakıp ara.</div>
-      </div>
-
       <!-- FRIENDS -->
       <div id="section-friends" style="display:none">
         <div class="section-header">
@@ -429,17 +412,6 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
     <div id="drawer-rooms-pane" style="display:none"></div>
     <div id="drawer-friends-pane" style="display:none"></div>
     <div id="drawer-actions-pane" style="display:none"></div>
-  </div>
-</div>
-
-<!-- ROOM MESSAGES MODAL -->
-<div class="modal-overlay" id="room-msgs-modal">
-  <div class="modal" style="max-width:660px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-      <h3 id="room-msgs-title">Oda Mesajları</h3>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('room-msgs-modal')">✕</button>
-    </div>
-    <div id="room-msgs-content"></div>
   </div>
 </div>
 
@@ -551,7 +523,7 @@ async function loadComplaintBadge(){
 }
 
 // ─── NAVIGATION ──────────────────────────────────────────────
-const SECTIONS = ['dashboard','stats','users','online','newusers','rooms','messages','friends','complaints','banned','trash'];
+const SECTIONS = ['dashboard','stats','users','online','newusers','rooms','friends','complaints','banned','trash'];
 
 function showSection(name){
   SECTIONS.forEach(s=>{
@@ -901,24 +873,24 @@ function renderRooms(list){
   if(!list.length){ el.innerHTML='<div class="empty">Oda bulunamadı.</div>'; return; }
   const turIcon = {dm:'💬',grup:'👥',arsiv:'📁',duvar:'📰'};
   el.innerHTML=`<div class="table-wrap"><table>
-    <thead><tr><th style="width:28px"><input type="checkbox" onclick="toggleAllRooms(this.checked)" title="Tümünü seç"></th><th>Oda Adı</th><th>Tür</th><th>Kilit</th><th>Oluşturma</th><th></th></tr></thead>
+    <thead><tr><th style="width:28px"><input type="checkbox" onclick="toggleAllRooms(this.checked)" title="Tümünü seç"></th><th>Oda Adı</th><th>Tür</th><th>Oluşturma</th><th></th></tr></thead>
     <tbody>${list.map(r=>`<tr>
       <td><input type="checkbox" class="room-chk" value="${esc(r.id)}" onclick="roomSelChanged()"></td>
       <td>
-        <div style="font-weight:600">${turIcon[r.tur]||'🏠'} ${esc(r.isim||'(İsimsiz)')}</div>
+        <div style="font-weight:600">${turIcon[r.tur]||'🏠'} ${esc(roomLabel(r))}</div>
         <div style="font-size:.72rem;color:var(--txt2)">${esc(r.id)}</div>
       </td>
       <td><span style="font-size:.75rem;background:var(--bg3);padding:.2rem .5rem;border-radius:8px">${esc(r.tur)}</span></td>
-      <td>${r.sifre?'🔒 Şifreli':'🔓 Açık'}</td>
       <td style="font-size:.8rem">${fmtDate(r.olusturma_tarihi)}</td>
-      <td>${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}','${(r.isim||r.id).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">💬 Mesajlar</button>`:
-        '<span style="font-size:.75rem;color:var(--txt2)">🔐 E2E Şifreli</span>'}
-        <button class="btn btn-danger btn-sm" style="margin-left:.4rem" onclick="deleteRoom('${r.id}',${jsArg(r.isim||'(İsimsiz)')},${jsArg(r.tur)})">🗑 Sil</button></td>
+      <td><span style="font-size:.75rem;color:var(--txt2)">🔐 Uçtan uca şifreli</span>
+        <button class="btn btn-danger btn-sm" style="margin-left:.4rem" onclick="deleteRoom('${r.id}',${jsArg(roomLabel(r))},${jsArg(r.tur)})">🗑 Sil</button></td>
     </tr>`).join('')}</tbody>
   </table></div>`;
 }
 
 
+// Oda adları uçtan uca şifreli saklanır; yönetici okuyamaz
+function roomLabel(r){ const n=r&&r.isim; if(!n) return r&&r.tur==='dm'?'(Birebir sohbet)':'(İsimsiz)'; return n.startsWith('enc1:')?'🔒 Şifreli oda':n; }
 // ─── ODA SİLME (yönetici) ────────────────────────────────────
 function toggleAllRooms(on){ document.querySelectorAll('.room-chk').forEach(c=>c.checked=on); roomSelChanged(); }
 function roomSelChanged(){
@@ -942,59 +914,6 @@ async function deleteSelectedRooms(){
   toast(`${ok} oda silindi`+(fail?`, ${fail} silinemedi`:''),fail?'error':'success');
   loadRooms();
 }
-// ─── MESSAGES ────────────────────────────────────────────────
-async function loadMessages(){
-  const el = document.getElementById('messages-list');
-  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
-  const roomId = document.getElementById('msg-room-id').value.trim();
-  const search = document.getElementById('msg-search').value.trim();
-  let query = sb.from('mesajlar')
-    .select('id,metin,tur,olusturma_tarihi,silindi,oda_id,gonderen:gonderen_id(kullanici_adi,goruntu_adi)')
-    .eq('silindi',false)
-    .neq('tur','dm') // DM mesajları E2E şifreli
-    .order('olusturma_tarihi',{ascending:false})
-    .limit(100);
-  if(roomId) query=query.eq('oda_id',roomId);
-  if(search) query=query.ilike('metin','%'+search+'%');
-  const {data,error}=await query;
-  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
-  if(!data?.length){ el.innerHTML='<div class="empty">Mesaj bulunamadı.</div>'; return; }
-  el.innerHTML=`<div style="font-size:.75rem;color:var(--txt2);margin-bottom:.5rem">${data.length} mesaj (en yeni başta)</div>`+
-    data.map(m=>`<div class="msg-bubble">
-      <div class="msg-meta">
-        <b>${esc(m.gonderen?.goruntu_adi||m.gonderen?.kullanici_adi||'?')}</b>
-        · ${fmtDate(m.olusturma_tarihi)}
-        · <span style="opacity:.6">${esc(m.oda_id.slice(0,8))}…</span>
-      </div>
-      <div>${esc(m.metin||'[medya/sistem mesajı]')}</div>
-    </div>`).join('');
-}
-
-async function openRoomMessages(roomId, roomName){
-  document.getElementById('room-msgs-title').textContent='💬 '+roomName;
-  const el=document.getElementById('room-msgs-content');
-  el.innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
-  openModal('room-msgs-modal');
-  const {data,error}=await sb.from('mesajlar')
-    .select('id,metin,tur,olusturma_tarihi,gonderen:gonderen_id(kullanici_adi,goruntu_adi)')
-    .eq('oda_id',roomId).eq('silindi',false)
-    .order('olusturma_tarihi',{ascending:false}).limit(150);
-  if(error){ el.innerHTML='<div class="alert alert-danger">'+esc(error.message)+'</div>'; return; }
-  if(!data?.length){ el.innerHTML='<div class="empty">Bu odada mesaj yok.</div>'; return; }
-  el.innerHTML=`<div style="font-size:.75rem;color:var(--txt2);margin-bottom:.6rem">${data.length} mesaj (en yeni başta)</div>`+
-    data.map(m=>{
-      const isDM=m.tur==='dm'||m.metin?.startsWith('{');
-      return `<div class="msg-bubble${isDM?' flagged':''}">
-        <div class="msg-meta">
-          <b>${esc(m.gonderen?.goruntu_adi||m.gonderen?.kullanici_adi||'?')}</b>
-          · ${fmtDate(m.olusturma_tarihi)}
-          ${isDM?'· <span style="color:var(--danger);font-size:.7rem">🔐 Şifreli</span>':''}
-        </div>
-        <div>${isDM?'<span style="color:var(--txt2)">[ Şifreli içerik — sunucu okuyamaz ]</span>':esc(m.metin||'[medya]')}</div>
-      </div>`;
-    }).join('');
-}
-
 // ─── FRIENDS ─────────────────────────────────────────────────
 async function loadFriends(){
   document.getElementById('friends-list').innerHTML='<div class="loading-state"><span class="spinner"></span></div>';
@@ -1212,9 +1131,8 @@ async function loadDrawerRooms(uid){
   el.innerHTML=(rooms||[]).map(r=>`
     <div style="display:flex;align-items:center;gap:.5rem;padding:.4rem;border-radius:6px;border:1px solid var(--brd);margin-bottom:.4rem">
       <span style="font-size:1rem">${turIcon[r.tur]||'🏠'}</span>
-      <div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.isim||'(İsimsiz)')}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(roomLabel(r))}</div>
       <div style="font-size:.72rem;color:var(--txt2)">${esc(r.tur)}</div></div>
-      ${r.tur!=='dm'?`<button class="btn btn-secondary btn-sm" onclick="openRoomMessages('${r.id}',${jsArg(r.isim||r.id)})">💬</button>`:''}
     </div>`).join('');
 }
 
@@ -1245,8 +1163,6 @@ async function loadDrawerActions(uid){
         ?`<button class="btn btn-success" onclick="setBan('${uid}',false)">🔓 Askıyı Kaldır</button>`
         :`<button class="btn btn-warn" onclick="setBan('${uid}',true)">🚫 Askıya Al</button>`}
       <button class="btn btn-danger" onclick="deleteUser('${uid}',${jsArg(p?.kullanici_adi)})">🗑 Kullanıcıyı Sil</button>
-      <hr style="border-color:var(--brd);margin:.3rem 0">
-      <button class="btn btn-secondary" onclick="closeDrawer();showSection('messages');document.getElementById('msg-room-id').value='';document.getElementById('msg-search').value='';loadMessages()">💬 Mesajlarını Gör</button>
     </div>`;
 }
 

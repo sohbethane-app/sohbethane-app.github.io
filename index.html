@@ -3127,6 +3127,7 @@ async function loadMyRooms(){
   if(!memberships) return [];
   const roomIds = memberships.map(m=>m.oda_id);
   const {data:rooms} = await sb.from('odalar').select('*').in('id',roomIds);
+  await _decryptRoomNames(rooms);
   return rooms||[];
 }
 async function getGroupKey(roomId){
@@ -3136,6 +3137,26 @@ async function getGroupKey(roomId){
   const key = await unwrapGroupKey(data.grup_anahtar_enc, data.grup_anahtar_iv, data.grup_anahtar_eph, S.privateKey);
   S.groupKeys[roomId] = key;
   return key;
+}
+// ── Oda adı şifreleme: ad, grup anahtarıyla tarayıcıda şifrelenir; sunucuda yalnızca şifreli metin durur ──
+const _RN='enc1:';
+async function _encRoomName(key,name){ const {enc,iv}=await aesEncrypt(key,name); return _RN+enc+'.'+iv; }
+async function _decryptRoomNames(rooms){
+  for(const r of (rooms||[])){
+    try{
+      if(!r||r.tur==='dm'||!r.isim) continue;
+      if(r.isim.startsWith(_RN)){
+        r._isimEnc=r.isim;
+        let plain='🔒 Şifreli oda';
+        try{ const gk=await getGroupKey(r.id); if(gk){ const [e,iv]=r.isim.slice(_RN.length).split('.'); plain=await aesDecrypt(gk,e,iv); } }catch(_){}
+        r.isim=plain;
+      } else if(r.olusturan_id===S.user.id){
+        // Eski düz yazı ad: oda sahibiysen sessizce şifrele
+        const gk=await getGroupKey(r.id);
+        if(gk){ const enc=await _encRoomName(gk,r.isim); const {error}=await sb.from('odalar').update({isim:enc}).eq('id',r.id); if(!error) r._isimEnc=enc; }
+      }
+    }catch(e){}
+  }
 }
 async function getRoomMembers(roomId){
   const {data} = await sb.from('oda_uyeleri').select('kullanici_id').eq('oda_id',roomId);
@@ -3568,6 +3589,7 @@ async function loadRooms(){
   const roomIds = activeMem.map(m=>m.oda_id);
   if(!roomIds.length){ renderRoomList([]); return; }
   const {data:rooms} = await sb.from('odalar').select('*').in('id',roomIds).order('olusturma_tarihi',{ascending:false});
+  await _decryptRoomNames(rooms);
   // Also dedup rooms array itself (Supabase IN can occasionally return dupes)
   const roomsSeen=new Set();
   const dedupedRooms=(rooms||[]).filter(r=>{ if(roomsSeen.has(r.id)) return false; roomsSeen.add(r.id); return true; });
@@ -5012,7 +5034,9 @@ async function renameRoom(roomId){
   if(!room) return;
   const newName=(prompt('Yeni isim:',room.isim||''))||'';
   if(!newName.trim()||newName.trim()===room.isim) return;
-  const {error}=await sb.from('odalar').update({isim:newName.trim()}).eq('id',roomId);
+  let _encN=newName.trim();
+  try{ const _gk=await getGroupKey(roomId); if(_gk) _encN=await _encRoomName(_gk,newName.trim()); }catch(e){}
+  const {error}=await sb.from('odalar').update({isim:_encN}).eq('id',roomId);
   if(error){ toast('Hata: '+error.message,'error'); return; }
   room.isim=newName.trim();
   renderRoomList(S.rooms);
@@ -5321,7 +5345,7 @@ async function createGroup(tur){
     const groupKey=await generateGroupKey();
     const groupKeyRaw=await exportGroupKey(groupKey);
     // Create room
-    const {data:room,error:re}=await sb.from('odalar').insert({isim:name,tur,olusturan_id:S.user.id}).select().single();
+    const {data:room,error:re}=await sb.from('odalar').insert({isim:await _encRoomName(groupKey,name),tur,olusturan_id:S.user.id}).select().single();
     if(re) throw re;
     // Add myself
     const myWrap=await wrapGroupKeyForMember(groupKeyRaw,S.profile.acik_anahtar);
@@ -5353,7 +5377,7 @@ async function createArchive(){
   try{
     const groupKey=await generateGroupKey();
     const groupKeyRaw=await exportGroupKey(groupKey);
-    const {data:room,error:re}=await sb.from('odalar').insert({isim:name,tur:'arsiv',olusturan_id:S.user.id}).select().single();
+    const {data:room,error:re}=await sb.from('odalar').insert({isim:await _encRoomName(groupKey,name),tur:'arsiv',olusturan_id:S.user.id}).select().single();
     if(re) throw re;
     const w=await wrapGroupKeyForMember(groupKeyRaw,S.profile.acik_anahtar);
     await sb.from('oda_uyeleri').insert({oda_id:room.id,kullanici_id:S.user.id,grup_anahtar_enc:w.enc,grup_anahtar_iv:w.iv,grup_anahtar_eph:w.eph});
@@ -6119,7 +6143,7 @@ async function doConvertToGroup(){
     const op=await getProfile(otherId);
     const groupKey=await generateGroupKey();
     const groupKeyRaw=await exportGroupKey(groupKey);
-    const {data:newRoom,error:re}=await sb.from('odalar').insert({isim:name,tur:'grup',olusturan_id:S.user.id}).select().single();
+    const {data:newRoom,error:re}=await sb.from('odalar').insert({isim:await _encRoomName(groupKey,name),tur:'grup',olusturan_id:S.user.id}).select().single();
     if(re) throw re;
     const myWrap=await wrapGroupKeyForMember(groupKeyRaw,S.profile.acik_anahtar);
     const thWrap=await wrapGroupKeyForMember(groupKeyRaw,op.acik_anahtar);
