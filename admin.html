@@ -250,6 +250,9 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
         <span>🚩</span> Şikayetler
         <span class="badge" id="complaint-badge" style="display:none">0</span>
       </div>
+      <div class="nav-item" onclick="showSection('trash')" id="nav-trash">
+        <span>🗑</span> Çöp Kutusu <span id="trash-badge" style="margin-left:auto;font-size:.7rem;color:var(--txt2)"></span>
+      </div>
       <div class="nav-item" onclick="showSection('banned')" id="nav-banned">
         <span>🚫</span> Banlı IP'ler
       </div>
@@ -257,6 +260,15 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
 
     <!-- MAIN CONTENT -->
     <div class="content">
+
+      <!-- ÇÖP KUTUSU -->
+      <div id="section-trash" style="display:none">
+        <div class="section-header">
+          <h2>🗑 Çöp Kutusu</h2>
+          <span class="subtitle">Silinen üyeler 30 gün burada bekler, sonra kalıcı silinir</span>
+        </div>
+        <div id="trash-body" style="color:var(--txt2)">Yükleniyor...</div>
+      </div>
 
       <!-- İSTATİSTİKLER -->
       <div id="section-stats" style="display:none">
@@ -538,7 +550,7 @@ async function loadComplaintBadge(){
 }
 
 // ─── NAVIGATION ──────────────────────────────────────────────
-const SECTIONS = ['dashboard','stats','users','online','newusers','rooms','messages','friends','complaints','banned'];
+const SECTIONS = ['dashboard','stats','users','online','newusers','rooms','messages','friends','complaints','banned','trash'];
 
 function showSection(name){
   SECTIONS.forEach(s=>{
@@ -547,6 +559,7 @@ function showSection(name){
   });
   const loaders = {
     stats:()=>loadStats(),
+    trash:()=>loadTrash(),
     users:()=>loadUsers(),
     online:()=>loadOnline(),
     newusers:()=>loadNewUsers(),
@@ -559,6 +572,33 @@ function showSection(name){
 }
 
 
+
+// ─── ÇÖP KUTUSU ──────────────────────────────────────────────
+async function loadTrash(){
+  const box=document.getElementById('trash-body'); if(!box) return;
+  const {data,error}=await sb.rpc('cop_listele');
+  if(error){ box.textContent='Alınamadı: '+error.message; return; }
+  const b=document.getElementById('trash-badge'); if(b) b.textContent=(data&&data.length)?data.length:'';
+  if(!data||!data.length){ box.innerHTML='<div style="padding:1.2rem;text-align:center">Çöp kutusu boş 🎉</div>'; return; }
+  box.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Kullanıcı</th><th>Silinme</th><th>Kalan</th><th>İşlem</th></tr></thead><tbody>`+data.map(r=>`
+    <tr><td><b>${esc(r.goruntu_adi||r.kullanici_adi)}</b><br><small style="color:var(--txt2)">@${esc(r.kullanici_adi)} · ${esc(r.ulke||'—')} · ${esc(r.ip||'—')}</small></td>
+    <td>${esc(fmtAgo(r.silinme_tarihi))}</td>
+    <td>${r.kalan_gun} gün</td>
+    <td style="white-space:nowrap"><button class="btn btn-success btn-sm" onclick="restoreUser('${r.id}',${jsArg(r.kullanici_adi)})">♻️ Geri Yükle</button>
+    <button class="btn btn-danger btn-sm" onclick="purgeUser('${r.id}',${jsArg(r.kullanici_adi)})">Kalıcı Sil</button></td></tr>`).join('')+`</tbody></table></div>`;
+}
+async function restoreUser(id,name){
+  if(!confirm(`"${name}" hesabını geri yükle?\n\nProfil, sohbet üyelikleri ve mesaj sahipliği geri gelir; IP yasağı kaldırılır.`)) return;
+  const {data,error}=await sb.rpc('kullanici_geri_yukle',{p_id:id});
+  if(error){ toast('Geri yüklenemedi: '+error.message,'error'); return; }
+  toast(name+' geri yüklendi ♻️','success'); loadTrash();
+}
+async function purgeUser(id,name){
+  if(!confirm(`"${name}" hesabını KALICI sil?\n\nBu işlem GERİ ALINMAZ.`)) return;
+  const {error}=await sb.rpc('cop_kalici_sil',{p_id:id});
+  if(error){ toast('Silinemedi: '+error.message,'error'); return; }
+  toast(name+' kalıcı silindi','info'); loadTrash();
+}
 // ─── İSTATİSTİKLER ───────────────────────────────────────────
 function _stCountry(c){
   if(!c||c==='?') return '❔ Bilinmiyor';
@@ -1202,10 +1242,10 @@ async function setBan(uid, ban){
 // HTML öznitelik (onclick="...") içine güvenle yazılacak JS metni
 function jsArg(v){return JSON.stringify(v==null?'':String(v)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'\\u003c');}
 async function deleteUser(uid, name){
-  if(!confirm(`"${name}" kullanıcısını kalıcı olarak sil?\n\nIP adresi de yasaklanacak. Bu işlem GERİ ALINMAZ.`)) return;
+  if(!confirm(`"${name}" kullanıcısını sil?\n\nHesap 30 gün Çöp Kutusu'nda bekler (istersen geri yükleyebilirsin), sonra kalıcı silinir. IP adresi de yasaklanır.`)) return;
   const {data,error}=await sb.rpc('kullanici_sil',{p_id:uid,p_ip_yasakla:true});
   if(error||!data?.silindi){ toast('Silinemedi: '+(error?.message||'bilinmeyen hata'),'error'); console.error('deleteUser',error); return; }
-  toast(name+' silindi'+(data.ip_yasaklandi?' (IP yasaklandı)':''),'success');
+  toast(name+' çöp kutusuna taşındı (30 gün)'+(data.ip_yasaklandi?' · IP yasaklandı':''),'success');
   closeDrawer();
   loadUsers(); try{loadDashboard();}catch(e){}
 }
