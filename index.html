@@ -938,6 +938,15 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
 .room-seen{font-size:.68rem;color:var(--txt2);margin-top:2px;white-space:nowrap}.room-seen.on{color:#3fb950;font-weight:700}
 .ps-dot{position:absolute;right:12px;top:12px;width:16px;height:16px;border-radius:50%;background:#3fb950;border:3px solid #fff;box-shadow:0 0 12px rgba(63,185,80,.9)}.ps-dot.ghost{background:#f59e0b;box-shadow:0 0 12px rgba(245,158,11,.9)}
 .ps-presence{font-size:.8rem;color:var(--txt2);margin:-.3rem 0 .6rem}.ps-presence.online{color:#3fb950;font-weight:700}.ps-presence.ghost{color:#f59e0b;font-weight:700}
+
+.ps-tgl{display:none!important}
+@media(min-width:1200px){.ps-tgl.show{display:inline-flex!important}}
+.ps-tgl.on{background:rgba(63,185,80,.22);border-radius:10px}
+.room-item.is-online .room-avatar{box-shadow:0 0 0 3px #3fb950,0 0 16px 4px rgba(63,185,80,.8)}
+.room-item .online-dot{width:16px;height:16px;border:3px solid #fff;right:-3px;bottom:-3px;animation:onPulse 1.8s ease-in-out infinite}
+@keyframes onPulse{0%,100%{box-shadow:0 0 0 0 rgba(63,185,80,.85)}50%{box-shadow:0 0 0 7px rgba(63,185,80,0)}}
+.room-seen.on{display:inline-block;color:#fff!important;background:#1f9d3a;font-weight:800;font-size:.7rem;padding:.12rem .5rem;border-radius:999px;letter-spacing:.02em}
+.room-item.active .room-seen.on{background:#fff;color:#0a7d2c!important}
 </style>
 </head>
 <body>
@@ -1093,6 +1102,7 @@ hr{border:none;border-top:1px solid var(--brd);margin:.5rem 0}
         <div id="chat-header-sub"></div>
       </div>
       <button class="icon-btn" title="Arama" onclick="openSearch()">🔍</button>
+      <button class="icon-btn ps-tgl" id="ps-toggle-btn" title="Profil panelini aç/kapat" onclick="togglePS()">👤</button>
       <button class="icon-btn" id="room-info-btn" title="Oda Bilgisi" onclick="openRoomInfo()" style="display:none">ℹ️</button>
       <button class="icon-btn" id="clear-chat-btn" title="Sohbet geçmişini sil" onclick="openClearMenu(event)">🧹</button>
       <button class="icon-btn" title="Duvar kağıdı" onclick="openModal('wallpaper-modal')">🎨</button>
@@ -6430,6 +6440,7 @@ function renderOnlineDots(){
     const info=_presInfo(uid);
     const isOnline=info.state==='online'||info.state==='ghost';
     dot.style.display=isOnline?'':'none';
+    el.classList.toggle('is-online',isOnline);
     dot.classList.toggle('invisible',info.state==='ghost');
     let sn=el.querySelector('.room-seen');
     if(!sn){ sn=document.createElement('div'); sn.className='room-seen'; const pv=el.querySelector('.room-preview'); if(pv&&pv.parentElement) pv.parentElement.appendChild(sn); }
@@ -8076,11 +8087,21 @@ document.addEventListener('click',function(e){
 
 // ── Sağ profil paneli (geniş ekran, DM) ─────────────────────
 function _ccFlag(cc){ if(!cc||cc.length!==2) return '🌍'; try{ return String.fromCodePoint(...cc.toUpperCase().split('').map(c=>127397+c.charCodeAt(0))); }catch(e){ return '🌍'; } }
+function _psWanted(){ try{ return localStorage.getItem('sh_ps_open')==='1'; }catch(e){ return false; } }
+function togglePS(){
+  const on=!_psWanted(); try{ localStorage.setItem('sh_ps_open',on?'1':'0'); }catch(e){}
+  const b=document.getElementById('ps-toggle-btn'); if(b) b.classList.toggle('on',on);
+  const el=document.getElementById('profile-side');
+  if(on){ renderProfileSide(S.currentRoom); } else if(el){ el.style.display='none'; }
+}
 async function renderProfileSide(room){
   const app=document.getElementById('app-screen'); if(!app) return;
   let el=document.getElementById('profile-side');
   if(!el){ el=document.createElement('aside'); el.id='profile-side'; app.appendChild(el); }
-  if(!room||room.tur!=='dm'||!room._otherUserId){ el.style.display='none'; return; }
+  const _tg=document.getElementById('ps-toggle-btn');
+  if(!room||room.tur!=='dm'||!room._otherUserId){ el.style.display='none'; if(_tg) _tg.classList.remove('show'); return; }
+  if(_tg){ _tg.classList.add('show'); _tg.classList.toggle('on',_psWanted()); }
+  if(!_psWanted()){ el.style.display='none'; return; }
   const uid=room._otherUserId;
   let p=null; try{ p=await getProfile(uid); }catch(e){}
   if(!p||!S.currentRoom||S.currentRoom.id!==room.id) return;
