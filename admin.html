@@ -271,7 +271,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
       <div id="section-stats" style="display:none">
         <div class="section-header">
           <h2>📈 Site İstatistikleri</h2>
-          <span class="subtitle"><select id="st-days" onchange="loadStats()" style="background:var(--bg3);color:var(--txt);border:1px solid var(--brd);border-radius:8px;padding:.3rem .5rem"><option value="1">Son 24 saat</option><option value="7">Son 7 gün</option><option value="30" selected>Son 30 gün</option><option value="90">Son 90 gün</option></select></span>
+          <span class="subtitle"><select id="st-days" onchange="loadStats()" style="background:var(--bg3);color:var(--txt);border:1px solid var(--brd);border-radius:8px;padding:.3rem .5rem"><option value="h1">Son 1 saat</option><option value="h3">Son 3 saat</option><option value="h6">Son 6 saat</option><option value="h12">Son 12 saat</option><option value="h24">Son 24 saat</option><option value="3">Son 3 gün</option><option value="7">Son 7 gün</option><option value="30" selected>Son 30 gün</option><option value="90">Son 90 gün</option></select></span>
         </div>
         <div id="st-body" style="color:var(--txt2)">Yükleniyor...</div>
       </div>
@@ -597,8 +597,9 @@ function _stSpark(rows,key){
 }
 async function loadStats(){
   const box=document.getElementById('st-body'); if(!box) return;
-  const days=+(document.getElementById('st-days')?.value||30);
-  const {data:d,error}=await sb.rpc('istatistik_ozet',{p_gun:days});
+  const sv=String(document.getElementById('st-days')?.value||'30');
+  const args=sv.startsWith('h')?{p_gun:1,p_saat:+sv.slice(1)}:{p_gun:+sv};
+  const {data:d,error}=await sb.rpc('istatistik_ozet',args);
   if(error||!d){ box.textContent='İstatistikler alınamadı: '+(error?.message||'veri yok'); return; }
   const cg=r=>({E:'👨 Erkek',K:'👩 Kadın',D:'🌈 Diğer'})[r.k]||'Belirtilmemiş';
   const grid='display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem';
@@ -629,6 +630,7 @@ async function loadStats(){
     ${_stBox('🈯 Üye arayüz dili',_stBars(d.uye_dil,r=>r.k,'n'))}
   </div>
   <div style="font-size:.75rem;color:var(--txt2)">Aynı IP günde yalnızca 1 kez sayılır (üye girişi yapsa da yapmasa da). Ham IP saklanmaz, yalnızca geri döndürülemez bir özet tutulur.</div>`;
+  if(d.saat_modu) box.insertAdjacentHTML('afterbegin','<div class="alert alert-info" style="margin-bottom:.8rem;font-size:.82rem">⏱ Saatlik görünüm: bir ziyaretçi günde bir kez sayıldığı için, bugün daha önce giriş yapmış kişi yeniden gelse de bu aralıkta tekrar sayılmaz. Üye ve mesaj sayıları tam saatlik doğrudur.</div>');
 }
 // ─── DASHBOARD ───────────────────────────────────────────────
 async function loadDashboard(){

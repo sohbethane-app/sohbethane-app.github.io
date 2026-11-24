@@ -70,6 +70,17 @@ function css(){
 .my-prev.txt{background:var(--bg3,#21262d);padding:.5rem;font-size:.82rem;text-align:center;overflow:auto;align-items:flex-start;display:block;white-space:pre-wrap}
 .my-meta{padding:.35rem .5rem;font-size:.7rem;color:var(--txt2,#8b949e);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .my-dur{position:absolute;top:.35rem;right:.35rem;z-index:3;background:rgba(0,0,0,.75);color:#fff;font-size:.7rem;padding:.1rem .4rem;border-radius:6px}
+.my-zoom{position:absolute;top:.35rem;right:.35rem;z-index:4;background:rgba(0,0,0,.65);color:#fff;border:0;border-radius:6px;width:28px;height:28px;font-size:1rem;cursor:zoom-in}
+.my-card[data-vid] .my-zoom{top:2rem}
+.my-simblock{grid-column:1/-1;border:1px dashed #58a6ff;border-radius:10px;padding:.5rem;background:rgba(88,166,255,.06)}
+.my-lb{position:fixed;inset:0;z-index:100002;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:.6rem;padding:2.5rem .5rem .5rem}
+.my-lb-box{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+.my-lb-box img,.my-lb-box video{max-width:96vw;max-height:78vh;object-fit:contain;border-radius:8px}
+.my-lb-txt{font-size:2.2rem;color:#fff;text-align:center;padding:1rem;max-width:90vw}
+.my-lb-bar{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;justify-content:center;padding:.3rem}
+.my-lb-x{position:absolute;top:.5rem;right:.7rem;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;font-size:1.3rem;width:40px;height:40px;cursor:pointer}
+.my-lb-n{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:50%;font-size:2rem;width:44px;height:44px;cursor:pointer;z-index:2}
+.my-lb-n.l{left:.5rem}.my-lb-n.r{right:.5rem}
 .my-badge{margin:0 .4rem .4rem;font-size:.7rem;color:#3fb950}
 .my-pick{position:fixed;z-index:100000;background:var(--bg2,#161b22);border:1px solid var(--brd,#30363d);border-radius:12px;padding:.6rem;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:70vh;overflow:auto}
 .my-pick-h{font-weight:600;font-size:.85rem;margin-bottom:.5rem}
@@ -503,7 +514,7 @@ MY.siteScan=async function(){
   if(ST.busy) return;
   const a=($('my-site')?.value||'').trim(); ST.siteAddr=a;
   if(!a){ toast('Site adresi yaz','error'); return; }
-  ST.res=[]; ST.sel=new Set(); ST.notes=[]; ST.lastQuery=a.replace(/^https?:\/\//i,'').split('/')[0]; ST.more=false; ST.doneSrc=new Set(); ST.pg={};
+  ST.res=[]; ST.sims={}; ST.sel=new Set(); ST.notes=[]; ST.lastQuery=a.replace(/^https?:\/\//i,'').split('/')[0]; ST.more=false; ST.doneSrc=new Set(); ST.pg={};
   ST.busy=true; $('my-res').innerHTML='<div class="my-muted">Site taranıyor…</div>';
   try{
     const all=await siteSearch(a); const r=all.filter(x=>ST.siteTypes.has(x.tur)).map(x=>({...x,id:'site:'+x.id,src:'site'}));
@@ -719,8 +730,9 @@ MY.collect=async function(reset){
   const q=($('my-tq')?.value||'').trim();
   const list=[...ST.srcs];
   if(!q){ toast(list[0]==='site'?'Site adresi yaz':'Anahtar kelime yaz','error'); return; }
-  if(reset){ ST.res=[]; ST.sel=new Set(); ST.pg={}; ST.pinTokMap={}; ST.notes=[]; ST.lastQuery=q; ST.doneSrc=new Set(); }
-  ST.busy=true; $('my-res').innerHTML='<div class="my-muted">Aranıyor…</div>';
+  if(reset){ ST.res=[]; ST.sel=new Set(); ST.pg={}; ST.pinTokMap={}; ST.notes=[]; ST.lastQuery=q; ST.doneSrc=new Set(); ST.sims={}; }
+  ST.busy=true; if(reset||!ST.res.length) $('my-res').innerHTML='<div class="my-muted">Aranıyor…</div>'; else toast('Daha fazla getiriliyor…','info');
+  const _oldLen=ST.res.length;
   const todo=list.filter(k=>!(ST.doneSrc&&ST.doneSrc.has(k)));
   const out=await Promise.allSettled(todo.map(k=>searchSrc(k,ST.lastQuery||q,ST.pg[k]||0)));
   const lists=[]; let more=false;
@@ -737,24 +749,87 @@ MY.collect=async function(reset){
   // kaynakları dönüşümlü karıştır, aynı adresi tekrar ekleme
   const seen=new Set(ST.res.map(x=>x.url||x.metin)); const mixed=[]; const mx=Math.max(0,...lists.map(l=>l.length));
   for(let i=0;i<mx;i++) lists.forEach(l=>{ const x=l[i]; if(x){ const key=x.url||x.metin; if(!seen.has(key)){ seen.add(key); mixed.push(x); } } });
-  ST.res=ST.res.concat(mixed); ST.more=more;
+  ST.res=ST.res.concat(mixed); ST.more=more; if(!reset&&mixed.length) ST.focusIdx=_oldLen;
   const note=ST.notes.length?'<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+ST.notes.map(esc).join('<br>')+'</div>':'';
   if(!ST.res.length) $('my-res').innerHTML=note+'<div class="my-muted">Sonuç bulunamadı.</div>'; else drawRes(ST.more);
   ST.busy=false;
 };
+function resCard(r,i){
+  let prev;
+  if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
+  else if(r.tur==='video') prev=`<div class="my-prev"><video data-vurl="${esc(r.url)}" ${r.thumb?'poster="'+esc(r.thumb)+'"':''} controls muted playsinline preload="metadata" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000" onclick="event.stopPropagation()"></video></div>`;
+  else prev=`<div class="my-prev" style="cursor:zoom-in" onclick="event.stopPropagation();MY.zoom(${i})"><img data-turl="${esc(r.thumb||r.url)}" data-tfb="${esc(r.thumbFb||'')}" alt=""></div>`;
+  return `<div class="my-card ${ST.sel.has(i)?'sel':''}" data-ri="${i}" onclick="MY.toggleSel(${i})" style="cursor:pointer"><button type="button" class="my-zoom" title="Büyük göster" onclick="event.stopPropagation();MY.zoom(${i})">⤢</button>${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
+}
 function drawRes(more){
-  const wrap=$('my-res');
-  wrap.innerHTML=(ST.res.some(r=>r.tur==='video')?vfBar():'')+'<div class="my-grid">'+ST.res.map((r,i)=>{
-    let prev;
-    if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
-    else if(r.tur==='video') prev=`<div class="my-prev"><video data-vurl="${esc(r.url)}" ${r.thumb?'poster="'+esc(r.thumb)+'"':''} controls muted playsinline preload="metadata" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000" onclick="event.stopPropagation()"></video></div>`;
-    else prev=`<div class="my-prev"><img data-turl="${esc(r.thumb||r.url)}" data-tfb="${esc(r.thumbFb||'')}" alt=""></div>`;
-    return `<div class="my-card ${ST.sel.has(i)?'sel':''}" onclick="MY.toggleSel(${i})" style="cursor:pointer">${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
-  }).join('')+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
+  const wrap=$('my-res'); const body=$('my-body'); const keep=body?body.scrollTop:0;
+  ST.sims=ST.sims||{}; const cols=ST.cols||4;
+  const flow=[]; ST.res.forEach((r,i)=>{ if(!r._sim) flow.push(i); });
+  // benzer blokları: seçilen öğenin 2 satır aşağısında
+  const after={};
+  Object.keys(ST.sims).forEach(k=>{ const p=flow.indexOf(+k); if(p<0) return; const at=flow[Math.min(flow.length-1,(Math.floor(p/cols)+3)*cols-1)]; (after[at]=after[at]||[]).push(+k); });
+  let html='';
+  flow.forEach(i=>{
+    html+=resCard(ST.res[i],i);
+    (after[i]||[]).forEach(k=>{ const ids=ST.sims[k]||[]; const t=ST.res[k];
+      html+=`<div class="my-simblock"><div class="my-row" style="margin:0 0 .4rem"><b style="font-size:.82rem">✨ Benzerleri: ${esc((t&&t.ad||'').slice(0,50))}</b> <span class="my-muted">(${ids.length})</span><button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="MY.simClose(${k})">✕ Kapat</button></div><div class="my-grid">${ids.map(j=>resCard(ST.res[j],j)).join('')||'<div class="my-muted">Benzer sonuç bulunamadı</div>'}</div></div>`; });
+  });
+  wrap.innerHTML=(ST.res.some(r=>r.tur==='video')?vfBar():'')+'<div class="my-grid" id="my-maingrid">'+html+'</div>'+(more?'<div class="my-row" style="margin-top:.6rem"><button class="btn btn-secondary btn-sm" onclick="MY.collect(false)">Daha fazla yükle</button></div>':'');
   if(ST.notes&&ST.notes.length) wrap.insertAdjacentHTML('afterbegin','<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+ST.notes.map(esc).join('<br>')+'</div>');
   hydrateThumbs(wrap); applyVF();
+  const g=$('my-maingrid'); if(g){ const n=getComputedStyle(g).gridTemplateColumns.split(' ').length; if(n>0) ST.cols=n; }
+  if(body){
+    if(ST.focusIdx!=null){ const c=wrap.querySelector('[data-ri="'+ST.focusIdx+'"]'); ST.focusIdx=null; if(c){ body.scrollTop=Math.max(0,c.getBoundingClientRect().top-body.getBoundingClientRect().top+keep-8); } else body.scrollTop=keep; }
+    else body.scrollTop=keep;
+  }
 }
-MY.toggleSel=function(i){ if(ST.sel.has(i)) ST.sel.delete(i); else ST.sel.add(i); drawRes(ST.more); };
+MY.simClose=function(k){ delete ST.sims[k]; ST.res.forEach(r=>{ if(r._simOf===k) r._dead=1; }); drawRes(ST.more); };
+const _STOP=new Set(['the','and','for','with','gif','jpg','png','jpeg','mp4','webp','video','resim','image','photo']);
+MY.similar=async function(i,quiet){
+  const r=ST.res[i]; if(!r||r._sim||ST.sims[i]) return;
+  if(r.tur==='emoji'||r.tur==='soz'||r.src==='site'||!r.src){ if(!quiet) toast('Bu öğe için benzer arama yok','info'); return; }
+  const words=String(r.ad||'').replace(/\.[a-z0-9]{2,4}$/i,'').replace(/[_\-\.\d]+/g,' ').split(/\s+/).filter(w=>w.length>2&&!_STOP.has(w.toLowerCase())).slice(0,4);
+  const q=(words.join(' ')||ST.lastQuery||'').trim(); if(!q) return;
+  ST.sims[i]=[]; drawRes(ST.more);
+  try{
+    const list=await searchSrc(r.src,q,0);
+    const have=new Set(ST.res.map(x=>x.url||x.metin)); const add=[];
+    for(const x of list){ const key=x.url||x.metin; if(have.has(key)) continue; have.add(key); add.push({...x,id:r.src+':sim'+i+'_'+x.id,src:r.src,_sim:true,_simOf:i}); if(add.length>=12) break; }
+    const ids=add.map(x=>{ ST.res.push(x); return ST.res.length-1; });
+    ST.sims[i]=ids;
+    if(!ids.length&&!quiet) toast('Benzer sonuç bulunamadı','info');
+  }catch(e){ delete ST.sims[i]; if(!quiet) toast('Benzerleri getirilemedi: '+(e.message||e),'error'); }
+  drawRes(ST.more);
+};
+// ───────── büyük gösterim (lightbox) ─────────
+MY.zoom=function(i){
+  const r=ST.res[i]; if(!r) return; ST.zi=i;
+  let lb=document.getElementById('my-lb'); if(!lb){ lb=document.createElement('div'); lb.id='my-lb'; lb.className='my-lb'; document.body.appendChild(lb);
+    lb.addEventListener('click',e=>{ if(e.target===lb) MY.zoomClose(); });
+    document.addEventListener('keydown',MY._lbKey=function(e){ if(!document.getElementById('my-lb')) return; if(e.key==='Escape') MY.zoomClose(); else if(e.key==='ArrowRight') MY.zoomGo(1); else if(e.key==='ArrowLeft') MY.zoomGo(-1); }); }
+  let media;
+  if(r.tur==='emoji'||r.tur==='soz') media=`<div class="my-lb-txt">${esc(r.metin)}</div>`;
+  else if(r.tur==='video') media=`<video id="my-lb-m" data-vurl="${esc(r.url)}" controls autoplay playsinline referrerpolicy="no-referrer"></video>`;
+  else media=`<img id="my-lb-m" data-lbu="${esc(r.url)}" data-lbt="${esc(r.thumb||'')}" referrerpolicy="no-referrer" alt="">`;
+  lb.innerHTML=`<button class="my-lb-x" onclick="MY.zoomClose()">✕</button><button class="my-lb-n l" onclick="MY.zoomGo(-1)">‹</button><button class="my-lb-n r" onclick="MY.zoomGo(1)">›</button>
+   <div class="my-lb-box">${media}</div>
+   <div class="my-lb-bar"><span class="my-muted" style="color:#ccc">${esc(r.tur)} · ${esc((r.ad||'').slice(0,60))}</span>
+     <button class="btn btn-secondary btn-sm" onclick="MY.toggleSel(${i});MY.zoom(${i})">${ST.sel.has(i)?'☑ Seçili':'☐ Seç'}</button>
+     <button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button>
+     <button class="btn btn-secondary btn-sm" onclick="MY.saveOne(${i})">💾 Kaydet</button>
+     <button class="btn btn-secondary btn-sm" onclick="MY.pickFor([${i}],this)">📁 Klasöre…</button>
+     <button class="btn btn-secondary btn-sm" onclick="MY.zoomSim(${i})">✨ Benzerleri</button></div>`;
+  lb.style.display='flex';
+  const m=document.getElementById('my-lb-m');
+  if(m&&m.dataset.vurl){ hydrateVideos(lb); m.muted=false; }
+  else if(m&&m.dataset.lbu){ const u=m.dataset.lbu; let fb=0;
+    m.onerror=async()=>{ if(fb++) return; try{ const {blob}=await NB(u); m.src=URL.createObjectURL(blob); }catch(e){ const t=m.dataset.lbt; if(t){ try{ m.src=await thumb(t); }catch(_){} } } };
+    m.src=u; }
+};
+MY.zoomClose=function(){ const lb=document.getElementById('my-lb'); if(lb){ lb.querySelectorAll('video').forEach(v=>v.pause()); lb.remove(); } if(MY._lbKey){ document.removeEventListener('keydown',MY._lbKey); MY._lbKey=null; } };
+MY.zoomGo=function(d){ let j=ST.zi; for(let n=0;n<ST.res.length;n++){ j=(j+d+ST.res.length)%ST.res.length; if(!ST.res[j]._dead) break; } MY.zoom(j); };
+MY.zoomSim=function(i){ MY.zoomClose(); MY.similar(i); setTimeout(()=>{ const c=document.querySelector('.my-simblock'); if(c) c.scrollIntoView({block:'center',behavior:'smooth'}); },700); };
+MY.toggleSel=function(i){ const on=!ST.sel.has(i); if(on) ST.sel.add(i); else ST.sel.delete(i); drawRes(ST.more); if(on&&!(ST.res[i]&&ST.res[i]._sim)) MY.similar(i,true); };
 MY.selAll=function(){ if(ST.res.length&&ST.sel.size===ST.res.length) ST.sel=new Set(); else ST.res.forEach((_,i)=>ST.sel.add(i)); drawRes(ST.more); };
 MY.selType=function(t){ ST.sel=new Set(); ST.res.forEach((r,i)=>{ if(r.tur===t) ST.sel.add(i); }); if(!ST.sel.size) toast('Bu türden sonuç yok','error'); drawRes(ST.more); };
 MY.loadAll=async function(){
@@ -778,7 +853,7 @@ async function putFile(folderId,blob,mime,meta){
 // Topla sonuçlarından doğrudan sohbete gönder (isteğe bağlı kütüphaneye de kaydeder)
 MY.sendRes=async function(list){
   if(!S.currentRoom){ toast('Önce soldan bir sohbet aç, sonra Multimedya\'yı aç','error'); return; }
-  const picks=(list||[...ST.sel]).map(i=>ST.res[i]).filter(Boolean);
+  const picks=(list||[...ST.sel]).map(i=>ST.res[i]).filter(x=>x&&!x._dead);
   if(!picks.length){ toast('Önce sonuçlardan seç','error'); return; }
   const save=$('my-alsosave')?.checked!==false; const fid=$('my-tf')?.value;
   if(save&&!fid){ toast('Klasör seç ya da "Kütüphaneye de kaydet" kutusunu kapat','error'); return; }
@@ -841,7 +916,7 @@ MY.saveOne=function(i){ ST.sel=new Set([i]); MY.saveSel(); };
 MY.saveSel=async function(fidArg,idxArg){
   const fid=fidArg||$('my-tf')?.value; if(!fid){ toast('Klasör seç','error'); return; }
   const idxs=idxArg||[...ST.sel];
-  const picks=idxs.map(i=>ST.res[i]).filter(Boolean);
+  const picks=idxs.map(i=>ST.res[i]).filter(x=>x&&!x._dead);
   if(!picks.length){ toast('Önce sonuçlardan seç','error'); return; }
   const q=ST.lastQuery||'';
   let ok=0,fail=0,idx=0;
