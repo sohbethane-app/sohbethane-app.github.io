@@ -3393,7 +3393,7 @@ function _medyaLoad(tab){
   if(!S.profile||!S.profile.yonetici) return;
   const go=()=>window.MY&&(tab==='inline'?window.MY.inline():window.MY.open(tab));
   if(window.MY){ go(); return; }
-  const sc=document.createElement('script'); sc.src='medya.js?v=20261125a'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
+  const sc=document.createElement('script'); sc.src='medya.js?v=20261125b'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
   document.head.appendChild(sc);
 }
 function _medyaButtons(){
@@ -3648,7 +3648,7 @@ async function loadRooms(){
   const deletedRooms=_getDeletedRooms();
   const activeMem=dedupedMem.filter(m=>!deletedRooms.has(m.oda_id));
   const roomIds = activeMem.map(m=>m.oda_id);
-  if(!roomIds.length){ renderRoomList([]); return; }
+  if(!roomIds.length){ S.rooms=[]; renderRoomList([]); return; }
   const {data:rooms} = await sb.from('odalar').select('*').in('id',roomIds).order('olusturma_tarihi',{ascending:false});
   await _decryptRoomNames(rooms);
   // Also dedup rooms array itself (Supabase IN can occasionally return dupes)
@@ -4443,6 +4443,7 @@ async function _inboxRefresh(){
       const old=new Map((S.rooms||[]).map(r=>[r.id,r._unread||0]));
       await loadRooms();
       let changed=false;
+      { const now=new Set((S.rooms||[]).map(r=>r.id)); for(const id of old.keys()) if(!now.has(id)) changed=true; }
       (S.rooms||[]).forEach(r=>{
         if(old.has(r.id)) { if(old.get(r.id)&&!r._unread) r._unread=old.get(r.id); }
         else { changed=true; if(r._lastMsg&&r._lastMsg.gonderen_id!==S.user.id) r._unread=1; }
