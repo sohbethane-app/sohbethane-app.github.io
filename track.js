@@ -1,6 +1,7 @@
 // Anonim ziyaret sayacı: yalnızca ülke kodu, dil, cihaz türü ve rastgele ziyaretçi no saklanır (IP/isim yok).
 (function(){try{
 var U='https://jjkvjrvaozubvdnjdpbs.supabase.co',K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impqa3ZqcnZhb3p1YnZkbmpkcGJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4ODM2NDEsImV4cCI6MjEwNzQ1OTY0MX0.ozfpJFkCuU200AQOT_hpc4QcE3jlskGi69ulXqoUa_Q';
+try{var _q=new URLSearchParams(location.search);if(_q.get('notrack')==='1')localStorage.setItem('sh_no_track','1');if(_q.get('notrack')==='0')localStorage.removeItem('sh_no_track');if(localStorage.getItem('sh_no_track')==='1')return;}catch(e){}
 var path=location.pathname.replace(/index\.html$/,'')||'/';
 var sk='sh_v_'+path;if(sessionStorage.getItem(sk))return;sessionStorage.setItem(sk,'1');
 var vid;try{vid=localStorage.getItem('sh_vid');if(!vid){vid=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now());localStorage.setItem('sh_vid',vid);}}catch(e){vid=String(Math.random()).slice(2)+Date.now();}

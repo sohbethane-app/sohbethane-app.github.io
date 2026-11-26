@@ -3401,6 +3401,7 @@ function _medyaButtons(){
   ['medya-btn','medya-ai-btn'].forEach(id=>{ const b=document.getElementById(id); if(b) b.style.display=on?'':'none'; });
 }
 async function startApp(){
+  try{ if(S.profile&&S.profile.yonetici) localStorage.setItem('sh_no_track','1'); }catch(e){}
   setTimeout(_medyaButtons,0);
   // Ülke/IP: oturum otomatik devam ettiğinde de (şifre girilmeden) güncelle; günde en fazla bir kez, ülke boşsa hemen
   try{
