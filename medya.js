@@ -465,6 +465,8 @@ MY.randomQuote=async function(){
 
 // ───────── toplama ─────────
 const SRC={
+  yandex_free_vid:{ad:'Video — Yandex (bağlantı, anahtarsız)',tur:'video',free:true},
+  bing_vid:{ad:'Video — Bing (bağlantı, anahtarsız)',tur:'video',free:true},
   archive_vid:{ad:'Video — Internet Archive (uzun filmler/videolar, anahtarsız)',tur:'video',free:true},
   commons_vid:{ad:'Video — Wikimedia Commons (anahtarsız, açık lisans)',tur:'video',free:true},
   bing_vektor:{ad:'Vektörel — Bing (anahtarsız)',tur:'vektor',free:true},
@@ -711,6 +713,30 @@ async function yandexFree(q,page,gif){
   if(!out.length) throw new Error('Yandex sonuç vermedi (sayfa yapısı değişmiş ya da erişim engellenmiş olabilir)');
   return out;
 }
+
+function linkVideos(html,q,pfx,page,max){
+  html=String(html||'').replace(/\\u002F/gi,'/').replace(/\\\//g,'/').replace(/&amp;/g,'&').replace(/&quot;/g,'"');
+  const re=/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?v=([\w-]{11})|youtu\.be\/([\w-]{11})|rutube\.ru\/video\/([a-f0-9]{20,40})|dailymotion\.com\/video\/([a-z0-9]+)|vimeo\.com\/(\d{5,}))/gi;
+  const out=[]; const seen=new Set(); let m;
+  while((m=re.exec(html))&&out.length<(max||40)){
+    const url=m[0].replace(/["'<>\\].*$/,''); const yt=m[1]||m[2]; const key=yt||url; if(seen.has(key)) continue; seen.add(key);
+    const host=url.replace(/^https?:\/\/(www\.|m\.)?/,'').split('/')[0];
+    out.push({id:pfx+page+'_'+out.length,tur:'video',link:true,thumb:yt?'https://i.ytimg.com/vi/'+yt+'/hqdefault.jpg':'',url:yt?'https://www.youtube.com/watch?v='+yt:url,mime:'text/uri-list',ad:q+' · '+host,kaynak:pfx==='yv'?'yandex':'bing'});
+  }
+  return out;
+}
+async function yandexVideo(q,page){
+  const j=await PH('https://yandex.com/video/search?text='+encodeURIComponent(q)+'&p='+page); const html=j.text||'';
+  const out=linkVideos(html,q,'yv',page);
+  if(!out.length){ if(/showcaptcha|smartcaptcha|checkcaptcha/i.test(html.slice(0,12000))) throw new Error('Yandex doğrulama (captcha) istedi: sunucu adresi geçici engellenmiş olabilir. Biraz sonra dene.'); throw new Error('Yandex video sonucu bulunamadı (sayfa yapısı değişmiş olabilir)'); }
+  return out;
+}
+async function bingVideo(q,page){
+  const j=await PH('https://www.bing.com/videos/search?q='+encodeURIComponent(q)+'&first='+(page*35+1)+'&setlang=tr'); const html=j.text||'';
+  const out=linkVideos(html,q,'bv',page);
+  if(!out.length) throw new Error('Bing video sonucu bulunamadı (sayfa yapısı değişmiş olabilir)');
+  return out;
+}
 async function googleFree(q,page,gif){
   const url='https://www.google.com/search?q='+encodeURIComponent(q)+'&udm=2&hl=tr&gl=tr'+(gif?'&tbs=itp:animated':'')+(page?'&start='+(page*20):'');
   const j=await PH(url); const html=j.text||'';
@@ -742,6 +768,8 @@ async function searchSrc(src,q,page){
   if(s.key&&!k) throw new Error(s.ad+' için API anahtarı yok. "⚙ Ayarlar" sekmesinden ekle (ücretsiz: '+s.link+').');
   const per=24;
   if(src==='archive_vid') return archiveVideos(q,page);
+  if(src==='yandex_free_vid') return yandexVideo(q,page);
+  if(src==='bing_vid') return bingVideo(q,page);
   if(src==='commons_vid'){
     q=await toEn(q);
     const one=async mime=>{
@@ -852,10 +880,11 @@ MY.collect=async function(reset){
 function resCard(r,i){
   let prev;
   if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
+  else if(r.link) prev=`<div class="my-prev" style="position:relative;cursor:pointer" onclick="event.stopPropagation();window.open('${esc(r.url)}','_blank','noopener,noreferrer')">${r.thumb?`<img data-turl="${esc(r.thumb)}" data-tfb="" alt="">`:'<div class="txt" style="font-size:1.6rem">🎬</div>'}<span class="my-play">↗</span></div>`;
   else if(r.tur==='video'&&r.thumb) prev=`<div class="my-prev" style="position:relative;cursor:pointer" onclick="event.stopPropagation();MY.playRes(${i},this)"><img data-turl="${esc(r.thumb)}" data-tfb="" alt=""><span class="my-play">▶</span></div>`;
   else if(r.tur==='video') prev=`<div class="my-prev"><video data-vurl="${esc(r.url)}" ${r.thumb?'poster="'+esc(r.thumb)+'"':''} controls muted playsinline preload="metadata" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000" onclick="event.stopPropagation()"></video></div>`;
   else prev=`<div class="my-prev" style="cursor:zoom-in" onclick="event.stopPropagation();MY.zoom(${i})"><img data-turl="${esc(r.thumb||r.url)}" data-tfb="${esc(r.thumbFb||'')}" alt=""></div>`;
-  return `<div class="my-card ${ST.sel.has(i)?'sel':''}" data-ri="${i}"${r.tur==='video'&&r.sure?' data-vid="1" data-dur="'+r.sure+'"':''} onclick="MY.toggleSel(${i})" style="cursor:pointer"><button type="button" class="my-zoom" title="Büyük göster" onclick="event.stopPropagation();MY.zoom(${i})">⤢</button>${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
+  return `<div class="my-card ${ST.sel.has(i)?'sel':''}" data-ri="${i}"${r.tur==='video'&&r.sure?' data-vid="1" data-dur="'+r.sure+'"':''} onclick="MY.toggleSel(${i})" style="cursor:pointer"><button type="button" class="my-zoom" title="Büyük göster" onclick="event.stopPropagation();MY.zoom(${i})">⤢</button>${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button>${r.link?`<a class="btn btn-secondary btn-sm" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" title="Videoyu kendi sitesinde aç">↗ Aç</a>`:`<button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button>`}</div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
 }
 function drawRes(more){
   const wrap=$('my-res'); const body=$('my-body'); const keep=body?body.scrollTop:0;
@@ -960,7 +989,9 @@ MY.sendRes=async function(list){
   for(const r of picks){
     try{
       const capNow=first?cap:''; // açıklama yalnızca ilk öğeye
-      if(r.tur==='emoji'||r.tur==='soz'){
+      if(r.link){
+        await sendTextMessage((capNow?capNow+'\n\n':'')+r.url,S.currentRoom);
+      } else if(r.tur==='emoji'||r.tur==='soz'){
         let row=null;
         if(save){ const {data,error}=await sb.from('medya_ogeler').insert({klasor_id:fid,tur:r.tur,metin:r.metin,etiket:(q+' '+(r.ad||'')).trim(),kaynak:r.kaynak||'yerel'}).select().single(); if(error) throw error; row=data; }
         await sendTextMessage((capNow?capNow+'\n\n':'')+(r.metin||''),S.currentRoom);
@@ -1013,7 +1044,8 @@ MY.saveOne=function(i){ ST.sel=new Set([i]); MY.saveSel(); };
 MY.saveSel=async function(fidArg,idxArg){
   const fid=fidArg||$('my-tf')?.value; if(!fid){ toast('Klasör seç','error'); return; }
   const idxs=idxArg||[...ST.sel];
-  const picks=idxs.map(i=>ST.res[i]).filter(x=>x&&!x._dead);
+  let picks=idxs.map(i=>ST.res[i]).filter(x=>x&&!x._dead);
+  { const nl=picks.filter(x=>x.link).length; if(nl){ picks=picks.filter(x=>!x.link); toast(nl+' bağlantı video kütüphaneye dosya olarak kaydedilemez (yalnızca sohbete bağlantı olarak gönderilir)','info'); } }
   if(!picks.length){ toast('Önce sonuçlardan seç','error'); return; }
   const q=ST.lastQuery||'';
   let ok=0,fail=0,idx=0;
