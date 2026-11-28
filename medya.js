@@ -587,6 +587,17 @@ MY.srcAll=function(){
   const c=cfg(); const usable=media.filter(k=>!SRC[k].key||c[SRC[k].key]);
   ST.srcs=new Set(usable.every(k=>ST.srcs.has(k))?['bing_img']:usable); srcRefresh();
 };
+
+// ───────── Tarz düğmeleri (hazır aramalar, İngilizce karşılığıyla) ─────────
+const TARZ=[['💞 Romantik','romantic couple'],['😘 Flört','flirting couple'],['👫 Çift','couple together'],['💃 Dans','couple dancing'],['🌙 Gece','night city romantic'],['🕯 Sensual','sensual candlelight'],['🌹 Gül/Çiçek','rose flowers'],['🏖 Sahil','beach sunset couple'],['☕ Kahve','coffee date'],['🥂 Şarap','wine dinner couple'],['🛏 Sabah','cozy morning bed'],['💋 Öpücük','kiss couple']];
+MY.tarz=function(i){
+  const t=TARZ[i]; if(!t) return;
+  const inp=$('my-tq'); if(inp) inp.value=t[1];
+  const c=cfg(); const add=k=>{ const sc=SRC[k]; if(sc&&(!sc.key||c[sc.key])) ST.srcs.add(k); };
+  ['resim','video'].forEach(x=>{ if(typeOn(x)||ST.srcs.has('bing_img')||[...ST.srcs].some(k=>SRC[k]&&SRC[k].tur===x)){ if(x==='resim'){ add('pexels_img'); add('pixabay_img'); } else { add('pexels_vid'); add('pixabay_vid'); } } });
+  srcRefresh(); MY.collect(true);
+};
+function tarzRow(){ return '<div class="my-row" style="gap:.35rem"><span class="my-muted">Tarz:</span>'+TARZ.map((t,i)=>`<button class="btn btn-secondary btn-sm" style="border-radius:999px" onclick="MY.tarz(${i})">${esc(t[0])}</button>`).join('')+'</div>'; }
 function renderTopla(){
   const body=$('my-body');
   const fopts=ST.folders.map(f=>`<option value="${f.id}" ${f.id===ST.folderId?'selected':''}>${esc(f.ad)}</option>`).join('');
@@ -602,6 +613,7 @@ function renderTopla(){
       <input class="grow" id="my-tq" placeholder="Anahtar kelime (örn. beyaz çiçek)" onkeydown="if(event.key==='Enter')MY.collect(true)">
       <button class="btn btn-primary btn-sm" onclick="MY.collect(true)">🔎 Ara</button>
     </div>
+    ${tarzRow()}
     <div class="my-row"><span class="my-muted">Kaydedilecek klasör:</span><select id="my-tf">${fopts}</select>
       <button class="btn btn-secondary btn-sm" onclick="MY.newFolder()">➕ Yeni klasör</button>
       <button class="btn btn-primary btn-sm" onclick="MY.sendRes()">💬 Seçilenleri sohbete gönder</button>
