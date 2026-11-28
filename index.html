@@ -966,6 +966,15 @@ body:not(.media-small) .msg-video-preview{width:min(82vw,880px);max-width:100%;m
 
 .auth-tabs{position:sticky;top:0;z-index:30;backdrop-filter:blur(10px);background:rgba(20,12,24,.92)!important}
 #register-form>button.btn-primary,#login-form>button.btn-primary{bottom:8px}
+
+/* Dil seçim penceresi: okunur, bayraklı */
+.nl-card{width:min(640px,96vw)!important}
+.nl-grid button{display:flex!important;align-items:center;gap:.6rem;justify-content:flex-start;padding:.8rem .8rem!important;font-size:1.05rem!important;font-weight:700;text-align:left;min-height:54px}
+.nl-grid button b{font-weight:700;color:#fff;letter-spacing:.01em}
+.nl-flag{width:30px;height:auto;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.25);flex:none}
+.nl-flag-e{font-size:1.4rem;flex:none}
+.nl-grid button.nl-first{border-color:#9b86ff;background:rgba(124,92,255,.28)}
+.nl-card h2{font-size:1.7rem!important}.nl-card p{font-size:.95rem!important;color:#d6cdf5!important}
 </style>
 </head>
 <body>
@@ -3393,7 +3402,7 @@ function _medyaLoad(tab){
   if(!S.profile||!S.profile.yonetici) return;
   const go=()=>window.MY&&(tab==='inline'?window.MY.inline():window.MY.open(tab));
   if(window.MY){ go(); return; }
-  const sc=document.createElement('script'); sc.src='medya.js?v=20261128b'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
+  const sc=document.createElement('script'); sc.src='medya.js?v=20261128c'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
   document.head.appendChild(sc);
 }
 function _medyaButtons(){
@@ -8081,6 +8090,9 @@ function maybeAskGender(){
   });
   document.body.appendChild(o);
 }
+function _flagCC(e){ try{ const cp=Array.from(String(e||'')).map(c=>c.codePointAt(0)).filter(c=>c>=0x1F1E6&&c<=0x1F1FF).map(c=>String.fromCharCode(c-0x1F1E6+97)); return cp.length===2?cp.join(''):''; }catch(_){ return ''; } }
+function _flagImg(e){ const cc=_flagCC(e); return cc?'<img class="nl-flag" alt="" loading="lazy" src="https://flagcdn.com/w40/'+cc+'.png" onerror="this.replaceWith(document.createTextNode(\''+(e||'')+' \'))">':'<span class="nl-flag-e">'+(e||'🌐')+'</span>'; }
+function _nlSorted(){ const first=(typeof _UI_LANG!=='undefined')?_UI_LANG:'tr'; const arr=LANGS.slice(); const i=arr.findIndex(l=>l.code===first); if(i>0){ const [x]=arr.splice(i,1); arr.unshift(x); } return arr; }
 function maybeAskNativeLang(){
   if(!S.user||!S.profile||S.profile.dil_secildi) return;
   try{ if(localStorage.getItem('sh_native_'+S.user.id)) return; }catch(e){}
@@ -8088,7 +8100,7 @@ function maybeAskNativeLang(){
   const o=document.createElement('div');o.id='native-lang-overlay';
   o.innerHTML='<div class="nl-card"><div class="nl-ico">🌍</div><h2>Ana diliniz nedir?</h2><div class="nl-en">What is your native language?</div>'
    +'<p data-no-i18n>'+escHtml(_tUI('Yazdığınız mesajlar, karşı tarafın diline otomatik çevrilir; size gelenler de kendi dilinizde görünür.'))+'</p>'
-   +'<div class="nl-grid">'+LANGS.map(l=>'<button type="button" data-c="'+l.code+'"><span>'+l.flag+'</span> '+escHtml(l.name)+'</button>').join('')+'</div></div>';
+   +'<div class="nl-grid">'+_nlSorted().map((l,ix)=>'<button type="button" data-c="'+l.code+'"'+(ix===0?' class="nl-first"':'')+'>'+_flagImg(l.flag)+'<b>'+escHtml(l.name)+'</b></button>').join('')+'</div></div>';
   o.addEventListener('click',function(e){
     const b=e.target.closest('button[data-c]');if(!b)return;
     chooseNativeLang(b.dataset.c);
