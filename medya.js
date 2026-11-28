@@ -87,6 +87,7 @@ function css(){
 .my-siterow .t{font-size:.88rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .my-siterow .u{font-size:.75rem;color:#8b949e}
 .my-siterow>div{flex:1}.my-siterow input{width:18px;height:18px}
+.my-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;pointer-events:none;border:2px solid rgba(255,255,255,.8)}
 .my-badge{margin:0 .4rem .4rem;font-size:.7rem;color:#3fb950}
 .my-pick{position:fixed;z-index:100000;background:var(--bg2,#161b22);border:1px solid var(--brd,#30363d);border-radius:12px;padding:.6rem;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:70vh;overflow:auto}
 .my-pick-h{font-weight:600;font-size:.85rem;margin-bottom:.5rem}
@@ -706,6 +707,7 @@ async function googleFree(q,page,gif){
   return out;
 }
 async function toEn(q){ try{ const d=await jget('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q='+encodeURIComponent(q)); const t=Array.isArray(d)&&Array.isArray(d[0])?d[0].map(x=>x&&x[0]).join(''):''; return (t||q).trim()||q; }catch(e){ return q; } }
+function _runSec(t){ if(!t) return 0; t=String(t); if(/^\d+(\.\d+)?$/.test(t)) return +t; const p=t.split(':').map(Number); if(p.some(isNaN)) return 0; return p.reduce((a,b)=>a*60+b,0); }
 async function archiveVideos(q,page){
   const qe=await toEn(q);
   const d=await jget('https://archive.org/advancedsearch.php?q='+encodeURIComponent('('+qe+') AND mediatype:movies')+'&fl[]=identifier&fl[]=title&fl[]=runtime&rows=24&page='+(page+1)+'&sort[]=downloads+desc&output=json');
@@ -717,7 +719,7 @@ async function archiveVideos(q,page){
     const lim=75*1024*1024; const ok=files.filter(f=>+f.size&&+f.size<=lim).sort((a,b)=>b.size-a.size);
     const f=ok[0]||files.sort((a,b)=>(+a.size||1e12)-(+b.size||1e12))[0];
     const mime=/\.webm$/i.test(f.name)?'video/webm':'video/mp4';
-    return {id:'ia'+x.identifier,tur:'video',thumb:'https://archive.org/services/img/'+encodeURIComponent(x.identifier),url:'https://archive.org/download/'+encodeURIComponent(x.identifier)+'/'+f.name.split('/').map(encodeURIComponent).join('/'),mime,ad:String(x.title||q).slice(0,60)+(x.runtime?' ['+x.runtime+']':''),kaynak:'archive.org'};
+    return {id:'ia'+x.identifier,tur:'video',thumb:'https://archive.org/services/img/'+encodeURIComponent(x.identifier),url:'https://archive.org/download/'+encodeURIComponent(x.identifier)+'/'+f.name.split('/').map(encodeURIComponent).join('/'),mime,ad:String(x.title||q).slice(0,60)+(x.runtime?' ['+x.runtime+']':''),kaynak:'archive.org',sure:_runSec(x.runtime)};
   }));
   return res.map(r=>r.status==='fulfilled'?r.value:null).filter(Boolean);
 }
@@ -836,9 +838,10 @@ MY.collect=async function(reset){
 function resCard(r,i){
   let prev;
   if(r.tur==='emoji'||r.tur==='soz') prev=`<div class="my-prev txt" style="font-size:${r.tur==='emoji'?'1.8rem':'.82rem'}">${esc(r.metin)}</div>`;
+  else if(r.tur==='video'&&r.thumb) prev=`<div class="my-prev" style="position:relative;cursor:pointer" onclick="event.stopPropagation();MY.playRes(${i},this)"><img data-turl="${esc(r.thumb)}" data-tfb="" alt=""><span class="my-play">▶</span></div>`;
   else if(r.tur==='video') prev=`<div class="my-prev"><video data-vurl="${esc(r.url)}" ${r.thumb?'poster="'+esc(r.thumb)+'"':''} controls muted playsinline preload="metadata" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000" onclick="event.stopPropagation()"></video></div>`;
   else prev=`<div class="my-prev" style="cursor:zoom-in" onclick="event.stopPropagation();MY.zoom(${i})"><img data-turl="${esc(r.thumb||r.url)}" data-tfb="${esc(r.thumbFb||'')}" alt=""></div>`;
-  return `<div class="my-card ${ST.sel.has(i)?'sel':''}" data-ri="${i}" onclick="MY.toggleSel(${i})" style="cursor:pointer"><button type="button" class="my-zoom" title="Büyük göster" onclick="event.stopPropagation();MY.zoom(${i})">⤢</button>${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
+  return `<div class="my-card ${ST.sel.has(i)?'sel':''}" data-ri="${i}"${r.tur==='video'&&r.sure?' data-vid="1" data-dur="'+r.sure+'"':''} onclick="MY.toggleSel(${i})" style="cursor:pointer"><button type="button" class="my-zoom" title="Büyük göster" onclick="event.stopPropagation();MY.zoom(${i})">⤢</button>${prev}<div class="my-meta">${esc(r.tur)} · ${esc(r.ad||'')}</div><div class="my-act" onclick="event.stopPropagation()"><button class="btn btn-primary btn-sm" onclick="MY.sendRes([${i}])">💬 Gönder</button><button class="btn btn-secondary btn-sm" title="Yalnızca kütüphaneye kaydet" onclick="MY.saveOne(${i})">💾</button><button class="btn btn-secondary btn-sm" title="Klasöre gönder…" onclick="MY.pickFor([${i}],this)">📁${r._klasor?' ✓':''}</button></div>${r._klasor?'<div class="my-badge">✓ '+esc((ST.folders.find(f=>f.id===r._klasor)||{}).ad||'')+'</div>':''}</div>`;
 }
 function drawRes(more){
   const wrap=$('my-res'); const body=$('my-body'); const keep=body?body.scrollTop:0;
@@ -862,6 +865,7 @@ function drawRes(more){
     else body.scrollTop=keep;
   }
 }
+MY.playRes=function(i,el){ const r=ST.res[i]; if(!r) return; el.onclick=null; el.style.cursor='default'; el.innerHTML=`<video data-vurl="${esc(r.url)}" controls autoplay playsinline referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain;background:#000"></video>`; hydrateVideos(el); };
 MY.simClose=function(k){ delete ST.sims[k]; ST.res.forEach(r=>{ if(r._simOf===k) r._dead=1; }); drawRes(ST.more); };
 const _STOP=new Set(['the','and','for','with','gif','jpg','png','jpeg','mp4','webp','video','resim','image','photo']);
 MY.similar=async function(i,quiet){
