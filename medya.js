@@ -103,7 +103,7 @@ function css(){
 function ui(){
   css();
   if($('my-modal')) return;
-  const d=document.createElement('div'); d.id='my-modal';
+  const d=document.createElement('div'); d.id='my-modal'; d.setAttribute('translate','no'); d.className='notranslate';
   d.innerHTML=`<div id="my-box">
   <div id="my-head"><b>🗂 Multimedya <span class="my-muted">(yalnızca yönetici)</span></b><button class="btn btn-secondary btn-sm" onclick="MY.close()">✕ Kapat</button></div>
   <div class="my-tabs">
@@ -456,6 +456,7 @@ MY.randomQuote=async function(){
 
 // ───────── toplama ─────────
 const SRC={
+  commons_vid:{ad:'Video — Wikimedia Commons (anahtarsız, açık lisans)',tur:'video',free:true},
   bing_vektor:{ad:'Vektörel — Bing (anahtarsız)',tur:'vektor',free:true},
   bing_ikon:{ad:'İkon — Bing (anahtarsız)',tur:'ikon',free:true},
   bing_cizim:{ad:'Çizim/illüstrasyon — Bing (anahtarsız)',tur:'cizim',free:true},
@@ -501,7 +502,7 @@ function srcChips(){
   const media=Object.keys(SRC).filter(k=>!SRC[k].ai&&k!=='emoji'&&k!=='site');
   const _c=cfg(); const usable0=media.filter(k=>!SRC[k].key||_c[SRC[k].key]); const all=usable0.length>0&&usable0.every(k=>ST.srcs.has(k));
   const chip=(k,t,on,fn)=>`<label style="cursor:pointer;border:1px solid ${on?'#58a6ff':'#30363d'};background:${on?'rgba(88,166,255,.15)':'transparent'};border-radius:999px;padding:.2rem .6rem;font-size:.78rem;white-space:nowrap"><input type="checkbox" style="display:none" ${on?'checked':''} onchange="${fn}">${t}</label>`;
-  const typeRow='<div style="width:100%;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center"><span class="my-muted">Ne toplansın:</span>'+TYPE_DEFS.filter(([t])=>usableOf(t).length).map(([t,l])=>chip('t_'+t,l,typeOn(t),`MY.typeToggle('${t}')`)).join('')+'</div>';
+  const typeRow='<div style="width:100%;display:flex;flex-wrap:wrap;gap:.35rem;align-items:center"><span class="my-muted">Ne toplansın:</span>'+TYPE_DEFS.filter(([t])=>usableOf(t).length||t==='video').map(([t,l])=>chip('t_'+t,l,typeOn(t),`MY.typeToggle('${t}')`)).join('')+'</div>';
   return typeRow+chip('all','✅ Tümü (kullanılabilir tüm kaynaklar)',all,"MY.srcAll()")+Object.entries(SRC).filter(([k,v])=>k!=='site'&&!v.ai&&k!=='emoji'&&(!v.key||_c[v.key])).map(([k,v])=>chip(k,v.ad.replace(/ \((anahtarsız|deneysel|anahtarsız, deneysel)\)/,'').replace(', Bing üzerinden',''),ST.srcs.has(k),`MY.srcToggle('${k}')`)).join('');
 }
 function srcRefresh(){
@@ -660,6 +661,18 @@ async function searchSrc(src,q,page){
   const c=cfg(); const s=SRC[src]; const k=s.key&&c[s.key];
   if(s.key&&!k) throw new Error(s.ad+' için API anahtarı yok. "⚙ Ayarlar" sekmesinden ekle (ücretsiz: '+s.link+').');
   const per=24;
+  if(src==='commons_vid'){
+    const one=async mime=>{
+      const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=20&gsroffset=${page*20}&gsrsearch=${encodeURIComponent(q+' filemime:'+mime)}&prop=imageinfo&iiprop=url|mime|size|extmetadata&iiurlwidth=320`;
+      const d=await jget(u); const pages=Object.values((d.query&&d.query.pages)||{});
+      return pages.map(p=>{ const ii=(p.imageinfo||[])[0]; if(!ii||!ii.url) return null;
+        return {id:'cv'+p.pageid,tur:'video',thumb:ii.thumburl||'',url:ii.url,mime:ii.mime||mime,ad:String(p.title||q).replace(/^File:/,'').replace(/\.[a-z0-9]+$/i,'').slice(0,60),kaynak:'wikimedia'}; }).filter(Boolean);
+    };
+    const [a,b]=await Promise.allSettled([one('video/webm'),one('video/mp4')]);
+    const out=[...(a.status==='fulfilled'?a.value:[]),...(b.status==='fulfilled'?b.value:[])];
+    if(!out.length&&a.status==='rejected'&&b.status==='rejected') throw a.reason;
+    return out;
+  }
   if(src==='giphy'){
     const d=await jget(`https://api.giphy.com/v1/gifs/search?api_key=${encodeURIComponent(k)}&q=${encodeURIComponent(q)}&limit=${per}&offset=${page*per}&lang=tr`);
     return (d.data||[]).map(g=>({id:'g'+g.id,tur:'gif',thumb:g.images?.fixed_width?.url||g.images?.original?.url,url:g.images?.original?.url,mime:'image/gif',ad:g.title||q,kaynak:'giphy'}));
