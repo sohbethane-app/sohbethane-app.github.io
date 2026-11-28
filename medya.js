@@ -112,7 +112,7 @@ function ui(){
   if($('my-modal')) return;
   const d=document.createElement('div'); d.id='my-modal'; d.setAttribute('translate','no'); d.className='notranslate';
   d.innerHTML=`<div id="my-box">
-  <div id="my-head"><b>🗂 Multimedya <span class="my-muted">(yalnızca yönetici)</span></b><button class="btn btn-secondary btn-sm" onclick="MY.close()">✕ Kapat</button></div>
+  <div id="my-head"><b>🗂 Multimedya <span class="my-muted">(yalnızca yönetici)</span></b> <span title="Tüm aramalar ve indirmeler sunucu üzerinden yapılır; erişim engellerini aşar. Her zaman açık." style="font-size:.75rem;background:rgba(63,185,80,.18);color:#3fb950;border:1px solid #3fb950;border-radius:999px;padding:.1rem .5rem;margin-left:.4rem">🛡 VPN aktif</span><button class="btn btn-secondary btn-sm" onclick="MY.close()">✕ Kapat</button></div>
   <div class="my-tabs">
     <div class="my-tab" data-t="lib" onclick="MY.tab('lib')">📚 Kütüphane</div>
     <div class="my-tab" data-t="topla" onclick="MY.tab('topla')">🔎 Topla</div>
@@ -195,13 +195,15 @@ async function loadKeys(){
     if(Object.keys(SK).length){ saveCfg(Object.assign({},c)); }
   }catch(e){ console.warn(e); }
 }
+// VPN modu: tüm arama/indirme istekleri sunucu (edge function) üzerinden gider — her zaman açık
+const VPN_ON=true;
 async function NJ(url,opts){
-  const direct=DIRECT_OK.test(hostOf(url)) && !/KEY(:|%3A)/i.test(JSON.stringify([url,opts&&opts.headers]));
+  const direct=!VPN_ON && DIRECT_OK.test(hostOf(url)) && !/KEY(:|%3A)/i.test(JSON.stringify([url,opts&&opts.headers]));
   if(direct){ try{ const w=await netWin(); const r=await w.netFetch(url,opts,'json'); if(!r.error) return r; }catch(e){} }
   return PJ(url,opts);
 }
 async function NB(url,opts){
-  if(DIRECT_OK.test(hostOf(url))){
+  if(!VPN_ON&&DIRECT_OK.test(hostOf(url))){
     try{ const w=await netWin(); const r=await w.netFetch(url,opts,'buf'); if(!r.error&&r.ok) return {blob:new Blob([r.buf],{type:(r.type||'').split(';')[0]}),type:(r.type||'').split(';')[0]}; }catch(e){}
   }
   return PB(url);
