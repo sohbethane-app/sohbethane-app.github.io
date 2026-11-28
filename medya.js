@@ -81,6 +81,12 @@ function css(){
 .my-lb-x{position:absolute;top:.5rem;right:.7rem;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;font-size:1.3rem;width:40px;height:40px;cursor:pointer}
 .my-lb-n{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:50%;font-size:2rem;width:44px;height:44px;cursor:pointer;z-index:2}
 .my-lb-n.l{left:.5rem}.my-lb-n.r{right:.5rem}
+.my-sitelist{display:flex;flex-direction:column;gap:.35rem;margin-top:.5rem}
+.my-siterow{display:flex;align-items:center;gap:.6rem;border:1px solid var(--brd,#30363d);border-radius:10px;padding:.5rem .7rem;cursor:pointer}
+.my-siterow.on{border-color:#58a6ff;background:rgba(88,166,255,.12)}
+.my-siterow .t{font-size:.88rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.my-siterow .u{font-size:.75rem;color:#8b949e}
+.my-siterow>div{flex:1}.my-siterow input{width:18px;height:18px}
 .my-badge{margin:0 .4rem .4rem;font-size:.7rem;color:#3fb950}
 .my-pick{position:fixed;z-index:100000;background:var(--bg2,#161b22);border:1px solid var(--brd,#30363d);border-radius:12px;padding:.6rem;box-shadow:0 10px 30px rgba(0,0,0,.5);max-height:70vh;overflow:auto}
 .my-pick-h{font-weight:600;font-size:.85rem;margin-bottom:.5rem}
@@ -456,6 +462,7 @@ MY.randomQuote=async function(){
 
 // ───────── toplama ─────────
 const SRC={
+  archive_vid:{ad:'Video — Internet Archive (uzun filmler/videolar, anahtarsız)',tur:'video',free:true},
   commons_vid:{ad:'Video — Wikimedia Commons (anahtarsız, açık lisans)',tur:'video',free:true},
   bing_vektor:{ad:'Vektörel — Bing (anahtarsız)',tur:'vektor',free:true},
   bing_ikon:{ad:'İkon — Bing (anahtarsız)',tur:'ikon',free:true},
@@ -511,21 +518,62 @@ function srcRefresh(){
   ST.src=[...ST.srcs][0]||'bing_img';
 }
 MY.siteType=function(t){ if(ST.siteTypes.has(t)) ST.siteTypes.delete(t); else ST.siteTypes.add(t); if(!ST.siteTypes.size) ST.siteTypes.add(t); ST.siteAddr=$('my-site')?.value||ST.siteAddr; renderTopla(); };
+const looksUrl=t=>/^https?:\/\//i.test(t)||(!/\s/.test(t)&&/\.[a-z]{2,}(\/|$|:)/i.test(t));
+function _decBing(h){ try{ const u=new URL(h); if(/bing\.com$/.test(u.hostname)&&u.pathname.startsWith('/ck/a')){ let v=u.searchParams.get('u')||''; if(v.startsWith('a1')) v=v.slice(2); v=v.replace(/-/g,'+').replace(/_/g,'/'); while(v.length%4) v+='='; return decodeURIComponent(escape(atob(v))); } }catch(e){} return h; }
+async function findSites(kw){
+  const tw=[]; if(ST.siteTypes.has('gif')) tw.push('gif'); if(ST.siteTypes.has('resim')) tw.push('photos gallery'); if(ST.siteTypes.has('video')) tw.push('videos');
+  const q=kw+' '+tw.join(' ');
+  const out=[]; const seen=new Set(); const skip=/(^|\.)(google|bing|yandex|duckduckgo|youtube|facebook|instagram|twitter|x|wikipedia|pinterest|reddit|tiktok|microsoft|yahoo)\.[a-z.]+$/i;
+  const add=(href,title)=>{ try{ const u=new URL(href); if(!/^https?:$/.test(u.protocol)) return; const h=u.hostname.replace(/^www\./,''); if(skip.test(h)||seen.has(h)) return; seen.add(h); out.push({url:u.origin+u.pathname,host:h,title:String(title||h).replace(/\s+/g,' ').slice(0,90)}); }catch(e){} };
+  try{ const j=await PH('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q)); const doc=new DOMParser().parseFromString(j.text||'','text/html');
+    doc.querySelectorAll('a.result__a').forEach(an=>{ let h=an.getAttribute('href')||''; const m=h.match(/[?&]uddg=([^&]+)/); if(m) h=decodeURIComponent(m[1]); else if(h.startsWith('//')) h='https:'+h; add(h,an.textContent); }); }catch(e){}
+  if(out.length<5){ try{ const j=await PH('https://www.bing.com/search?q='+encodeURIComponent(q)+'&count=30&setlang=en'); const doc=new DOMParser().parseFromString(j.text||'','text/html');
+    doc.querySelectorAll('li.b_algo h2 a').forEach(an=>add(_decBing(an.getAttribute('href')||''),an.textContent)); }catch(e){} }
+  return out.slice(0,30);
+}
 MY.siteScan=async function(){
   if(ST.busy) return;
   const a=($('my-site')?.value||'').trim(); ST.siteAddr=a;
-  if(!a){ toast('Site adresi yaz','error'); return; }
-  ST.res=[]; ST.sims={}; ST.sel=new Set(); ST.notes=[]; ST.lastQuery=a.replace(/^https?:\/\//i,'').split('/')[0]; ST.more=false; ST.doneSrc=new Set(); ST.pg={};
-  ST.busy=true; $('my-res').innerHTML='<div class="my-muted">Site taranıyor…</div>';
-  try{
-    const all=await siteSearch(a); const r=all.filter(x=>ST.siteTypes.has(x.tur)).map(x=>({...x,id:'site:'+x.id,src:'site'}));
-    const c={gif:0,resim:0,video:0}; all.forEach(x=>c[x.tur]++);
-    ST.notes=['Sitede bulunan: '+c.gif+' GIF, '+c.resim+' resim, '+c.video+' video'+(r.length<all.length?' — seçtiğin türlere göre '+r.length+' sonuç gösteriliyor':'')];
-    ST.res=r;
-    if(!r.length) $('my-res').innerHTML='<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+esc(ST.notes[0])+'</div><div class="my-muted">Seçili türde sonuç yok; yukarıdan başka tür de seç.</div>'; else drawRes(false);
-  }catch(e){ $('my-res').innerHTML='<div style="color:#f0883e;font-size:.85rem">'+esc(e.message||e)+'</div>'; }
-  ST.busy=false;
+  if(!a){ toast('Site adresi ya da anahtar kelime yaz','error'); return; }
+  if(!looksUrl(a)){ return MY.siteFind(a); }
+  return MY.siteScanMany([a.startsWith('http')?a:'https://'+a]);
 };
+MY.siteFind=async function(kw){
+  ST.busy=true; ST.siteList=[]; ST.siteSelU=new Set();
+  $('my-res').innerHTML='<div class="my-muted">“'+esc(kw)+'” için siteler aranıyor…</div>';
+  try{ ST.siteList=await findSites(kw); }catch(e){}
+  ST.busy=false; ST.siteKw=kw; drawSiteList();
+};
+function drawSiteList(){
+  const l=ST.siteList||[]; const sel=ST.siteSelU||new Set();
+  if(!l.length){ $('my-res').innerHTML='<div style="color:#f0883e;font-size:.85rem">Bu anahtar kelime için site bulunamadı. Farklı/İngilizce kelime dene ya da doğrudan site adresi yaz.</div>'; return; }
+  $('my-res').innerHTML=`<div class="my-row"><b>🔗 “${esc(ST.siteKw)}” için bulunan siteler (${l.length})</b>
+    <button class="btn btn-secondary btn-sm" onclick="MY.siteSelAll()">${sel.size===l.length?'Seçimi bırak':'☑ Tümünü seç'}</button>
+    <button class="btn btn-primary btn-sm" ${sel.size?'':'disabled'} onclick="MY.siteScanSel()">🔎 Seçilenleri tara (${sel.size})</button></div>
+    <div class="my-sitelist">${l.map((x,i)=>`<label class="my-siterow ${sel.has(x.url)?'on':''}"><input type="checkbox" ${sel.has(x.url)?'checked':''} onchange="MY.siteSelTog(${i})"><div style="min-width:0"><div class="t">${esc(x.title)}</div><div class="u">${esc(x.host)}</div></div><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="Siteyi aç">↗</a><button class="btn btn-secondary btn-sm" onclick="event.preventDefault();event.stopPropagation();MY.siteScanMany(['${esc(x.url)}'])">Tara</button></label>`).join('')}</div>`;
+}
+MY.siteSelTog=function(i){ const u=ST.siteList[i].url; if(ST.siteSelU.has(u)) ST.siteSelU.delete(u); else ST.siteSelU.add(u); drawSiteList(); };
+MY.siteSelAll=function(){ const l=ST.siteList||[]; if(ST.siteSelU.size===l.length) ST.siteSelU=new Set(); else l.forEach(x=>ST.siteSelU.add(x.url)); drawSiteList(); };
+MY.siteScanSel=function(){ MY.siteScanMany([...ST.siteSelU]); };
+MY.siteScanMany=async function(urls){
+  if(ST.busy||!urls.length) return;
+  ST.res=[]; ST.sims={}; ST.sel=new Set(); ST.notes=[]; ST.more=false; ST.doneSrc=new Set(); ST.pg={};
+  ST.lastQuery=(ST.siteKw&&urls.length>0&&!looksUrl(ST.siteAddr||'')?ST.siteKw:urls[0].replace(/^https?:\/\//i,'').split('/')[0]);
+  ST.busy=true; let done=0; const total=urls.length;
+  const upd=()=>{ $('my-res').innerHTML='<div class="my-muted">Siteler taranıyor… '+done+'/'+total+' ('+ST.res.length+' sonuç)</div>'; }; upd();
+  const all=[]; const seen=new Set(); const fails=[]; let idx=0;
+  const c={gif:0,resim:0,video:0};
+  async function worker(){ while(idx<urls.length){ const u=urls[idx++]; try{ const r=await siteSearch(u); const host=u.replace(/^https?:\/\//i,'').split('/')[0].replace(/^www\./,'');
+      r.forEach(x=>{ c[x.tur]++; if(!ST.siteTypes.has(x.tur)||seen.has(x.url)) return; seen.add(x.url); all.push({...x,ad:host+' · '+(x.ad||''),id:'site:'+host+':'+x.id,src:'site'}); });
+    }catch(e){ fails.push(u.replace(/^https?:\/\//i,'').split('/')[0]); } done++; ST.res=all; upd(); } }
+  await Promise.all([worker(),worker(),worker()]);
+  ST.res=all;
+  ST.notes=['Taranan: '+(total-fails.length)+'/'+total+' site — bulunan: '+c.gif+' GIF, '+c.resim+' resim, '+c.video+' video'+(fails.length?' · taranamayan: '+fails.slice(0,5).join(', '):'')];
+  ST.busy=false;
+  if(!all.length) $('my-res').innerHTML='<div style="color:#f0883e;font-size:.78rem;margin-bottom:.4rem">'+esc(ST.notes[0])+'</div><div class="my-muted">Seçili türde sonuç yok; başka tür seç ya da başka site dene.</div>'+(ST.siteList&&ST.siteList.length?'<div class="my-row"><button class="btn btn-secondary btn-sm" onclick="drawSiteListBack()">← Site listesine dön</button></div>':'');
+  else { drawRes(false); if(ST.siteList&&ST.siteList.length) $('my-res').insertAdjacentHTML('afterbegin','<div class="my-row"><button class="btn btn-secondary btn-sm" onclick="drawSiteListBack()">← Site listesine dön</button></div>'); }
+};
+window.drawSiteListBack=function(){ drawSiteList(); };
 MY.srcToggle=function(k){
   if(ST.srcs.has(k)) { ST.srcs.delete(k); if(!ST.srcs.size) ST.srcs.add(k); }
   else { if(k==='site') ST.srcs=new Set(['site']); else { ST.srcs.delete('site'); ST.srcs.add(k); } }
@@ -541,7 +589,7 @@ function renderTopla(){
   const fopts=ST.folders.map(f=>`<option value="${f.id}" ${f.id===ST.folderId?'selected':''}>${esc(f.ad)}</option>`).join('');
   body.innerHTML=`<div class="my-row" style="border:1px solid #1f6feb;border-radius:10px;padding:.5rem;background:rgba(31,111,235,.08)">
       <b style="width:100%;font-size:.85rem">🌐 Site adresinden topla <span class="my-muted" style="font-weight:400">(anahtar gerekmez)</span></b>
-      <input class="grow" id="my-site" placeholder="Site adresi yaz (örn. https://ornek.com/galeri)" value="${esc(ST.siteAddr||'')}" onkeydown="if(event.key==='Enter')MY.siteScan()">
+      <input class="grow" id="my-site" placeholder="Site adresi VEYA anahtar kelime (örn. ornek.com ya da kedi gif)" value="${esc(ST.siteAddr||'')}" onkeydown="if(event.key==='Enter')MY.siteScan()">
       <span class="my-muted">Ne taransın:</span>
       ${[['gif','🎞 GIF'],['resim','🖼 Resim'],['video','🎬 Video']].map(([t,l])=>siteChip('s_'+t,l,ST.siteTypes.has(t),`MY.siteType('${t}')`)).join('')}
       <button class="btn btn-primary btn-sm" onclick="MY.siteScan()">🔎 Siteyi tara</button>
@@ -657,11 +705,29 @@ async function googleFree(q,page,gif){
   if(!out.length) throw new Error('Google sonuç vermedi (sayfa yapısı değişmiş ya da erişim engellenmiş olabilir)');
   return out;
 }
+async function toEn(q){ try{ const d=await jget('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q='+encodeURIComponent(q)); const t=Array.isArray(d)&&Array.isArray(d[0])?d[0].map(x=>x&&x[0]).join(''):''; return (t||q).trim()||q; }catch(e){ return q; } }
+async function archiveVideos(q,page){
+  const qe=await toEn(q);
+  const d=await jget('https://archive.org/advancedsearch.php?q='+encodeURIComponent('('+qe+') AND mediatype:movies')+'&fl[]=identifier&fl[]=title&fl[]=runtime&rows=24&page='+(page+1)+'&sort[]=downloads+desc&output=json');
+  const docs=(d.response&&d.response.docs)||[];
+  const res=await Promise.allSettled(docs.map(async x=>{
+    const m=await jget('https://archive.org/metadata/'+encodeURIComponent(x.identifier));
+    const files=(m.files||[]).filter(f=>/\.(mp4|webm|m4v)$/i.test(f.name||'')&&!/_(thumb|small)\b/i.test(f.name));
+    if(!files.length) return null;
+    const lim=75*1024*1024; const ok=files.filter(f=>+f.size&&+f.size<=lim).sort((a,b)=>b.size-a.size);
+    const f=ok[0]||files.sort((a,b)=>(+a.size||1e12)-(+b.size||1e12))[0];
+    const mime=/\.webm$/i.test(f.name)?'video/webm':'video/mp4';
+    return {id:'ia'+x.identifier,tur:'video',thumb:'https://archive.org/services/img/'+encodeURIComponent(x.identifier),url:'https://archive.org/download/'+encodeURIComponent(x.identifier)+'/'+f.name.split('/').map(encodeURIComponent).join('/'),mime,ad:String(x.title||q).slice(0,60)+(x.runtime?' ['+x.runtime+']':''),kaynak:'archive.org'};
+  }));
+  return res.map(r=>r.status==='fulfilled'?r.value:null).filter(Boolean);
+}
 async function searchSrc(src,q,page){
   const c=cfg(); const s=SRC[src]; const k=s.key&&c[s.key];
   if(s.key&&!k) throw new Error(s.ad+' için API anahtarı yok. "⚙ Ayarlar" sekmesinden ekle (ücretsiz: '+s.link+').');
   const per=24;
+  if(src==='archive_vid') return archiveVideos(q,page);
   if(src==='commons_vid'){
+    q=await toEn(q);
     const one=async mime=>{
       const u=`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=20&gsroffset=${page*20}&gsrsearch=${encodeURIComponent(q+' filemime:'+mime)}&prop=imageinfo&iiprop=url|mime|size|extmetadata&iiurlwidth=320`;
       const d=await jget(u); const pages=Object.values((d.query&&d.query.pages)||{});
