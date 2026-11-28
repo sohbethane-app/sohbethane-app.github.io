@@ -2962,7 +2962,7 @@ let _autoRecvTranslate = true;
 // UTILITIES
 // ============================================================
 const b64e = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
-const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const b64d = s => { s=String(s==null?'':s).replace(/\s/g,'').replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); };
 const hex  = buf => Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 const TE   = new TextEncoder();
 const TD   = new TextDecoder();
@@ -3393,7 +3393,7 @@ function _medyaLoad(tab){
   if(!S.profile||!S.profile.yonetici) return;
   const go=()=>window.MY&&(tab==='inline'?window.MY.inline():window.MY.open(tab));
   if(window.MY){ go(); return; }
-  const sc=document.createElement('script'); sc.src='medya.js?v=20261128a'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
+  const sc=document.createElement('script'); sc.src='medya.js?v=20261128b'; sc.onload=go; sc.onerror=()=>toast('Multimedya yüklenemedi','error');
   document.head.appendChild(sc);
 }
 function _medyaButtons(){
@@ -3437,7 +3437,7 @@ async function startApp(){
   // Set initial favicon & tab title
   updateTabBadge();
   // Timed message cleanup
-  sb.rpc('sureli_mesaj_temizle').catch(()=>{});
+  Promise.resolve(sb.rpc('sureli_mesaj_temizle')).catch(()=>{});
   // Check invite hash
   checkInviteHash();
   // Notification permission
